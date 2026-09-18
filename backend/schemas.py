@@ -52,3 +52,70 @@ class EDAResult(BaseModel):
     correlation: dict[str, Any]
     histograms: list[dict[str, Any]]
     preview: list[dict[str, Any]]
+
+
+# --- AutoML -----------------------------------------------------------------
+
+class TrainRequest(BaseModel):
+    target: str
+    test_size: float = 0.2
+    cv_folds: int = 5
+
+
+class LeaderboardEntry(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    rank: Optional[int] = None
+    algorithm: str
+    cv_mean: Optional[float] = None
+    cv_std: Optional[float] = None
+    train_seconds: Optional[float] = None
+    metrics: dict[str, Any] = {}
+    status: str = "ok"
+    is_best: bool = False
+    model_id: Optional[int] = None
+
+
+class FeatureImportance(BaseModel):
+    feature: str
+    importance: float
+    std: float = 0.0
+
+
+class ExperimentResult(BaseModel):
+    experiment_id: int
+    dataset_id: int
+    task: str
+    target: str
+    features: list[str]
+    dropped_columns: list[str] = []
+    n_train: int
+    n_test: int
+    cv_folds: int
+    primary_metric: str
+    best_algorithm: str
+    best_metrics: dict[str, Any]
+    best_model_id: int
+    leaderboard: list[LeaderboardEntry]
+    feature_importance: list[FeatureImportance] = []
+
+
+class PredictRequest(BaseModel):
+    rows: list[dict[str, Any]]
+
+
+class PredictionOut(BaseModel):
+    row: dict[str, Any]
+    prediction: Any
+    confidence: Optional[float] = None
+    probabilities: Optional[dict[str, float]] = None
+
+
+class PredictResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    model_id: int
+    algorithm: str
+    task: str
+    target: str
+    results: list[PredictionOut]

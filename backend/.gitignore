@@ -4,5 +4,6 @@ __pycache__/
 predictwise.db
 uploads/
 cleaned/
+artifacts/
 server.log
 .env

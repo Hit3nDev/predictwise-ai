@@ -1,31 +1,31 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8000";
+export const api = axios.create({ baseURL: "http://localhost:8000" });
 
-export const api = axios.create({ baseURL: API_BASE_URL });
+const detail = (err, fallback) =>
+  err?.response?.data?.detail || fallback;
 
 export async function uploadDataset(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await api.post("/upload", formData, {
+  const fd = new FormData();
+  fd.append("file", file);
+  const { data } = await api.post("/upload", fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  return res.data;
+  return data;
 }
 
-export async function listDatasets() {
-  const res = await api.get("/datasets");
-  return res.data;
-}
+export const listDatasets = () => api.get("/datasets").then((r) => r.data);
 
-export async function cleanDataset(id, options) {
-  const res = await api.post(`/datasets/${id}/clean`, options);
-  return res.data;
-}
+export const cleanDataset = (id, options) =>
+  api.post(`/datasets/${id}/clean`, options).then((r) => r.data);
 
-export async function getEDA(id, useCleaned = true) {
-  const res = await api.get(`/datasets/${id}/eda`, {
-    params: { use_cleaned: useCleaned },
-  });
-  return res.data;
-}
+export const getEDA = (id, useCleaned = true) =>
+  api.get(`/datasets/${id}/eda`, { params: { use_cleaned: useCleaned } }).then((r) => r.data);
+
+export const trainModels = (id, body) =>
+  api.post(`/datasets/${id}/train`, body).then((r) => r.data);
+
+export const predict = (modelId, rows) =>
+  api.post(`/models/${modelId}/predict`, { rows }).then((r) => r.data);
+
+export { detail };

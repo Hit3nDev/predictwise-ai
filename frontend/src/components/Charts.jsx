@@ -1,31 +1,27 @@
 /**
- * Lightweight chart components built with plain SVG/CSS.
- * Deliberately dependency-free so the EDA dashboard works without a
- * charting library; can be swapped for Plotly/Recharts later if needed.
+ * Data displays.
+ *
+ * Plain SVG/CSS, no charting dependency. Color is used to carry meaning —
+ * the correlation scale runs clay (negative) through white to ink (positive),
+ * so hue encodes the sign rather than decorating the cell.
  */
 
-export function BarChart({ data, labelKey, valueKey, suffix = "" }) {
-  if (!data?.length) {
-    return <p className="text-sm text-slate-400">No data to display.</p>;
+export function MissingBars({ rows }) {
+  if (!rows.length) {
+    return <p className="text-[13px] text-ink">No missing values — every column is complete.</p>;
   }
-  const max = Math.max(...data.map((d) => d[valueKey])) || 1;
-
   return (
-    <div className="space-y-2">
-      {data.map((d) => (
-        <div key={d[labelKey]} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs text-slate-600" title={d[labelKey]}>
-            {d[labelKey]}
+    <div className="space-y-1.5">
+      {rows.map((r) => (
+        <div key={r.column} className="flex items-center gap-3">
+          <span className="num w-32 shrink-0 truncate text-[12px]" title={r.column}>
+            {r.column}
           </span>
-          <div className="h-5 flex-1 rounded bg-slate-100">
-            <div
-              className="h-5 rounded bg-accent transition-all"
-              style={{ width: `${(d[valueKey] / max) * 100}%` }}
-            />
+          <div className="h-3 flex-1 bg-field">
+            <div className="h-3 bg-clay/70" style={{ width: `${Math.min(r.missing_pct, 100)}%` }} />
           </div>
-          <span className="w-16 shrink-0 text-right text-xs tabular-nums text-slate-600">
-            {d[valueKey]}
-            {suffix}
+          <span className="num w-20 text-right text-[12px] text-slate/60">
+            {r.missing} · {r.missing_pct}%
           </span>
         </div>
       ))}
@@ -34,52 +30,46 @@ export function BarChart({ data, labelKey, valueKey, suffix = "" }) {
 }
 
 export function Histogram({ bins }) {
-  if (!bins?.length) return null;
-  const max = Math.max(...bins.map((b) => b.count)) || 1;
-
+  const max = Math.max(...bins.map((b) => b.count), 1);
   return (
-    <div className="flex h-32 items-end gap-1">
+    <div className="flex h-20 items-end gap-px">
       {bins.map((b, i) => (
-        <div key={i} className="group flex flex-1 flex-col items-center justify-end">
-          <span className="mb-1 text-[10px] text-slate-400 opacity-0 group-hover:opacity-100">
-            {b.count}
-          </span>
-          <div
-            className="w-full rounded-t bg-accent/80 transition-all group-hover:bg-accent"
-            style={{ height: `${(b.count / max) * 100}%`, minHeight: b.count ? "3px" : "0" }}
-            title={`${b.label}: ${b.count}`}
-          />
-        </div>
+        <div
+          key={i}
+          className="flex-1 bg-slate/25"
+          style={{ height: `${(b.count / max) * 100}%`, minHeight: b.count ? "2px" : 0 }}
+          title={`${b.label}: ${b.count}`}
+        />
       ))}
     </div>
   );
 }
 
-export function CorrelationHeatmap({ columns, matrix }) {
-  if (!columns?.length) {
+export function Heatmap({ columns, matrix }) {
+  if (!columns.length) {
     return (
-      <p className="text-sm text-slate-400">
+      <p className="text-[13px] text-slate/45">
         Needs at least two numeric columns to compute correlations.
       </p>
     );
   }
-
-  // Blue for positive correlation, red for negative, white near zero.
-  const cellColor = (v) => {
-    const a = Math.abs(v);
-    return v >= 0
-      ? `rgba(43, 108, 176, ${a.toFixed(2)})`
-      : `rgba(197, 48, 48, ${a.toFixed(2)})`;
-  };
+  const color = (v) =>
+    v >= 0
+      ? `rgba(47,125,110,${Math.abs(v).toFixed(2)})`
+      : `rgba(168,67,47,${Math.abs(v).toFixed(2)})`;
 
   return (
     <div className="overflow-x-auto">
-      <table className="border-collapse text-[11px]">
+      <table className="num border-separate border-spacing-px text-[11px]">
         <thead>
           <tr>
-            <th className="p-1" />
+            <th />
             {columns.map((c) => (
-              <th key={c} className="max-w-[70px] truncate p-1 text-left font-medium text-slate-500" title={c}>
+              <th
+                key={c}
+                className="max-w-[64px] truncate px-1 pb-1 text-left font-normal text-slate/50"
+                title={c}
+              >
                 {c}
               </th>
             ))}
@@ -88,18 +78,18 @@ export function CorrelationHeatmap({ columns, matrix }) {
         <tbody>
           {matrix.map((row, i) => (
             <tr key={columns[i]}>
-              <td className="max-w-[90px] truncate p-1 pr-2 font-medium text-slate-500" title={columns[i]}>
+              <td className="max-w-[90px] truncate pr-2 text-right text-slate/50" title={columns[i]}>
                 {columns[i]}
               </td>
               {row.map((v, j) => (
                 <td
                   key={j}
-                  className="h-9 w-14 border border-white text-center tabular-nums"
+                  className="h-8 w-14 text-center"
                   style={{
-                    backgroundColor: cellColor(v),
-                    color: Math.abs(v) > 0.55 ? "white" : "#334155",
+                    background: color(v),
+                    color: Math.abs(v) > 0.6 ? "#fff" : "rgba(16,19,26,.7)",
                   }}
-                  title={`${columns[i]} vs ${columns[j]}: ${v}`}
+                  title={`${columns[i]} × ${columns[j]}: ${v}`}
                 >
                   {v.toFixed(2)}
                 </td>
@@ -112,16 +102,60 @@ export function CorrelationHeatmap({ columns, matrix }) {
   );
 }
 
-export function StatCard({ label, value, tone = "default" }) {
-  const tones = {
-    default: "bg-white border-slate-200 text-navy",
-    warn: "bg-amber-50 border-amber-200 text-amber-800",
-    good: "bg-emerald-50 border-emerald-200 text-emerald-800",
-  };
+export function ImportanceBars({ items }) {
+  if (!items.length) {
+    return <p className="text-[13px] text-slate/45">Importance could not be computed.</p>;
+  }
+  const max = Math.max(...items.map((i) => Math.abs(i.importance)), 0.0001);
   return (
-    <div className={`rounded-lg border p-4 ${tones[tone]}`}>
-      <p className="text-2xl font-semibold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-slate-500">{label}</p>
+    <div className="space-y-1.5">
+      {items.map((f) => (
+        <div key={f.feature} className="flex items-center gap-3">
+          <span className="num w-32 shrink-0 truncate text-[12px]" title={f.feature}>
+            {f.feature}
+          </span>
+          <div className="h-3 flex-1 bg-field">
+            <div
+              className="h-3 bg-ink/70"
+              style={{ width: `${(Math.abs(f.importance) / max) * 100}%` }}
+            />
+          </div>
+          <span className="num w-16 text-right text-[12px] text-slate/60">
+            {f.importance.toFixed(3)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function DataTable({ rows, maxHeight = "auto" }) {
+  if (!rows?.length) return null;
+  const cols = Object.keys(rows[0]);
+  return (
+    <div className="overflow-auto" style={{ maxHeight }}>
+      <table className="w-full text-left text-[12px]">
+        <thead className="sticky top-0 bg-field">
+          <tr>
+            {cols.map((c) => (
+              <th key={c} className="num whitespace-nowrap px-4 py-2 font-medium text-slate/55">
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-t border-rule/60">
+              {cols.map((c) => (
+                <td key={c} className="num whitespace-nowrap px-4 py-1.5">
+                  {String(r[c])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
