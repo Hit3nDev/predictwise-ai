@@ -3,5 +3,6 @@ __pycache__/
 *.pyc
 predictwise.db
 uploads/
+cleaned/
 server.log
 .env

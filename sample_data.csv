@@ -1,0 +1,14 @@
+customer_id,age,income,city,score,purchased
+1,25,50000, Delhi ,7.2,0
+2,32,64000,Mumbai,8.1,1
+3,,120000,Delhi,9.0,1
+4,23,42000,,6.5,0
+5,51,98000,Bangalore,,1
+6,29,55000,Mumbai,7.8,0
+7,41,87000,Delhi,8.4,1
+8,35,,Mumbai,7.1,0
+9,47,999999,Bangalore,9.5,1
+10,28,51000, Delhi,6.9,0
+10,28,51000,Delhi,6.9,0
+11,38,72000,Mumbai,8.0,1
+12,26,48000,Delhi,7.0,0
