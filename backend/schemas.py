@@ -119,3 +119,42 @@ class PredictResponse(BaseModel):
     task: str
     target: str
     results: list[PredictionOut]
+
+
+# --- Simple Mode --------------------------------------------------------
+
+class TemplateAvailability(BaseModel):
+    id: str
+    label: str
+    hint: str
+    available: bool
+    reason: Optional[str] = None
+
+
+class AskRequest(BaseModel):
+    question: Optional[str] = None
+    template_id: Optional[str] = None
+
+
+class FieldSpec(BaseModel):
+    name: str
+    label: str
+    type: str                    # "number" | "select"
+    options: Optional[list[str]] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+    typical: Optional[float] = None
+
+
+class AskResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    matched_template: str
+    matched_label: str
+    kind: str                     # "profile" | "ranking" | "predictable"
+    narrative: list[str]
+    target: Optional[str] = None
+    experiment_id: Optional[int] = None
+    model_id: Optional[int] = None
+    fields: list[FieldSpec] = []
+    ranking: Optional[list[dict]] = None

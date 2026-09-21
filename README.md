@@ -3,12 +3,20 @@
 An Explainable AutoML and Decision Intelligence Platform.
 Final year specialization project — Hiten Mandhyan (24215117).
 
-Take a spreadsheet from raw file to a trained, explained, queryable model
-without writing code.
+Two experiences, one engine:
+
+- **Simple Mode** — for someone with no data background (a shop owner, a small
+  business). Ask a plain-English question or pick one from a library, and get
+  a sentence back, not a leaderboard.
+- **Technical Mode** — the full pipeline: cleaning options, EDA, cross-validated
+  model comparison, permutation importance, raw metrics.
+
+A toggle in the header switches between them at any point without losing the
+selected dataset.
 
 ## What works today
 
-The full pipeline runs end to end: **upload → clean → explore → model → predict**.
+Full pipeline end to end in both modes: **upload → clean → explore → model → predict.**
 
 | Module | Status |
 |---|---|
@@ -18,65 +26,82 @@ The full pipeline runs end to end: **upload → clean → explore → model → 
 | 5 · AutoML model builder | done |
 | 6 · Model registry & versioning | done |
 | 7 · Prediction + feature attribution | done (permutation importance; SHAP next) |
+| **10 · Plain-language insight engine (Simple Mode)** | **done** |
 | 1 · Auth & roles | not started |
 | 8 · Bias & fairness auditor | not started |
 | 9 · LLM report generator | not started |
 | 11 · Drift monitoring | not started |
 
+### How Simple Mode works (`insights.py`)
+
+A shop owner doesn't think in "target columns" — they think in questions. Four
+templates cover most small-business questions:
+
+- **"What does my data look like?"** — always-available plain-English profile
+- **"Will this happen again?"** — classification on a detected yes/no column
+  (purchased, churned, renewed, returned...)
+- **"What number should I expect?"** — regression on a detected numeric target
+  (price, revenue, sales...)
+- **"What's doing best?"** — ranks categories/products/locations by a business
+  number, no modelling involved
+
+A free-text question is keyword-matched to the closest template; if it can't
+be matched confidently, or the matched template isn't answerable on this
+dataset (e.g. no yes/no column exists), it falls back to the profile and says
+why. Columns are found by scanning names for business keywords, then by shape
+(binary, high-variance, non-identifier) — this is a heuristic, not an LLM call,
+and is written so swapping in a real LLM later (Module 9) is a small change to
+`match_question()`, not a redesign.
+
+Answers to predictable questions come with a mini form of just the 3–4 most
+important fields (by permutation importance), with plain labels and a typical
+value range — not the full column list Technical Mode's Predict stage shows.
+
 ### AutoML details
 
-- Detects classification vs regression from the target column
-- Trains 4–5 candidate algorithms (linear/logistic, tree, random forest,
-  gradient boosting, ridge) inside a single sklearn `Pipeline`, so imputation
-  and scaling are fitted on training folds only — no leakage
-- **Selects the winner by cross-validated score on training data**, then
-  reports held-out test metrics separately as an unbiased estimate
-- Drops identifier-like columns automatically
-- Computes permutation feature importance for the winner
-- Saves the fitted pipeline with joblib so predictions can be served later
-- Every candidate, metric and prediction is persisted
+- Detects classification vs regression from the target column; a corrected
+  identifier heuristic (name pattern + sequential-integer check, not just
+  "all values unique") stops continuous targets like `price` from being
+  mistaken for row IDs
+- Trains 4–5 candidates inside one sklearn `Pipeline` so imputation/scaling
+  fit on training folds only — no leakage
+- **Selects the winner by cross-validated score**, reports held-out test
+  metrics separately as an unbiased estimate (an earlier version selected on
+  the test set itself, which leaks it into model choice — fixed)
+- Computes permutation feature importance; saves the fitted pipeline with
+  joblib so predictions can be served later
 
 ## Tech stack
 
 - **Backend:** FastAPI, SQLAlchemy, pandas, NumPy, scikit-learn, joblib
-- **Frontend:** React, Vite, Tailwind
-- **Database:** SQLite in development; the connection string in `database.py`
-  is the only change needed for PostgreSQL
-- **Next:** SHAP/LIME, Optuna tuning, LLM reports, drift monitoring
+- **Frontend:** React, Vite, Tailwind — custom design system (Archivo +
+  JetBrains Mono, hairline-rule aesthetic, no template-kit defaults)
+- **Database:** SQLite in development; `database.py`'s connection string is
+  the only change needed for PostgreSQL
+- **Next:** SHAP/LIME, Optuna tuning, LLM-backed question matching, drift monitoring
 
 ## Running it
 
 Two terminals.
 
 **Backend**
-
 ```bash
 cd backend
 python -m venv venv
-
-# Windows (PowerShell)
-venv\Scripts\activate
-# macOS / Linux
-source venv/bin/activate
-
+venv\Scripts\activate        # macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-API docs: http://localhost:8000/docs
-
 **Frontend**
-
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-App: http://localhost:5173
-
-`sample_data.csv` (messy, small) and `sample_customers.csv` (300 rows, real
-signal — good for training) are included to try it with.
+App: http://localhost:5173 — `sample_customers.csv` and `sample_data.csv` are
+included to try both modes with.
 
 ## API
 
@@ -85,12 +110,11 @@ signal — good for training) are included to try it with.
 | GET | `/health` | Liveness check |
 | POST | `/upload` | Upload and profile a dataset |
 | GET | `/datasets` | List datasets |
-| GET | `/datasets/{id}` | One dataset's profile |
 | POST | `/datasets/{id}/clean` | Run preprocessing |
-| GET | `/datasets/{id}/cleaning-log` | Operations applied |
 | GET | `/datasets/{id}/eda` | Full EDA profile |
-| POST | `/datasets/{id}/train` | Run AutoML |
-| GET | `/datasets/{id}/experiments` | Training history |
+| POST | `/datasets/{id}/train` | Run AutoML (Technical Mode) |
+| GET | `/datasets/{id}/question-templates` | Which Simple Mode questions this dataset can answer |
+| POST | `/datasets/{id}/ask` | Ask a Simple Mode question |
 | GET | `/experiments/{id}` | Leaderboard + importance |
 | POST | `/models/{id}/predict` | Predict on new rows |
 
@@ -98,39 +122,52 @@ signal — good for training) are included to try it with.
 
 ```
 backend/
-  main.py       routes
+  main.py       routes (incl. _persist_experiment, shared by /train and /ask)
   automl.py     task detection, training, leaderboard, importance
+  insights.py   Simple Mode: question templates, column detection, narration
   cleaning.py   preprocessing pipeline
   eda.py        profiling
   models.py     User, Dataset, CleaningLog, Experiment, MLModel, Prediction
-  schemas.py    request/response contracts
-  database.py   engine and session
 frontend/src/
-  App.jsx                 pipeline shell
+  App.jsx                    mode toggle + shared dataset state
   components/
-    ui.jsx                interface primitives
-    charts.jsx            histogram, heatmap, importance bars
-    stages.jsx            data / clean / explore
-    modelStages.jsx       model / predict
-    Leaderboard.jsx       ranked models with score bars
+    SimpleMode.jsx           3-step plain-language flow
+    TechnicalMode.jsx        5-stage pipeline shell
+    ui.jsx, charts.jsx, Leaderboard.jsx, stages.jsx, modelStages.jsx
+  index.css, tailwind.config.js   design tokens (RGB-triplet CSS vars —
+                                    required for Tailwind opacity modifiers
+                                    to work with custom colors; see log)
 ```
 
 ## Progress log
 
-- **Day 1** — Repo, FastAPI backend, upload endpoint with validation and
-  pandas profiling, SQLite persistence, React upload form.
-- **Day 2** — Cleaning pipeline (configurable imputation, duplicate removal,
-  IQR clipping) with a `CleaningLog` row per operation. EDA engine: column
-  profiles, missing-value summary, correlations, histograms.
-  Fixed two pipeline bugs: duplicates were dropped before whitespace was
-  normalised, so `" Delhi "` and `"Delhi"` never matched; and `astype(str)`
-  turned `NaN` into the string `"nan"`, hiding missing values from imputation.
-- **Day 3** — AutoML engine: task inference, leak-free preprocessing pipelines,
-  multi-algorithm training with cross-validation, leaderboard, permutation
-  importance, model persistence, and a prediction endpoint with class
-  probabilities. Added Experiment / MLModel / Prediction tables.
-  **Corrected a model-selection error:** the leaderboard originally ranked by
-  test-set score, which leaks the held-out set into model choice and inflates
-  the reported metric. Selection now uses cross-validated training scores and
-  the test set is only reported afterwards.
-  Frontend rebuilt around the five pipeline stages.
+- **Day 1** — Upload pipeline, SQLite persistence, basic React form.
+- **Day 2** — Cleaning pipeline + EDA engine. Fixed a whitespace/duplicate
+  ordering bug and a `NaN`→`"nan"` string bug that hid missing values from
+  imputation.
+- **Day 3** — AutoML engine: leak-free pipelines, cross-validated leaderboard,
+  permutation importance, prediction API. Fixed a test-set-leakage bug in
+  model selection. Frontend rebuilt around a custom design system.
+- **Day 4** — Simple Mode: a plain-language insight engine so a non-technical
+  user can ask a business question instead of picking a target column and
+  reading a metrics table. Always-visible Simple/Technical toggle, shared
+  dataset state across both.
+  **Bugs found and fixed during testing:**
+  - `top_performers` picked `age` as a ranking metric (summing ages across a
+    city is meaningless) — added a demographic-column skip list.
+  - The identifier-exclusion heuristic (`nunique == row count`) wrongly
+    excluded genuine continuous targets like `price`, which are normally
+    all-unique due to noise — replaced with a proper check (name pattern or
+    sequential integers), applied consistently in both `automl.py` and
+    `insights.py`.
+  - Simple Mode showed raw `1`/`0` model output for yes/no questions —
+    added plain-language translation ("Yes"/"No") scoped to that question type.
+  - **The entire custom color system was silently broken:** CSS variables
+    were defined as hex strings (`--ink: #2f7d6e`) and referenced directly in
+    Tailwind's config, which cannot combine a variable it can't see inside of
+    with an opacity modifier at build time. Every `bg-ink/70`, `text-slate/50`,
+    `border-rule/70` class in the app — dozens of them — was rendering
+    without its intended opacity. Fixed by switching to RGB-triplet variables
+    (`--ink: 47 125 110`) with Tailwind's documented `rgb(var(--x) / <alpha-value>)`
+    pattern. Caught by inspecting a chart that rendered as flat grey instead
+    of colored bars, not by reading the code.

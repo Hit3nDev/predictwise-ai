@@ -208,10 +208,19 @@ def run_automl(
     X = data.drop(columns=[target])
 
     # Drop columns that are almost certainly identifiers rather than features.
-    id_like = [
-        c for c in X.columns
-        if X[c].nunique(dropna=True) == len(X) and not pd.api.types.is_float_dtype(X[c])
-    ]
+    def _looks_like_id(series: pd.Series, name: str) -> bool:
+        lname = name.lower()
+        if lname == "id" or lname.endswith("_id") or lname.endswith("id") or lname == "index":
+            return True
+        if pd.api.types.is_integer_dtype(series):
+            s = series.dropna()
+            if len(s) > 1 and s.nunique() == len(s):
+                ordered = s.sort_values().reset_index(drop=True)
+                if (ordered.diff().dropna() == 1).all():
+                    return True
+        return False
+
+    id_like = [c for c in X.columns if _looks_like_id(X[c], c)]
     if id_like:
         X = X.drop(columns=id_like)
     if X.empty:

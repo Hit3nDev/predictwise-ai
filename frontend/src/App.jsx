@@ -1,192 +1,50 @@
 import { useEffect, useState } from "react";
-import {
-  uploadDataset, listDatasets, cleanDataset, getEDA, trainModels, predict, detail,
-} from "./api";
-import { Notice } from "./components/ui";
-import { DataStage, CleanStage, ExploreStage } from "./components/stages";
-import { ModelStage, PredictStage } from "./components/modelStages";
-
-const STAGES = [
-  { id: "data",    name: "Data",    hint: "upload a file" },
-  { id: "clean",   name: "Clean",   hint: "fix gaps and repeats" },
-  { id: "explore", name: "Explore", hint: "see what's in it" },
-  { id: "model",   name: "Model",   hint: "train and compare" },
-  { id: "predict", name: "Predict", hint: "run it on new rows" },
-];
+import { listDatasets } from "./api";
+import TechnicalMode from "./components/TechnicalMode";
+import SimpleMode from "./components/SimpleMode";
 
 export default function App() {
-  const [stage, setStage] = useState("data");
-  const [datasets, setDatasets] = useState([]);
+  const [mode, setMode] = useState("simple");   // simple | technical
   const [dataset, setDataset] = useState(null);
-  const [cleanResult, setCleanResult] = useState(null);
-  const [eda, setEda] = useState(null);
-  const [training, setTraining] = useState(null);
-  const [prediction, setPrediction] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [datasets, setDatasets] = useState([]);
 
   const refresh = () => listDatasets().then(setDatasets).catch(() => {});
   useEffect(() => { refresh(); }, []);
 
-  const run = async (fn, onDone) => {
-    setBusy(true); setError("");
-    try { onDone(await fn()); }
-    catch (e) { setError(detail(e, "The server didn't respond. Is the backend running?")); }
-    finally { setBusy(false); }
-  };
-
-  const resetDownstream = () => {
-    setCleanResult(null); setEda(null); setTraining(null); setPrediction(null);
-  };
-
-  const handleUpload = (file) =>
-    file && run(() => uploadDataset(file), (d) => {
-      setDataset(d); resetDownstream(); refresh(); setStage("clean");
-    });
-
-  const handleSelect = (d) => { setDataset(d); resetDownstream(); setStage("clean"); };
-
-  const handleClean = (opts) =>
-    run(() => cleanDataset(dataset.id, opts), (r) => {
-      setCleanResult(r); setEda(null); refresh();
-    });
-
-  const handleEDA = () =>
-    run(() => getEDA(dataset.id, true), (r) => { setEda(r); setStage("explore"); });
-
-  const handleTrain = (target) =>
-    run(() => trainModels(dataset.id, { target }), (r) => {
-      setTraining(r); setPrediction(null); setStage("model");
-    });
-
-  const handlePredict = (row) =>
-    run(() => predict(training.best_model_id, [row]), setPrediction);
-
-  const reachable = (id) => {
-    if (id === "data") return true;
-    if (!dataset) return false;
-    if (id === "predict") return Boolean(training);
-    return true;
-  };
-
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      {/* ---- rail: the pipeline is a real sequence, so it's numbered ---- */}
-      <nav className="shrink-0 bg-slate text-white md:w-60">
-        <div className="border-b border-white/10 px-5 py-5">
-          <p className="text-[17px] tracking-tight">PredictWise</p>
-          <p className="mt-0.5 text-[11px] text-white/45">
-            from a spreadsheet to a prediction
-          </p>
+    <div className="min-h-screen">
+      {/* Always-visible mode switch — either audience can flip at any point,
+          without losing the dataset they've already picked. */}
+      <header className="flex items-center justify-between border-b border-rule bg-paper px-5 py-3">
+        <span className="text-[14px] tracking-tight">PredictWise</span>
+
+        <div className="flex border border-rule">
+          <button
+            onClick={() => setMode("simple")}
+            className={`px-3.5 py-1.5 text-[12px] font-medium transition-colors ${
+              mode === "simple" ? "bg-ink text-white" : "text-slate/55 hover:text-slate"
+            }`}
+          >
+            Simple
+          </button>
+          <button
+            onClick={() => setMode("technical")}
+            className={`px-3.5 py-1.5 text-[12px] font-medium transition-colors ${
+              mode === "technical" ? "bg-ink text-white" : "text-slate/55 hover:text-slate"
+            }`}
+          >
+            Technical
+          </button>
         </div>
+      </header>
 
-        <ol className="flex md:block">
-          {STAGES.map((s, i) => {
-            const on = stage === s.id;
-            const ok = reachable(s.id);
-            return (
-              <li key={s.id} className="flex-1">
-                <button
-                  onClick={() => ok && setStage(s.id)}
-                  disabled={!ok}
-                  className={`w-full border-b border-white/10 px-5 py-3 text-left transition-colors
-                    ${on ? "bg-white/[0.09]" : ok ? "hover:bg-white/[0.05]" : "opacity-30"}`}
-                >
-                  <span className="flex items-baseline gap-2.5">
-                    <span className="num text-[11px] text-white/40">{i + 1}</span>
-                    <span className="text-[14px]">{s.name}</span>
-                  </span>
-                  <span className="mt-0.5 hidden pl-[22px] text-[11px] text-white/40 md:block">
-                    {s.hint}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-
-        {dataset && (
-          <div className="hidden px-5 py-4 md:block">
-            <p className="num truncate text-[12px] text-white/70">{dataset.file_name}</p>
-            <p className="num mt-0.5 text-[11px] text-white/40">
-              {dataset.row_count} × {dataset.column_count}
-              {dataset.is_cleaned && " · cleaned"}
-            </p>
-          </div>
+      <div className="min-h-[calc(100vh-49px)] bg-field">
+        {mode === "simple" ? (
+          <SimpleMode dataset={dataset} setDataset={setDataset} datasets={datasets} refresh={refresh} />
+        ) : (
+          <TechnicalMode dataset={dataset} setDataset={setDataset} datasets={datasets} refresh={refresh} />
         )}
-      </nav>
-
-      {/* ---- work area ---- */}
-      <main className="min-w-0 flex-1 p-5 md:p-8">
-        <div className="mx-auto max-w-5xl space-y-5">
-          {error && <Notice>{error}</Notice>}
-
-          {stage === "data" && (
-            <DataStage
-              datasets={datasets}
-              active={dataset}
-              onUpload={handleUpload}
-              onSelect={handleSelect}
-              busy={busy}
-            />
-          )}
-
-          {stage === "clean" && dataset && (
-            <>
-              <CleanStage onClean={handleClean} busy={busy} result={cleanResult} />
-              <button
-                onClick={handleEDA}
-                disabled={busy}
-                className="w-full border border-slate/25 py-2.5 text-[13px] hover:border-ink hover:text-ink disabled:opacity-40"
-              >
-                Continue to exploration
-              </button>
-            </>
-          )}
-
-          {stage === "explore" && dataset && (
-            <>
-              <ExploreStage eda={eda} onRun={handleEDA} busy={busy} />
-              {eda && (
-                <button
-                  onClick={() => setStage("model")}
-                  className="w-full border border-slate/25 py-2.5 text-[13px] hover:border-ink hover:text-ink"
-                >
-                  Continue to modelling
-                </button>
-              )}
-            </>
-          )}
-
-          {stage === "model" && dataset && (
-            <>
-              <ModelStage
-                dataset={dataset}
-                result={training}
-                onTrain={handleTrain}
-                busy={busy}
-              />
-              {training && (
-                <button
-                  onClick={() => setStage("predict")}
-                  className="w-full border border-slate/25 py-2.5 text-[13px] hover:border-ink hover:text-ink"
-                >
-                  Continue to prediction
-                </button>
-              )}
-            </>
-          )}
-
-          {stage === "predict" && (
-            <PredictStage
-              result={training}
-              onPredict={handlePredict}
-              busy={busy}
-              output={prediction}
-            />
-          )}
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

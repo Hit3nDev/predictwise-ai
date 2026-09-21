@@ -29,3 +29,9 @@ export const predict = (modelId, rows) =>
   api.post(`/models/${modelId}/predict`, { rows }).then((r) => r.data);
 
 export { detail };
+
+export const getQuestionTemplates = (id) =>
+  api.get(`/datasets/${id}/question-templates`).then((r) => r.data);
+
+export const askQuestion = (id, body) =>
+  api.post(`/datasets/${id}/ask`, body).then((r) => r.data);

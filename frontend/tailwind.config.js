@@ -4,12 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        slate: "var(--slate)",
-        paper: "var(--paper)",
-        field: "var(--field)",
-        rule: "var(--rule)",
-        ink: "var(--ink)",
-        clay: "var(--clay)",
+        slate: "rgb(var(--slate) / <alpha-value>)",
+        paper: "rgb(var(--paper) / <alpha-value>)",
+        field: "rgb(var(--field) / <alpha-value>)",
+        rule: "rgb(var(--rule) / <alpha-value>)",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        clay: "rgb(var(--clay) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["Archivo", "system-ui", "sans-serif"],

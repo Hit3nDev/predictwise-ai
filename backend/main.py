@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 
 import automl
 import cleaning
+import insights
 import eda as eda_service
 import models
 import schemas
@@ -242,6 +243,84 @@ def get_eda(
 # AutoML — training, leaderboard, prediction
 # ----------------------------------------------------------------------------
 
+def _persist_experiment(db: Session, dataset_id: int, result: dict):
+    """
+    Persist one AutoML run: an Experiment row, one MLModel row per candidate,
+    and a saved joblib artifact for the winner. Shared by /train and /ask so
+    a Simple Mode question and a Technical Mode training run produce the same
+    kind of record and can both later serve predictions.
+    """
+    experiment = models.Experiment(
+        dataset_id=dataset_id,
+        target_column=result["target"],
+        task_type=result["task"],
+        status="completed",
+        primary_metric=result["primary_metric"],
+        n_train=result["n_train"],
+        n_test=result["n_test"],
+        cv_folds=result["cv_folds"],
+        features_json=json.dumps(result["features"]),
+    )
+    db.add(experiment)
+    db.flush()
+
+    best_model_id = None
+    entries: list[schemas.LeaderboardEntry] = []
+
+    for entry in result["leaderboard"]:
+        is_best = entry["algorithm"] == result["best_algorithm"] and entry["status"] == "ok"
+
+        record = models.MLModel(
+            experiment_id=experiment.id,
+            algorithm=entry["algorithm"],
+            rank=entry.get("rank"),
+            is_best=1 if is_best else 0,
+            cv_mean=entry.get("cv_mean"),
+            cv_std=entry.get("cv_std"),
+            train_seconds=entry.get("train_seconds"),
+            metrics_json=json.dumps(entry.get("metrics", {})),
+            status=entry["status"],
+        )
+
+        if is_best:
+            record.importance_json = json.dumps(result["feature_importance"])
+            record.classes_json = json.dumps(result["_classes"]) if result["_classes"] else None
+
+        db.add(record)
+        db.flush()
+
+        if is_best:
+            artifact_path = os.path.join(MODEL_DIR, f"model_{record.id}.joblib")
+            joblib.dump(
+                {
+                    "pipeline": result["_pipeline"],
+                    "features": result["features"],
+                    "task": result["task"],
+                    "target": result["target"],
+                },
+                artifact_path,
+            )
+            record.artifact_path = artifact_path
+            best_model_id = record.id
+
+        entries.append(
+            schemas.LeaderboardEntry(
+                rank=entry.get("rank"),
+                algorithm=entry["algorithm"],
+                cv_mean=entry.get("cv_mean"),
+                cv_std=entry.get("cv_std"),
+                train_seconds=entry.get("train_seconds"),
+                metrics=entry.get("metrics", {}),
+                status=entry["status"],
+                is_best=is_best,
+                model_id=record.id,
+            )
+        )
+
+    db.commit()
+    return experiment, best_model_id, entries
+
+
 @app.post("/datasets/{dataset_id}/train", response_model=schemas.ExperimentResult)
 def train_models(
     dataset_id: int,
@@ -271,75 +350,7 @@ def train_models(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Training failed: {exc}")
 
-    experiment = models.Experiment(
-        dataset_id=d.id,
-        target_column=result["target"],
-        task_type=result["task"],
-        status="completed",
-        primary_metric=result["primary_metric"],
-        n_train=result["n_train"],
-        n_test=result["n_test"],
-        cv_folds=result["cv_folds"],
-        features_json=json.dumps(result["features"]),
-    )
-    db.add(experiment)
-    db.flush()  # assigns experiment.id without committing yet
-
-    best_model_id = None
-    entries: list[schemas.LeaderboardEntry] = []
-
-    for entry in result["leaderboard"]:
-        is_best = entry["algorithm"] == result["best_algorithm"] and entry["status"] == "ok"
-
-        record = models.MLModel(
-            experiment_id=experiment.id,
-            algorithm=entry["algorithm"],
-            rank=entry.get("rank"),
-            is_best=1 if is_best else 0,
-            cv_mean=entry.get("cv_mean"),
-            cv_std=entry.get("cv_std"),
-            train_seconds=entry.get("train_seconds"),
-            metrics_json=json.dumps(entry.get("metrics", {})),
-            status=entry["status"],
-        )
-
-        if is_best:
-            record.importance_json = json.dumps(result["feature_importance"])
-            record.classes_json = json.dumps(result["_classes"]) if result["_classes"] else None
-
-        db.add(record)
-        db.flush()
-
-        if is_best:
-            # Persist the fitted pipeline so /predict can load it later.
-            artifact_path = os.path.join(MODEL_DIR, f"model_{record.id}.joblib")
-            joblib.dump(
-                {
-                    "pipeline": result["_pipeline"],
-                    "features": result["features"],
-                    "task": result["task"],
-                    "target": result["target"],
-                },
-                artifact_path,
-            )
-            record.artifact_path = artifact_path
-            best_model_id = record.id
-
-        entries.append(
-            schemas.LeaderboardEntry(
-                rank=entry.get("rank"),
-                algorithm=entry["algorithm"],
-                cv_mean=entry.get("cv_mean"),
-                cv_std=entry.get("cv_std"),
-                train_seconds=entry.get("train_seconds"),
-                metrics=entry.get("metrics", {}),
-                status=entry["status"],
-                is_best=is_best,
-                model_id=record.id,
-            )
-        )
-
-    db.commit()
+    experiment, best_model_id, entries = _persist_experiment(db, d.id, result)
 
     return schemas.ExperimentResult(
         experiment_id=experiment.id,
@@ -514,3 +525,130 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
         target=target,
         results=results,
     )
+
+
+# ----------------------------------------------------------------------------
+# Simple Mode — plain-language questions instead of columns and metrics
+# ----------------------------------------------------------------------------
+
+def _round_display(v):
+    """Whole numbers for anything currency/count-scale; a little precision for small values."""
+    if v is None:
+        return None
+    if abs(v) >= 100:
+        return round(v)
+    if abs(v) >= 1:
+        return round(v, 1)
+    return round(v, 3)
+
+
+def _field_spec(df: pd.DataFrame, col: str) -> schemas.FieldSpec:
+    if pd.api.types.is_numeric_dtype(df[col]):
+        s = df[col].dropna()
+        return schemas.FieldSpec(
+            name=col, label=insights.pretty(col), type="number",
+            min=_round_display(float(s.min())) if len(s) else None,
+            max=_round_display(float(s.max())) if len(s) else None,
+            typical=_round_display(float(s.median())) if len(s) else None,
+        )
+    options = sorted(df[col].dropna().astype(str).unique().tolist())[:8]
+    return schemas.FieldSpec(name=col, label=insights.pretty(col), type="select", options=options)
+
+
+@app.get("/datasets/{dataset_id}/question-templates", response_model=list[schemas.TemplateAvailability])
+def question_templates(dataset_id: int, db: Session = Depends(get_db)):
+    """Which plain-language questions this dataset can actually answer, and why not."""
+    d = _get_dataset_or_404(dataset_id, db)
+    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    try:
+        df = _read_any(path)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not read dataset: {exc}")
+
+    avail = insights.availability(df)
+    return [
+        schemas.TemplateAvailability(
+            id=t["id"],
+            label=t["label"],
+            hint=t["hint"],
+            available=avail[t["id"]]["available"],
+            reason=avail[t["id"]]["reason"],
+        )
+        for t in insights.TEMPLATES
+    ]
+
+
+@app.post("/datasets/{dataset_id}/ask", response_model=schemas.AskResponse)
+def ask_question(dataset_id: int, req: schemas.AskRequest, db: Session = Depends(get_db)):
+    """
+    The Simple Mode entry point: resolve a template card or free-text question
+    to one of the plain-language answer types, running AutoML underneath when
+    the question needs a prediction.
+    """
+    d = _get_dataset_or_404(dataset_id, db)
+    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    try:
+        df = _read_any(path)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not read dataset: {exc}")
+
+    template_id = req.template_id or insights.match_question(req.question or "")
+    avail = insights.availability(df)
+    label = next(t["label"] for t in insights.TEMPLATES if t["id"] == template_id)
+
+    # Fall back to the always-available profile if the matched template can't
+    # actually be answered on this dataset (e.g. asked "will they come back"
+    # but there's no yes/no column) — explain why, rather than erroring out.
+    fallback_note = None
+    if template_id != "profile" and not avail[template_id]["available"]:
+        fallback_note = avail[template_id]["reason"]
+        template_id = "profile"
+
+    if template_id == "profile":
+        eda = eda_service.build_eda(df)
+        narrative = insights.narrate_profile(eda, df)
+        if fallback_note:
+            narrative.insert(0, f"I couldn't fully answer that ({fallback_note}) — here's an overview instead.")
+        return schemas.AskResponse(
+            matched_template="profile", matched_label=label, kind="profile", narrative=narrative,
+        )
+
+    if template_id == "top_performers":
+        cat_col, metric_col = avail["top_performers"]["detected"]
+        ranking = insights.top_performers(df, cat_col, metric_col)
+        return schemas.AskResponse(
+            matched_template="top_performers", matched_label=label, kind="ranking",
+            narrative=[ranking["narrative"]], ranking=ranking["rows"],
+        )
+
+    if template_id == "repeat":
+        target = avail["repeat"]["detected"]
+        try:
+            outcome = insights.run_repeat_question(df, target)
+        except automl.TrainingError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        experiment, best_model_id, _ = _persist_experiment(db, d.id, outcome["result"])
+        top_features = [f["feature"] for f in outcome["result"]["feature_importance"][:4]]
+        fields = [_field_spec(df, f) for f in top_features if f in df.columns]
+        return schemas.AskResponse(
+            matched_template="repeat", matched_label=label, kind="predictable",
+            narrative=outcome["narrative"], target=target,
+            experiment_id=experiment.id, model_id=best_model_id, fields=fields,
+        )
+
+    if template_id == "predict_number":
+        target = avail["predict_number"]["detected"]
+        try:
+            outcome = insights.run_number_question(df, target)
+        except automl.TrainingError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        experiment, best_model_id, _ = _persist_experiment(db, d.id, outcome["result"])
+        top_features = [f["feature"] for f in outcome["result"]["feature_importance"][:4]]
+        fields = [_field_spec(df, f) for f in top_features if f in df.columns]
+        return schemas.AskResponse(
+            matched_template="predict_number", matched_label=label, kind="predictable",
+            narrative=outcome["narrative"], target=target,
+            experiment_id=experiment.id, model_id=best_model_id, fields=fields,
+        )
+
+    raise HTTPException(status_code=400, detail=f"Unknown question type '{template_id}'.")

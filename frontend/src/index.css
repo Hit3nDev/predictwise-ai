@@ -3,19 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --slate: #10131a;
-  --paper: #ffffff;
-  --field: #f2f3ef;
-  --rule:  #d8dad2;
-  --ink:   #2f7d6e;
-  --clay:  #a8432f;
+  --slate: 16 19 26;
+  --paper: 255 255 255;
+  --field: 242 243 239;
+  --rule:  216 218 210;
+  --ink:   47 125 110;
+  --clay:  168 67 47;
 }
 
 html, body, #root { height: 100%; }
 
 body {
-  background: var(--field);
-  color: var(--slate);
+  background: rgb(var(--field));
+  color: rgb(var(--slate));
   font-family: Archivo, system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.5;
@@ -39,7 +39,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid rgb(var(--ink));
   outline-offset: 1px;
 }
 
@@ -51,4 +51,4 @@ body {
   .bar-grow { animation: none; }
 }
 
-::selection { background: var(--ink); color: #fff; }
+::selection { background: rgb(var(--ink)); color: #fff; }
