@@ -12,6 +12,8 @@ swapping in an LLM later (Module 9 on the roadmap) is a drop-in replacement
 for `match_question()` and the narrate_* functions, not a redesign.
 """
 
+import re
+
 import numpy as np
 import pandas as pd
 
@@ -172,6 +174,95 @@ def match_question(text: str) -> str:
     return best if scores[best] > 0 else "profile"
 
 
+# ---------------------------------------------------------------------------
+# Custom questions: honor a column the user actually named, instead of only
+# ever picking from the 4 generic templates. This is what makes a free-text
+# question like "what affects my income the most" or "compare sales between
+# cities" actually get answered on its own terms rather than forced into
+# whichever fixed bucket scores highest.
+# ---------------------------------------------------------------------------
+
+DRIVER_PHRASES = [
+    "what affects", "what drives", "what influences", "what impacts",
+    "what determines", "why do", "why does", "why are", "why is",
+    "what makes", "what causes",
+]
+COMPARE_PHRASES = [
+    "compare", "difference between", "differ by", " vs ", " versus ",
+    "which is better", "by city", "by region", "by category", "across",
+]
+
+
+def find_mentioned_columns(df: pd.DataFrame, text: str) -> list[str]:
+    """
+    Columns the question names directly, matched as whole words so a short
+    name like 'age' doesn't false-match inside 'average'. This is the piece
+    that lets a custom question be answered on its own terms.
+    """
+    text_l = (text or "").lower()
+    mentioned = []
+    for col in df.columns:
+        variants = {col.lower(), col.lower().replace("_", " "), col.lower().replace("-", " ")}
+        if any(v and re.search(rf"\b{re.escape(v)}\b", text_l) for v in variants):
+            mentioned.append(col)
+    return mentioned
+
+
+def resolve_question(df: pd.DataFrame, text: str) -> dict:
+    """
+    The real entry point for free text. Tries, in order: an explicit
+    compare/segment question, an explicit "what affects X" question, an
+    explicitly named yes/no or numeric column, and only then falls back to
+    the old coarse 4-template keyword scoring.
+    """
+    text_l = (text or "").lower()
+    mentioned = find_mentioned_columns(df, text)
+    # An explicit mention is trusted as-is — the identifier heuristic exists to
+    # keep *auto-detection* from picking a row ID, not to second-guess a column
+    # the user named on purpose (which occasionally looks sequential by chance).
+    numeric_mentioned = [c for c in mentioned if pd.api.types.is_numeric_dtype(df[c])]
+    binary_mentioned = [c for c in mentioned if _is_binary(df[c])]
+    categorical_mentioned = [c for c in mentioned if not pd.api.types.is_numeric_dtype(df[c])]
+
+    is_compare_q = any(p in text_l for p in COMPARE_PHRASES)
+    is_driver_q = any(p in text_l for p in DRIVER_PHRASES)
+
+    # 1. "compare X between cities" / "does city affect income" — a category
+    #    and a number to look at per group, no modelling needed.
+    if is_compare_q and categorical_mentioned:
+        cat = categorical_mentioned[0]
+        metric = numeric_mentioned[0] if numeric_mentioned else None
+        if not metric:
+            pair = find_performer_pair(df)
+            metric = pair[1] if pair else None
+        if metric:
+            return {"kind": "compare", "cat_col": cat, "metric_col": metric, "explicit": True}
+
+    # 2. "what affects/drives/influences X" — train on the named column (or
+    #    fall back to auto-detection) and lead with the driver list, not a
+    #    rate/average sentence.
+    if is_driver_q:
+        target = binary_mentioned[0] if binary_mentioned else (numeric_mentioned[0] if numeric_mentioned else None)
+        explicit = target is not None
+        if not target:
+            target = find_binary_target(df) or find_numeric_target(df)
+        if target:
+            kind = "drivers_repeat" if _is_binary(df[target]) else "drivers_number"
+            return {"kind": kind, "target": target, "explicit": explicit}
+
+    # 3. A yes/no column was named directly — answer about THAT column, not
+    #    whichever one the generic heuristic would have picked.
+    if binary_mentioned:
+        return {"kind": "repeat", "target": binary_mentioned[0], "explicit": True}
+
+    # 4. A numeric column was named directly.
+    if numeric_mentioned:
+        return {"kind": "predict_number", "target": numeric_mentioned[0], "explicit": True}
+
+    # 5. Nothing specific enough was named — fall back to the coarse template match.
+    return {"kind": match_question(text), "explicit": False}
+
+
 def availability(df: pd.DataFrame) -> dict:
     """Which templates this specific dataset can actually answer, and why not."""
     out = {}
@@ -276,40 +367,71 @@ def top_performers(df: pd.DataFrame, cat_col: str, metric_col: str, n: int = 5) 
     return {"narrative": narrative, "rows": rows, "category": cat_col, "metric": metric_col}
 
 
-def run_repeat_question(df: pd.DataFrame, target: str) -> dict:
+def run_repeat_question(df: pd.DataFrame, target: str, lead_with_drivers: bool = False) -> dict:
     result = automl.run_automl(df, target=target)
     acc = result["best_metrics"].get("accuracy")
     rate = round(float(df[target].mean()) * 100, 1) if _is_binary(df[target]) else None
-    drivers = narrate_drivers(result["feature_importance"])
+    drivers = narrate_drivers(result["feature_importance"], n=5 if lead_with_drivers else 3)
 
     narrative = []
-    if rate is not None:
-        narrative.append(
-            f"Looking at your past data, about {rate}% of records ended up as \u201cyes\u201d for {pretty(target).lower()}."
-        )
-    if acc is not None:
-        narrative.append(
-            f"Using the patterns in your data, this is {confidence_phrase(acc)} "
-            f"— correct about {round(acc * 100)} times out of 100."
-        )
-    narrative.append(f"The biggest factors were: {drivers}.")
+    if lead_with_drivers:
+        narrative.append(f"What most affects {pretty(target).lower()}: {drivers}.")
+        if acc is not None:
+            narrative.append(
+                f"That pattern is {confidence_phrase(acc)} — correct about {round(acc * 100)} times out of 100."
+            )
+    else:
+        if rate is not None:
+            narrative.append(
+                f"Looking at your past data, about {rate}% of records ended up as \u201cyes\u201d for {pretty(target).lower()}."
+            )
+        if acc is not None:
+            narrative.append(
+                f"Using the patterns in your data, this is {confidence_phrase(acc)} "
+                f"— correct about {round(acc * 100)} times out of 100."
+            )
+        narrative.append(f"The biggest factors were: {drivers}.")
 
     return {"type": "predictable", "target": target, "task": result["task"],
             "narrative": narrative, "result": result}
 
 
-def run_number_question(df: pd.DataFrame, target: str) -> dict:
+def run_number_question(df: pd.DataFrame, target: str, lead_with_drivers: bool = False) -> dict:
     result = automl.run_automl(df, target=target)
     r2 = result["best_metrics"].get("r2")
-    drivers = narrate_drivers(result["feature_importance"])
+    drivers = narrate_drivers(result["feature_importance"], n=5 if lead_with_drivers else 3)
     mean_val = round(float(df[target].mean()), 2)
 
-    narrative = [f"On average, {pretty(target).lower()} is around {mean_val}."]
-    if r2 is not None:
-        narrative.append(
-            f"The pattern behind this is {confidence_phrase(r2, kind='r2')}."
-        )
-    narrative.append(f"The biggest factors were: {drivers}.")
+    if lead_with_drivers:
+        narrative = [f"What most affects {pretty(target).lower()}: {drivers}."]
+        if r2 is not None:
+            narrative.append(f"That pattern is {confidence_phrase(r2, kind='r2')}.")
+    else:
+        narrative = [f"On average, {pretty(target).lower()} is around {mean_val}."]
+        if r2 is not None:
+            narrative.append(f"The pattern behind this is {confidence_phrase(r2, kind='r2')}.")
+        narrative.append(f"The biggest factors were: {drivers}.")
 
     return {"type": "predictable", "target": target, "task": result["task"],
             "narrative": narrative, "result": result}
+
+
+def run_compare(df: pd.DataFrame, cat_col: str, metric_col: str, n: int = 8) -> dict:
+    """'compare X between cities' — group means, no modelling needed."""
+    grouped = df.groupby(cat_col)[metric_col].mean().sort_values(ascending=False)
+    if len(grouped) < 2:
+        raise automl.TrainingError(f"'{pretty(cat_col)}' doesn't have enough distinct groups to compare.")
+
+    top_name, top_val = str(grouped.index[0]), float(grouped.iloc[0])
+    bottom_name, bottom_val = str(grouped.index[-1]), float(grouped.iloc[-1])
+
+    narrative = [
+        f"On average, {pretty(metric_col).lower()} is highest for \u201c{top_name}\u201d "
+        f"({round(top_val, 2)}) and lowest for \u201c{bottom_name}\u201d ({round(bottom_val, 2)})."
+    ]
+    if bottom_val:
+        diff_pct = round((top_val - bottom_val) / abs(bottom_val) * 100)
+        narrative.append(f"That's a difference of about {diff_pct}%.")
+
+    rows = [{"name": str(idx), "value": round(float(v), 2)} for idx, v in grouped.head(n).items()]
+    return {"narrative": narrative, "rows": rows}

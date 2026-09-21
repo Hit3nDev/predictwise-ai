@@ -141,6 +141,31 @@ frontend/src/
 
 ## Progress log
 
+- **Day 5** — Fixed the actual complaint behind "why can't it answer my own
+  question": free text was only ever keyword-scored into the 4 fixed
+  templates and never looked at which columns the user actually named.
+  Added `resolve_question()`: it now parses the question for column mentions
+  (whole-word matched, so 'age' doesn't false-match inside 'average') and
+  honors them directly, plus two new intents — "what affects X" (drivers-only
+  framing of the same model) and "compare X by Y" (group-mean comparison,
+  no modelling needed). Falls back to the old 4-template scoring only when
+  nothing specific was named. A transparency line ("You asked about Income —
+  here's what the data shows") makes it clear when a column was explicitly
+  honored.
+  **Bugs found and fixed during testing:**
+  - The free-text fallback path could resolve to a template the dataset
+    can't actually answer (e.g. no valid category+metric pair) without the
+    same availability check the card-click path already had — crashed with
+    an unhandled 500 instead of degrading to the profile. Added the missing
+    guard.
+  - The identifier-exclusion heuristic was being applied to *explicitly
+    named* columns too, so a legitimately-numeric column that happened to
+    look sequential (rare, but not impossible) would be silently dropped
+    from consideration. Explicit mentions are now trusted as named; the
+    identifier heuristic is reserved for auto-detection only.
+
+
+
 - **Day 1** — Upload pipeline, SQLite persistence, basic React form.
 - **Day 2** — Cleaning pipeline + EDA engine. Fixed a whitespace/duplicate
   ordering bug and a `NaN`→`"nan"` string bug that hid missing values from

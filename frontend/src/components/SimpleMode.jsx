@@ -179,13 +179,17 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
           </div>
 
           <Card>
-            <p className="mb-3 text-[13px] text-slate/60">Or type your own question</p>
+            <p className="mb-1 text-[13px] text-slate/60">Or type your own question</p>
+            <p className="mb-3 text-[12px] text-slate/40">
+              Name a column and I'll focus on it — e.g. "what affects income the most"
+              or "compare sales by city".
+            </p>
             <div className="flex gap-2">
               <input
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && question.trim() && ask({ question })}
-                placeholder="e.g. will my regular customers keep buying?"
+                placeholder="e.g. what affects income the most?"
                 className="flex-1 border border-rule bg-paper px-4 py-2.5 text-[14px]"
               />
               <button

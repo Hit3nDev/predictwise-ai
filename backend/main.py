@@ -581,9 +581,11 @@ def question_templates(dataset_id: int, db: Session = Depends(get_db)):
 @app.post("/datasets/{dataset_id}/ask", response_model=schemas.AskResponse)
 def ask_question(dataset_id: int, req: schemas.AskRequest, db: Session = Depends(get_db)):
     """
-    The Simple Mode entry point: resolve a template card or free-text question
-    to one of the plain-language answer types, running AutoML underneath when
-    the question needs a prediction.
+    The Simple Mode entry point. A template card click still goes through the
+    fixed 4-template availability check, unchanged. Free text goes through
+    insights.resolve_question, which honors a column the user actually named
+    (so "what affects income" or "compare sales by city" get answered on
+    their own terms) before ever falling back to coarse keyword scoring.
     """
     d = _get_dataset_or_404(dataset_id, db)
     path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
@@ -592,28 +594,42 @@ def ask_question(dataset_id: int, req: schemas.AskRequest, db: Session = Depends
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Could not read dataset: {exc}")
 
-    template_id = req.template_id or insights.match_question(req.question or "")
     avail = insights.availability(df)
-    label = next(t["label"] for t in insights.TEMPLATES if t["id"] == template_id)
 
-    # Fall back to the always-available profile if the matched template can't
-    # actually be answered on this dataset (e.g. asked "will they come back"
-    # but there's no yes/no column) — explain why, rather than erroring out.
-    fallback_note = None
-    if template_id != "profile" and not avail[template_id]["available"]:
-        fallback_note = avail[template_id]["reason"]
-        template_id = "profile"
+    if req.template_id:
+        resolved = {"kind": req.template_id, "explicit": False}
+        label = next(t["label"] for t in insights.TEMPLATES if t["id"] == req.template_id)
+        if req.template_id != "profile" and not avail[req.template_id]["available"]:
+            fallback_note = avail[req.template_id]["reason"]
+            resolved, label = {"kind": "profile", "explicit": False}, "What does my data look like?"
+            resolved["fallback_note"] = fallback_note
+    else:
+        resolved = insights.resolve_question(df, req.question or "")
+        # The coarse keyword-matched fallback (no column was explicitly named)
+        # can land on a template this dataset can't actually answer — same
+        # situation the template_id path already guards against, so apply the
+        # same check here rather than letting it crash downstream.
+        if not resolved.get("explicit") and resolved["kind"] in ("repeat", "predict_number", "top_performers"):
+            check = avail.get(resolved["kind"], {})
+            if not check.get("available"):
+                resolved = {"kind": "profile", "explicit": False, "fallback_note": check.get("reason")}
+        label = _label_for(resolved)
 
-    if template_id == "profile":
+    kind = resolved["kind"]
+
+    # ---- profile: always available, the universal fallback -----------------
+    if kind == "profile":
         eda = eda_service.build_eda(df)
         narrative = insights.narrate_profile(eda, df)
-        if fallback_note:
-            narrative.insert(0, f"I couldn't fully answer that ({fallback_note}) — here's an overview instead.")
+        note = resolved.get("fallback_note")
+        if note:
+            narrative.insert(0, f"I couldn't fully answer that ({note}) — here's an overview instead.")
         return schemas.AskResponse(
             matched_template="profile", matched_label=label, kind="profile", narrative=narrative,
         )
 
-    if template_id == "top_performers":
+    # ---- ranking / compare: aggregation only, no modelling ------------------
+    if kind == "top_performers":
         cat_col, metric_col = avail["top_performers"]["detected"]
         ranking = insights.top_performers(df, cat_col, metric_col)
         return schemas.AskResponse(
@@ -621,34 +637,62 @@ def ask_question(dataset_id: int, req: schemas.AskRequest, db: Session = Depends
             narrative=[ranking["narrative"]], ranking=ranking["rows"],
         )
 
-    if template_id == "repeat":
-        target = avail["repeat"]["detected"]
+    if kind == "compare":
         try:
-            outcome = insights.run_repeat_question(df, target)
+            outcome = insights.run_compare(df, resolved["cat_col"], resolved["metric_col"])
         except automl.TrainingError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
-        experiment, best_model_id, _ = _persist_experiment(db, d.id, outcome["result"])
-        top_features = [f["feature"] for f in outcome["result"]["feature_importance"][:4]]
-        fields = [_field_spec(df, f) for f in top_features if f in df.columns]
         return schemas.AskResponse(
-            matched_template="repeat", matched_label=label, kind="predictable",
-            narrative=outcome["narrative"], target=target,
-            experiment_id=experiment.id, model_id=best_model_id, fields=fields,
+            matched_template="top_performers", matched_label=label, kind="ranking",
+            narrative=outcome["narrative"], ranking=outcome["rows"],
         )
 
-    if template_id == "predict_number":
-        target = avail["predict_number"]["detected"]
-        try:
-            outcome = insights.run_number_question(df, target)
-        except automl.TrainingError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-        experiment, best_model_id, _ = _persist_experiment(db, d.id, outcome["result"])
-        top_features = [f["feature"] for f in outcome["result"]["feature_importance"][:4]]
-        fields = [_field_spec(df, f) for f in top_features if f in df.columns]
-        return schemas.AskResponse(
-            matched_template="predict_number", matched_label=label, kind="predictable",
-            narrative=outcome["narrative"], target=target,
-            experiment_id=experiment.id, model_id=best_model_id, fields=fields,
-        )
+    # ---- repeat / predict_number / drivers_*: trains a model -----------------
+    is_drivers = kind.startswith("drivers_")
+    is_classification = kind in ("repeat", "drivers_repeat")
+    target = resolved.get("target") or avail.get("repeat" if is_classification else "predict_number", {}).get("detected")
+    if not target:
+        raise HTTPException(status_code=400, detail="Couldn't find a suitable column to answer that.")
 
-    raise HTTPException(status_code=400, detail=f"Unknown question type '{template_id}'.")
+    try:
+        outcome = (
+            insights.run_repeat_question(df, target, lead_with_drivers=is_drivers)
+            if is_classification
+            else insights.run_number_question(df, target, lead_with_drivers=is_drivers)
+        )
+    except automl.TrainingError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if resolved.get("explicit"):
+        outcome["narrative"].insert(0, f"You asked about {insights.pretty(target)} — here's what the data shows.")
+
+    experiment, best_model_id, _ = _persist_experiment(db, d.id, outcome["result"])
+    top_features = [f["feature"] for f in outcome["result"]["feature_importance"][:4]]
+    fields = [_field_spec(df, f) for f in top_features if f in df.columns]
+
+    # Reuse the vocabulary the frontend already understands ("repeat" /
+    # "predict_number") so a drivers-framed question renders with the exact
+    # same mini-form and Yes/No translation, with no frontend changes needed.
+    matched_template = "repeat" if is_classification else "predict_number"
+    return schemas.AskResponse(
+        matched_template=matched_template, matched_label=label, kind="predictable",
+        narrative=outcome["narrative"], target=target,
+        experiment_id=experiment.id, model_id=best_model_id, fields=fields,
+    )
+
+
+def _label_for(resolved: dict) -> str:
+    """A human-readable heading reflecting what was actually resolved, for transparency."""
+    kind = resolved["kind"]
+    target = resolved.get("target")
+    if kind == "compare":
+        return f"Comparing {insights.pretty(resolved['metric_col'])} by {insights.pretty(resolved['cat_col'])}"
+    if kind in ("drivers_repeat", "drivers_number") and target:
+        return f"What affects {insights.pretty(target)}?"
+    if kind == "repeat" and target:
+        return f"Will {insights.pretty(target).lower()} happen?"
+    if kind == "predict_number" and target:
+        return f"Predicting {insights.pretty(target)}"
+    # No explicitly-resolved target (the coarse keyword-matched fallback path) —
+    # use the generic template label instead.
+    return next((t["label"] for t in insights.TEMPLATES if t["id"] == kind), "What does my data look like?")
