@@ -90,6 +90,12 @@ cd backend
 python -m venv venv
 venv\Scripts\activate        # macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
+
+# Optional — enables real language understanding for Simple Mode free-text
+# questions instead of the offline synonym-matching fallback:
+# export ANTHROPIC_API_KEY=sk-ant-...        (macOS/Linux)
+# $env:ANTHROPIC_API_KEY="sk-ant-..."        (Windows PowerShell)
+
 uvicorn main:app --reload
 ```
 
@@ -125,6 +131,7 @@ backend/
   main.py       routes (incl. _persist_experiment, shared by /train and /ask)
   automl.py     task detection, training, leaderboard, importance
   insights.py   Simple Mode: question templates, column detection, narration
+  llm_resolver.py  optional LLM-backed question understanding (needs ANTHROPIC_API_KEY)
   cleaning.py   preprocessing pipeline
   eda.py        profiling
   models.py     User, Dataset, CleaningLog, Experiment, MLModel, Prediction
@@ -140,6 +147,43 @@ frontend/src/
 ```
 
 ## Progress log
+
+- **Day 6** — Diagnosed the actual reason "customised questions" still failed:
+  column-mention detection required the *literal* column name to appear in
+  the question. Natural phrasing ("will they buy again", "who's likely to
+  spend the most") shares no vocabulary with a column literally called
+  `purchased` or `income`, so it fell straight to the weak keyword fallback
+  every time. Two changes:
+  1. Added `SYNONYM_GROUPS` — hand-written sets of interchangeable business
+     words (buy/purchase/order/sold, churn/cancel/leave, spend/cost/money...)
+     so "buy again" now connects to a column named `purchased`. Broadened the
+     "what affects X" trigger to catch bare words like "affect"/"drive"
+     anywhere in the sentence, not just as a leading phrase.
+  2. Added `llm_resolver.py` — an **optional** real-language-understanding
+     path. If `ANTHROPIC_API_KEY` is set, free text is sent to Claude to
+     resolve into the same structured intent, with every returned column
+     name validated against the actual dataframe (an LLM can hallucinate a
+     plausible-looking column that doesn't exist — this is caught, not
+     trusted). Without a key, `resolve()` returns `None` immediately and
+     nothing changes; this is additive, not a dependency.
+  **Bugs found and fixed while building this:**
+  - A synonym group covering "customer/person/user" collided with any
+    `customer_id`-style column — "how much will a customer bring in" was
+    hijacking the identifier column instead of falling back honestly.
+    Removed that group entirely rather than trying to special-case it: it
+    added collision risk for little real matching value.
+  - Plural forms ("cities") didn't connect to their singular column name
+    ("city") at all — added a small delemmatizer for the common cases.
+  - The `_looks_like_id` exclusion was being fully bypassed for *any*
+    mention, including a loose synonym collision. Now it's only bypassed for
+    a literal, exact mention; a synonym-based guess still has to clear the
+    identifier check.
+  - **Not independently verified:** the live LLM call itself — no API key
+    was available in the sandbox this was built in. The validation logic and
+    the no-key fallback path are tested; the actual `httpx.post` round-trip
+    to `api.anthropic.com` is not. Test with a real key before demoing it.
+
+
 
 - **Day 5** — Fixed the actual complaint behind "why can't it answer my own
   question": free text was only ever keyword-scored into the 4 fixed

@@ -37,6 +37,55 @@ METRIC_KEYWORDS = [
     "total", "count", "profit",
 ]
 
+# Business language rarely matches a column name literally — "will they buy
+# again" never says "purchased". Each group is a set of interchangeable
+# words; if the question uses ANY word from a group and a column's name
+# contains ANY other word from that same group, they're treated as a match.
+# This is still a finite, hand-written list (not real language understanding)
+# — see resolve_question's LLM-assisted path for the more capable version.
+SYNONYM_GROUPS = [
+    {"purchase", "purchased", "purchases", "buy", "bought", "buys", "buying",
+     "order", "ordered", "orders", "sale", "sold", "shop", "shopping"},
+    {"churn", "churned", "cancel", "cancelled", "canceled", "unsubscribe",
+     "unsubscribed", "leave", "left", "quit", "attrition", "lapse", "lapsed"},
+    {"renew", "renewed", "renewal", "subscribe", "subscribed", "retain",
+     "retained", "retention", "stay", "stayed"},
+    {"return", "returned", "refund", "refunded"},
+    {"repeat", "repeated", "again", "recur", "recurring", "repurchase",
+     "comeback", "loyal", "loyalty"},
+    {"income", "salary", "earnings", "wage", "wages", "pay", "earn", "earns", "earning"},
+    {"revenue", "sales", "turnover"},
+    {"price", "cost", "amount", "value", "worth", "fee", "charge",
+     "spend", "spent", "spending", "money", "expensive", "expense"},
+    {"profit", "margin", "profitable"},
+    {"score", "rating", "grade", "rank"},
+    {"city", "location", "region", "branch", "store", "place", "zone", "territory"},
+    {"product", "item", "sku", "goods", "category"},
+    {"duration", "tenure", "period", "loyal", "loyalty"},
+    # Deliberately no "customer/person/user" group — every dataset has some
+    # id-ish column whose name contains one of those words, and a synonym
+    # that generic reliably collides with it rather than a real attribute.
+]
+
+
+def _singularize(word: str) -> str:
+    """Crude delemmatizer — just enough to connect 'cities' to 'city'."""
+    if word.endswith("ies") and len(word) > 3:
+        return word[:-3] + "y"
+    if word.endswith("ses") and len(word) > 3:
+        return word[:-2]
+    if word.endswith("s") and not word.endswith("ss") and len(word) > 2:
+        return word[:-1]
+    return word
+
+
+def _synonyms_of(word: str) -> set[str]:
+    hits = {word, _singularize(word)}
+    for group in SYNONYM_GROUPS:
+        if word in group or _singularize(word) in group:
+            hits |= group
+    return hits
+
 
 def pretty(name: str) -> str:
     """'purchase_amount' -> 'Purchase amount' — for labels a non-technical user reads."""
@@ -187,25 +236,43 @@ DRIVER_PHRASES = [
     "what determines", "why do", "why does", "why are", "why is",
     "what makes", "what causes",
 ]
+DRIVER_WORDS = re.compile(r"\b(affect|affects|drive|drives|influence|influences|impact|impacts|determine|determines|cause|causes)\b")
 COMPARE_PHRASES = [
-    "compare", "difference between", "differ by", " vs ", " versus ",
-    "which is better", "by city", "by region", "by category", "across",
+    "compare", "difference between", "differ by", "different", "differently",
+    " vs ", " versus ", "which is better", "by city", "by region", "by category",
+    "across", "vary by", "varies by", "depend on", "depends on",
 ]
 
 
-def find_mentioned_columns(df: pd.DataFrame, text: str) -> list[str]:
+def find_mentioned_columns(df: pd.DataFrame, text: str) -> tuple[list[str], set[str]]:
     """
-    Columns the question names directly, matched as whole words so a short
-    name like 'age' doesn't false-match inside 'average'. This is the piece
-    that lets a custom question be answered on its own terms.
+    Columns the question names — directly (whole-word, so 'age' doesn't
+    false-match inside 'average') or via a shared synonym ('buy' connecting
+    to a column literally named 'purchased'). Returns (mentioned_columns,
+    literally_mentioned_subset) — a literal mention is trusted outright, but
+    a synonym-only hit is a guess and should still be sanity-checked (e.g.
+    against being an identifier column), since a generic word like a plural
+    can coincidentally overlap with an unrelated column name.
     """
     text_l = (text or "").lower()
-    mentioned = []
+    question_words = set(re.findall(r"[a-z]+", text_l))
+    expanded = set()
+    for w in question_words:
+        expanded |= _synonyms_of(w)
+
+    mentioned, literal = [], set()
     for col in df.columns:
         variants = {col.lower(), col.lower().replace("_", " "), col.lower().replace("-", " ")}
-        if any(v and re.search(rf"\b{re.escape(v)}\b", text_l) for v in variants):
+        literal_hit = any(v and re.search(rf"\b{re.escape(v)}\b", text_l) for v in variants)
+
+        col_words = set(re.findall(r"[a-z]+", col.lower()))
+        synonym_hit = bool(col_words & expanded)
+
+        if literal_hit or synonym_hit:
             mentioned.append(col)
-    return mentioned
+        if literal_hit:
+            literal.add(col)
+    return mentioned, literal
 
 
 def resolve_question(df: pd.DataFrame, text: str) -> dict:
@@ -216,16 +283,26 @@ def resolve_question(df: pd.DataFrame, text: str) -> dict:
     the old coarse 4-template keyword scoring.
     """
     text_l = (text or "").lower()
-    mentioned = find_mentioned_columns(df, text)
-    # An explicit mention is trusted as-is — the identifier heuristic exists to
-    # keep *auto-detection* from picking a row ID, not to second-guess a column
-    # the user named on purpose (which occasionally looks sequential by chance).
-    numeric_mentioned = [c for c in mentioned if pd.api.types.is_numeric_dtype(df[c])]
+    mentioned, literal = find_mentioned_columns(df, text)
+
+    # A literal mention is trusted outright — the identifier heuristic exists
+    # to keep *auto-detection* from picking a row ID, not to second-guess a
+    # column the user named on purpose. A synonym-only hit is a guess, so it
+    # still has to clear that bar (a generic word can coincidentally overlap
+    # with an unrelated ID column's name).
+    def _numeric_ok(c):
+        return c in literal or not _looks_like_id(df[c], c)
+
+    numeric_mentioned = [c for c in mentioned if pd.api.types.is_numeric_dtype(df[c]) and _numeric_ok(c)]
     binary_mentioned = [c for c in mentioned if _is_binary(df[c])]
     categorical_mentioned = [c for c in mentioned if not pd.api.types.is_numeric_dtype(df[c])]
+    # Prefer columns the question named literally over ones only reached via synonym.
+    numeric_mentioned.sort(key=lambda c: c not in literal)
+    binary_mentioned.sort(key=lambda c: c not in literal)
+    categorical_mentioned.sort(key=lambda c: c not in literal)
 
     is_compare_q = any(p in text_l for p in COMPARE_PHRASES)
-    is_driver_q = any(p in text_l for p in DRIVER_PHRASES)
+    is_driver_q = any(p in text_l for p in DRIVER_PHRASES) or bool(DRIVER_WORDS.search(text_l))
 
     # 1. "compare X between cities" / "does city affect income" — a category
     #    and a number to look at per group, no modelling needed.

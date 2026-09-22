@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 import automl
 import cleaning
 import insights
+import llm_resolver
 import eda as eda_service
 import models
 import schemas
@@ -604,7 +605,20 @@ def ask_question(dataset_id: int, req: schemas.AskRequest, db: Session = Depends
             resolved, label = {"kind": "profile", "explicit": False}, "What does my data look like?"
             resolved["fallback_note"] = fallback_note
     else:
-        resolved = insights.resolve_question(df, req.question or "")
+        columns = [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]
+        resolved = llm_resolver.resolve(columns, req.question or "")
+        used_llm = resolved is not None
+        if not resolved:
+            resolved = insights.resolve_question(df, req.question or "")
+
+        # Self-correction: don't trust "repeat"/"drivers_repeat" if the target
+        # isn't actually a two-value column — downgrade instead of letting it
+        # fail training several layers down. Only relevant for the LLM path;
+        # the heuristic resolver already only picks genuinely binary columns.
+        if used_llm and resolved["kind"] in ("repeat", "drivers_repeat") and resolved.get("target"):
+            if not insights._is_binary(df[resolved["target"]]):
+                resolved["kind"] = "drivers_number" if resolved["kind"] == "drivers_repeat" else "predict_number"
+
         # The coarse keyword-matched fallback (no column was explicitly named)
         # can land on a template this dataset can't actually answer — same
         # situation the template_id path already guards against, so apply the
