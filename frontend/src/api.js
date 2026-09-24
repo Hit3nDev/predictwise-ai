@@ -35,3 +35,6 @@ export const getQuestionTemplates = (id) =>
 
 export const askQuestion = (id, body) =>
   api.post(`/datasets/${id}/ask`, body).then((r) => r.data);
+
+export const chatWithDataset = (id, message, history) =>
+  api.post(`/datasets/${id}/chat`, { message, history }).then((r) => r.data);

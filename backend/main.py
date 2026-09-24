@@ -30,7 +30,9 @@ from sqlalchemy.orm import Session
 import automl
 import cleaning
 import insights
+import llm_chat
 import llm_resolver
+import query_engine
 import eda as eda_service
 import models
 import schemas
@@ -710,3 +712,103 @@ def _label_for(resolved: dict) -> str:
     # No explicitly-resolved target (the coarse keyword-matched fallback path) —
     # use the generic template label instead.
     return next((t["label"] for t in insights.TEMPLATES if t["id"] == kind), "What does my data look like?")
+
+
+@app.post("/datasets/{dataset_id}/chat", response_model=schemas.ChatResponse)
+def chat(dataset_id: int, req: schemas.ChatRequest, db: Session = Depends(get_db)):
+    """
+    The actual chatbot endpoint. Tries, in priority order:
+      1. LLM tool-use (llm_chat) — genuinely open-ended, if an API key is set.
+      2. Offline query engine (query_engine) — counts, filters, aggregates,
+         top-N, computed directly from the data, no modelling needed.
+      3. The prediction/drivers/compare resolver (insights) — when the
+         question is actually asking to predict, explain, or compare.
+      4. Profile — the honest, always-available fallback.
+    Every question in a conversation is answered fresh against the current
+    dataset; `history` is only forwarded to the LLM path for continuity on
+    follow-ups like "what about for Delhi only".
+    """
+    d = _get_dataset_or_404(dataset_id, db)
+    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    try:
+        df = _read_any(path)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not read dataset: {exc}")
+
+    question = req.message.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Ask something first.")
+
+    # ---- 1. LLM tool-use: the real "answer anything" path -------------------
+    columns = [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]
+    history = [{"role": m.role, "content": m.content} for m in req.history[-6:]]
+    llm_result = llm_chat.chat(df, columns, question, history=history or None)
+    if llm_result:
+        return schemas.ChatResponse(narrative=llm_result["narrative"], kind="text", source="llm")
+
+    # ---- 2. Offline factual queries: counts, filters, aggregates, top-N -----
+    offline_result = query_engine.try_offline_query(df, question)
+    if offline_result:
+        resp = schemas.ChatResponse(
+            narrative=offline_result["narrative"], kind=offline_result["kind"], source="offline",
+        )
+        if offline_result["kind"] == "table":
+            resp.table = offline_result["rows"]
+        return resp
+
+    # ---- 3. Prediction / drivers / compare — reuses the existing resolver ---
+    avail = insights.availability(df)
+    resolved = llm_resolver.resolve(columns, question) or insights.resolve_question(df, question)
+    if resolved["kind"] in ("repeat", "drivers_repeat") and resolved.get("target"):
+        if not insights._is_binary(df[resolved["target"]]):
+            resolved["kind"] = "drivers_number" if resolved["kind"] == "drivers_repeat" else "predict_number"
+    if not resolved.get("explicit") and resolved["kind"] in ("repeat", "predict_number", "top_performers"):
+        check = avail.get(resolved["kind"], {})
+        if not check.get("available"):
+            resolved = {"kind": "profile", "explicit": False, "fallback_note": check.get("reason")}
+
+    kind = resolved["kind"]
+
+    if kind == "top_performers":
+        cat_col, metric_col = avail["top_performers"]["detected"]
+        ranking = insights.top_performers(df, cat_col, metric_col)
+        return schemas.ChatResponse(narrative=[ranking["narrative"]], kind="ranking",
+                                     source="template", ranking=ranking["rows"])
+
+    if kind == "compare":
+        try:
+            outcome = insights.run_compare(df, resolved["cat_col"], resolved["metric_col"])
+        except automl.TrainingError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        return schemas.ChatResponse(narrative=outcome["narrative"], kind="ranking",
+                                     source="template", ranking=outcome["rows"])
+
+    if kind in ("repeat", "predict_number", "drivers_repeat", "drivers_number"):
+        is_drivers = kind.startswith("drivers_")
+        is_classification = kind in ("repeat", "drivers_repeat")
+        target = resolved.get("target") or avail.get("repeat" if is_classification else "predict_number", {}).get("detected")
+        if target:
+            try:
+                outcome = (
+                    insights.run_repeat_question(df, target, lead_with_drivers=is_drivers)
+                    if is_classification
+                    else insights.run_number_question(df, target, lead_with_drivers=is_drivers)
+                )
+                if resolved.get("explicit"):
+                    outcome["narrative"].insert(0, f"You asked about {insights.pretty(target)} — here's what the data shows.")
+                experiment, best_model_id, _ = _persist_experiment(db, d.id, outcome["result"])
+                top_features = [f["feature"] for f in outcome["result"]["feature_importance"][:4]]
+                fields = [_field_spec(df, f) for f in top_features if f in df.columns]
+                return schemas.ChatResponse(
+                    narrative=outcome["narrative"], kind="predictable", source="template",
+                    task="classification" if is_classification else "regression",
+                    target=target, experiment_id=experiment.id, model_id=best_model_id, fields=fields,
+                )
+            except automl.TrainingError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
+
+    # ---- 4. Profile: the honest fallback -------------------------------------
+    eda = eda_service.build_eda(df)
+    narrative = insights.narrate_profile(eda, df)
+    narrative.insert(0, "I couldn't answer that precisely, so here's a general overview instead.")
+    return schemas.ChatResponse(narrative=narrative, kind="profile", source="offline")

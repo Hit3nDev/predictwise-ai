@@ -148,6 +148,62 @@ frontend/src/
 
 ## Progress log
 
+- **Day 7** — Rebuilt Simple Mode's text box as an actual chatbot instead of
+  a form that routed everything through 5 fixed answer shapes. New priority
+  chain per message (`/datasets/{id}/chat`):
+  1. **LLM tool-use** (`llm_chat.py`, needs `ANTHROPIC_API_KEY`) — Claude gets
+     a `run_query` tool to execute a real pandas expression against the
+     dataset, so it can answer combinations no fixed shape anticipated
+     (multi-condition filters, correlations between named columns, a lookup
+     combined with an explanation). Sandboxed via a regex blocklist plus a
+     restricted `eval()` scope (only `df`/`pd`/`np` and a small safe-builtins
+     whitelist — no imports, file I/O, or introspection).
+  2. **Offline query engine** (`query_engine.py`, no key needed) — counts,
+     filters, aggregates, and top-N rankings computed directly from the
+     data. Filter detection is data-driven: it scans each categorical
+     column's actual values for a literal match in the question ("Delhi"),
+     rather than needing to know column semantics in advance.
+  3. The existing prediction/drivers/compare resolver (`insights.py`).
+  4. The profile fallback, honest when nothing else could answer it.
+
+  Frontend rebuilt as a real chat: message history, inline rendering for
+  ranking bars/tables/prediction forms, template cards now shown once as
+  starter suggestions rather than a separate screen.
+
+  **Bugs found and fixed while building this:**
+  - `"total income"` rendered as `1.6985e+07` (scientific notation) with
+    wrong grammar ("the sum income"). Added proper comma-formatting and an
+    aggregate-word display map (sum → "total", not "the sum").
+  - `"how many customers are over 50"` silently ignored the age filter
+    entirely (matched 300/300, i.e. no filter applied) because the
+    comparison parser required the column's own name to appear near the
+    number, and nobody says "customers over 50 age". Added a common-sense
+    default: a bare "over/under N" with no column named, where N reads as a
+    plausible age, applies to an `age` column if one exists.
+  - `llm_chat.py`'s sandbox originally set `__builtins__: {}`, which also
+    blocked harmless functions like `len()` that Claude would routinely need
+    — switched to a small explicit whitelist (`len`, `str`, `round`, `sum`,
+    `min`, `max`, ...), re-verified the injection blocklist still catches
+    every tested attack after loosening it.
+  - The frontend was inferring classification (Yes/No) vs. regression (a
+    number) by checking whether the predicted value was literally `1` or
+    `0` — which breaks for any real regression prediction that happens to
+    equal 1 (a price of $1, a score of 0). Added an explicit `task` field
+    to the chat response so the frontend never has to guess.
+  - Several UI strings used `\u2014`-style escapes directly inside raw JSX
+    text and a plain JSX attribute value, where they are never interpreted
+    as Unicode escapes (only inside real JS string literals) — they would
+    have rendered as the literal six characters `\u2014` instead of an em
+    dash. Replaced with the actual Unicode characters throughout.
+  - **Not independently verified:** the live LLM tool-use round-trip — no
+    API key was available in the sandbox this was built in. The sandboxing
+    (blocklist + restricted eval scope) and the fallback-on-any-failure path
+    are directly tested; the actual conversation with Claude, including
+    whether its tool-call loop terminates cleanly on real questions, is not.
+    Test with a real key before relying on this in a live demo.
+
+
+
 - **Day 6** — Diagnosed the actual reason "customised questions" still failed:
   column-mention detection required the *literal* column name to appear in
   the question. Natural phrasing ("will they buy again", "who's likely to

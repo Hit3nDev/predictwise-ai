@@ -158,3 +158,30 @@ class AskResponse(BaseModel):
     model_id: Optional[int] = None
     fields: list[FieldSpec] = []
     ranking: Optional[list[dict]] = None
+
+
+# --- Chat (Simple Mode as a real chatbot) -----------------------------------
+
+class ChatMessage(BaseModel):
+    role: str                     # "user" | "assistant"
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[ChatMessage] = []
+
+
+class ChatResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    narrative: list[str]
+    kind: str = "text"             # "text" | "count" | "aggregate" | "table" | "ranking" | "predictable" | "profile"
+    source: str = "offline"        # "llm" | "offline" | "template"
+    task: Optional[str] = None     # "classification" | "regression" — set when kind == "predictable"
+    target: Optional[str] = None
+    experiment_id: Optional[int] = None
+    model_id: Optional[int] = None
+    fields: list[FieldSpec] = []
+    ranking: Optional[list[dict]] = None
+    table: Optional[list[dict]] = None
