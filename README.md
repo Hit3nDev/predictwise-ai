@@ -91,10 +91,15 @@ python -m venv venv
 venv\Scripts\activate        # macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 
-# Optional — enables real language understanding for Simple Mode free-text
-# questions instead of the offline synonym-matching fallback:
-# export ANTHROPIC_API_KEY=sk-ant-...        (macOS/Linux)
-# $env:ANTHROPIC_API_KEY="sk-ant-..."        (Windows PowerShell)
+# Optional — enables real language understanding for the chat, instead of
+# just the offline query engine + synonym matching. Anthropic has no free
+# API tier, so this defaults to Groq: free, no credit card, sign up at
+# console.groq.com/keys.
+# export GROQ_API_KEY=gsk_...        (macOS/Linux)
+# $env:GROQ_API_KEY="gsk_..."        (Windows PowerShell)
+#
+# If you later get Anthropic access, ANTHROPIC_API_KEY also works — Groq
+# takes priority if both are set, since it's the free path.
 
 uvicorn main:app --reload
 ```
@@ -131,7 +136,9 @@ backend/
   main.py       routes (incl. _persist_experiment, shared by /train and /ask)
   automl.py     task detection, training, leaderboard, importance
   insights.py   Simple Mode: question templates, column detection, narration
-  llm_resolver.py  optional LLM-backed question understanding (needs ANTHROPIC_API_KEY)
+  llm_provider.py  Groq/Anthropic abstraction (Groq is free; see llm_chat.py, llm_resolver.py)
+  llm_chat.py      LLM tool-use chat: the model queries the dataframe directly
+  llm_resolver.py  LLM-backed question-intent resolver
   cleaning.py   preprocessing pipeline
   eda.py        profiling
   models.py     User, Dataset, CleaningLog, Experiment, MLModel, Prediction
@@ -148,10 +155,38 @@ frontend/src/
 
 ## Progress log
 
+- **Day 9** — The LLM integration only ever spoke Anthropic's Messages API
+  format, and Anthropic has no free API tier — so "set an API key" was
+  advice nobody could actually follow for free. Added `llm_provider.py`: a
+  shared abstraction that defaults to **Groq** (free, no credit card,
+  OpenAI-compatible chat completions with tool calling) and falls back to
+  Anthropic if that's what's configured instead. `llm_chat.py` and
+  `llm_resolver.py` were rewritten against this abstraction rather than
+  calling `api.anthropic.com` directly.
+  Also fixed two real bugs surfaced by a screenshot of the profile fallback:
+  the "general overview" was describing `customer_id` as if it were
+  meaningful data ("Customer id typically runs around 150.5") — identifier
+  columns are now excluded from that narration. And the same ugly-decimal
+  formatting bug from Day 2/3 turned up again in a code path the earlier
+  fix didn't cover (the profile's own numeric summaries) — fixed with the
+  same comma-formatting helper, applied here too.
+  **Tested without a real key** (none available in this sandbox), using
+  hand-built response payloads matching Groq's documented API shape: provider
+  selection, the tool-schema conversion, and — most importantly — the full
+  tool-call loop end-to-end through the actual `/chat` endpoint (mocked
+  "model calls run_query" → sandboxed execution → mocked "model
+  gives final answer" → correct response). That proves the integration
+  logic is correct against Groq's real documented format; it does not prove
+  Groq's actual model will always call the tool sensibly or terminate the
+  loop cleanly on arbitrary real questions — test with a real free key
+  before relying on this in a live demo.
+
+
+
 - **Day 7** — Rebuilt Simple Mode's text box as an actual chatbot instead of
   a form that routed everything through 5 fixed answer shapes. New priority
   chain per message (`/datasets/{id}/chat`):
-  1. **LLM tool-use** (`llm_chat.py`, needs `ANTHROPIC_API_KEY`) — Claude gets
+  1. **LLM tool-use** (`llm_chat.py`, needs `GROQ_API_KEY` — free, see setup above) — the model gets
      a `run_query` tool to execute a real pandas expression against the
      dataset, so it can answer combinations no fixed shape anticipated
      (multi-condition filters, correlations between named columns, a lookup
@@ -216,7 +251,7 @@ frontend/src/
      "what affects X" trigger to catch bare words like "affect"/"drive"
      anywhere in the sentence, not just as a leading phrase.
   2. Added `llm_resolver.py` — an **optional** real-language-understanding
-     path. If `ANTHROPIC_API_KEY` is set, free text is sent to Claude to
+     path. If `GROQ_API_KEY` (or `ANTHROPIC_API_KEY`) is set, free text is sent to the model to
      resolve into the same structured intent, with every returned column
      name validated against the actual dataframe (an LLM can hallucinate a
      plausible-looking column that doesn't exist — this is caught, not

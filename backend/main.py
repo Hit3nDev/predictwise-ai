@@ -31,6 +31,7 @@ import automl
 import cleaning
 import insights
 import llm_chat
+import llm_provider
 import llm_resolver
 import query_engine
 import eda as eda_service
@@ -810,5 +811,14 @@ def chat(dataset_id: int, req: schemas.ChatRequest, db: Session = Depends(get_db
     # ---- 4. Profile: the honest fallback -------------------------------------
     eda = eda_service.build_eda(df)
     narrative = insights.narrate_profile(eda, df)
-    narrative.insert(0, "I couldn't answer that precisely, so here's a general overview instead.")
+    if llm_provider.configured():
+        narrative.insert(0, "I couldn't work out a clear answer to that one — here's a general overview instead. Try asking about a specific number or column by name.")
+    else:
+        narrative.insert(0, (
+            "I couldn't match that to something I can compute offline — here's a general "
+            "overview instead. I can reliably answer counts (\u201chow many customers from "
+            "Delhi\u201d), averages (\u201caverage income\u201d), top lists (\u201ctop 5 by income\u201d), and "
+            "predictions naming a column (\u201cwill they buy again\u201d, \u201cwhat affects income\u201d). "
+            "For genuinely open-ended questions like this one, set GROQ_API_KEY (free, no card -- see console.groq.com) on the backend to turn on full language understanding."
+        ))
     return schemas.ChatResponse(narrative=narrative, kind="profile", source="offline")

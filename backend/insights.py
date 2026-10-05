@@ -394,6 +394,19 @@ def narrate_drivers(feature_importance: list[dict], n: int = 3) -> str:
     return ", ".join(names[:-1]) + " and " + names[-1]
 
 
+def _fmt_display(v) -> str:
+    """Comma-separated, sensible precision — never the raw float with a
+    cleaning-artifact tail like 10792.625, and never scientific notation."""
+    if v is None:
+        return "—"
+    v = float(v)
+    if v == int(v):
+        return f"{int(v):,}"
+    if abs(v) >= 100:
+        return f"{v:,.0f}"
+    return f"{v:,.2f}"
+
+
 def narrate_profile(eda: dict, df: pd.DataFrame) -> list[str]:
     lines = [
         f"This dataset has {eda['row_count']} rows and {eda['column_count']} columns."
@@ -406,14 +419,20 @@ def narrate_profile(eda: dict, df: pd.DataFrame) -> list[str]:
         lines.append(f"{eda['duplicate_rows']} rows look like duplicates.")
 
     for col in eda["columns"]:
+        name = col["name"]
+        # A row identifier (customer_id, order_id...) isn't data a shop owner
+        # asked about — describing "typically runs around 150.5" for an ID
+        # column is meaningless and undermines trust in everything else here.
+        if name in df.columns and _looks_like_id(df[name], name):
+            continue
         if col["is_numeric"] and col.get("mean") is not None:
             lines.append(
-                f"{pretty(col['name'])} typically runs around "
-                f"{round(col['mean'], 1)} (from {col.get('min')} to {col.get('max')})."
+                f"{pretty(name)} typically runs around "
+                f"{_fmt_display(col['mean'])} (from {_fmt_display(col.get('min'))} to {_fmt_display(col.get('max'))})."
             )
         elif not col["is_numeric"] and col.get("top_value"):
             lines.append(
-                f"The most common {pretty(col['name']).lower()} is \u201c{col['top_value']}\u201d."
+                f"The most common {pretty(name).lower()} is \u201c{col['top_value']}\u201d."
             )
         if len(lines) >= 7:
             break
