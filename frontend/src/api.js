@@ -2,8 +2,18 @@ import axios from "axios";
 
 export const api = axios.create({ baseURL: "http://localhost:8000" });
 
-const detail = (err, fallback) =>
-  err?.response?.data?.detail || fallback;
+const detail = (err, fallback) => {
+  // The backend answered with a specific reason (bad file, bad request, etc.) — use it.
+  if (err?.response?.data?.detail) return err.response.data.detail;
+  // The request went out but nothing came back — almost always means the
+  // backend isn't running, is on the wrong port, or CORS is blocking it.
+  // This is NOT the same situation as "the file was bad" and saying so
+  // avoids sending someone down the wrong troubleshooting path entirely.
+  if (err?.request) {
+    return "Can't reach the backend server. Make sure it's running (uvicorn main:app --reload) at http://localhost:8000.";
+  }
+  return fallback;
+};
 
 export async function uploadDataset(file) {
   const fd = new FormData();
