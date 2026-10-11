@@ -68,6 +68,58 @@ def infer_task(y: pd.Series) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Splitting (shared with the fairness audit, which must see the same test rows)
+# ---------------------------------------------------------------------------
+
+def split_data(data: pd.DataFrame, target: str, task: str, test_size):
+    """
+    Split rows into train/test exactly the way training did. `test_size` may be
+    a fraction or an absolute row count; the audit passes the stored count so
+    the held-out rows are identical to the ones the leaderboard was scored on.
+    """
+    y = data[target]
+    stratify = y if (task == "classification" and y.value_counts().min() >= 2) else None
+    return train_test_split(data, test_size=test_size, random_state=42, stratify=stratify)
+
+
+def build_reference(X: pd.DataFrame) -> dict:
+    """
+    Per-feature fingerprint of the training data. Used at prediction time to
+    notice inputs the model has never seen anything like (the out-of-range
+    guard) and to pick sensible values for the what-if sweeps.
+    """
+    ref = {}
+    for col in X.columns:
+        s = X[col]
+        missing = float(s.isna().mean())
+        if pd.api.types.is_numeric_dtype(s) and not pd.api.types.is_bool_dtype(s):
+            v = s.dropna().astype(float)
+            if v.empty:
+                continue
+            ref[col] = {
+                "kind": "numeric",
+                "min": float(v.min()),
+                "max": float(v.max()),
+                "p01": float(v.quantile(0.01)),
+                "p99": float(v.quantile(0.99)),
+                "mean": float(v.mean()),
+                "median": float(v.median()),
+                "std": float(v.std()) if len(v) > 1 else 0.0,
+                "is_integer": bool((v % 1 == 0).all()),
+                "missing_rate": missing,
+            }
+        else:
+            counts = s.dropna().astype(str).value_counts()
+            ref[col] = {
+                "kind": "categorical",
+                "values": {str(k): int(n) for k, n in counts.head(50).items()},
+                "mode": str(counts.index[0]) if len(counts) else None,
+                "missing_rate": missing,
+            }
+    return ref
+
+
+# ---------------------------------------------------------------------------
 # Preprocessing
 # ---------------------------------------------------------------------------
 
@@ -238,10 +290,9 @@ def run_automl(
                 f"class '{counts.idxmin()}' has {int(counts.min())}."
             )
 
-    stratify = y if (task == "classification" and y.value_counts().min() >= 2) else None
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=42, stratify=stratify
-    )
+    train_rows, test_rows = split_data(data, target, task, test_size)
+    X_train, X_test = X.loc[train_rows.index], X.loc[test_rows.index]
+    y_train, y_test = y.loc[train_rows.index], y.loc[test_rows.index]
 
     # Cross-validation folds can't exceed the smallest class size.
     folds = cv_folds
@@ -313,6 +364,8 @@ def run_automl(
         "best_algorithm": best_name,
         "best_metrics": ok[0]["metrics"],
         "feature_importance": feature_importance(best_pipeline, X_test, y_test),
+        "reference": build_reference(X_train),
+        "_background": X_train.sample(n=min(100, len(X_train)), random_state=42),
         "_pipeline": best_pipeline,
         "_classes": (
             [str(c) for c in best_pipeline.named_steps["model"].classes_]

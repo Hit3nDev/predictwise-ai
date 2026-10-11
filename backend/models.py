@@ -1,6 +1,6 @@
 """
 SQLAlchemy models — implements User, Dataset, CleaningLog, Experiment,
-MLModel and Prediction from the ER diagram in the synopsis.
+MLModel, Prediction and FairnessAudit from the ER diagram in the synopsis.
 """
 
 from datetime import datetime, timezone
@@ -103,6 +103,7 @@ class MLModel(Base):
     metrics_json = Column(Text)
     importance_json = Column(Text)
     classes_json = Column(Text)
+    reference_json = Column(Text)
     artifact_path = Column(String)
     status = Column(String, default="ok")
     version = Column(Integer, default=1)
@@ -111,6 +112,9 @@ class MLModel(Base):
     experiment = relationship("Experiment", back_populates="ml_models")
     predictions = relationship(
         "Prediction", back_populates="ml_model", cascade="all, delete-orphan"
+    )
+    audits = relationship(
+        "FairnessAudit", back_populates="ml_model", cascade="all, delete-orphan"
     )
 
 
@@ -123,6 +127,24 @@ class Prediction(Base):
     model_id = Column(Integer, ForeignKey("ml_models.id"), nullable=False)
     input_json = Column(Text)
     output_json = Column(Text)
+    trust_level = Column(String)                        # high | medium | low
+    confidence = Column(Float)
     created_at = Column(DateTime, default=utcnow)
 
     ml_model = relationship("MLModel", back_populates="predictions")
+
+
+class FairnessAudit(Base):
+    """A saved fairness check of one model across one group column."""
+
+    __tablename__ = "fairness_audits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    model_id = Column(Integer, ForeignKey("ml_models.id"), nullable=False)
+    group_column = Column(String, nullable=False)
+    status = Column(String)                             # pass | review | insufficient_data
+    disparity_ratio = Column(Float)
+    result_json = Column(Text)
+    created_at = Column(DateTime, default=utcnow)
+
+    ml_model = relationship("MLModel", back_populates="audits")

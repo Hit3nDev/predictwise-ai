@@ -17,13 +17,14 @@ Then open http://localhost:8000/docs for interactive API docs.
 
 import json
 import os
+import re
 import shutil
 import uuid
 
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -34,12 +35,19 @@ import llm_chat
 import llm_provider
 import llm_resolver
 import query_engine
+import lang
+import actions
+import analytics
+import report as report_service
+import trust
 import eda as eda_service
 import models
 import schemas
 from database import engine, get_db
 
-models.Base.metadata.create_all(bind=engine)
+from database import ensure_schema
+
+ensure_schema()
 
 UPLOAD_DIR = "uploads"
 CLEANED_DIR = "cleaned"
@@ -51,7 +59,7 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 MAX_FILE_SIZE_MB = 50
 
-app = FastAPI(title="PredictWise AI", version="0.3.0")
+app = FastAPI(title="PredictWise AI", version="0.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -99,6 +107,32 @@ def _to_out(d: models.Dataset) -> schemas.DatasetOut:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/health/llm")
+def health_llm():
+    """
+    Check whether Simple Mode's AI understanding is actually configured,
+    without needing to dig through a chat response to infer it. Does NOT
+    make a live API call (that costs a request against your free quota) --
+    it only reports what's detected. A real test still requires sending an
+    actual message; this just rules out "no key" vs "something upstream of
+    that" as the first diagnostic step.
+    """
+    provider = llm_provider.active_provider()
+    return {
+        "configured": provider is not None,
+        "provider": provider,
+        "groq_key_present": bool(llm_provider.GROQ_API_KEY),
+        "anthropic_key_present": bool(llm_provider.ANTHROPIC_API_KEY),
+        "note": (
+            "No key detected -- offline matching only."
+            if not provider else
+            f"{provider} is configured. If answers still look generic, check this "
+            "terminal's output after asking a question -- a failed API call is logged "
+            "here with the real reason (bad key, rate limit, network)."
+        ),
+    }
 
 
 @app.post("/upload", response_model=schemas.DatasetOut)
@@ -289,6 +323,7 @@ def _persist_experiment(db: Session, dataset_id: int, result: dict):
         if is_best:
             record.importance_json = json.dumps(result["feature_importance"])
             record.classes_json = json.dumps(result["_classes"]) if result["_classes"] else None
+            record.reference_json = json.dumps(result["reference"])
 
         db.add(record)
         db.flush()
@@ -301,6 +336,8 @@ def _persist_experiment(db: Session, dataset_id: int, result: dict):
                     "features": result["features"],
                     "task": result["task"],
                     "target": result["target"],
+                    "reference": result["reference"],
+                    "background": result["_background"],
                 },
                 artifact_path,
             )
@@ -467,13 +504,13 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
     bundle = joblib.load(m.artifact_path)
     pipeline, features = bundle["pipeline"], bundle["features"]
     task, target = bundle["task"], bundle["target"]
+    reference = bundle.get("reference") or {}
+    background = bundle.get("background")
 
     # Build a frame with exactly the training feature columns, in order.
-    frame = pd.DataFrame(req.rows)
-    missing = [f for f in features if f not in frame.columns]
-    for f in missing:
-        frame[f] = np.nan
-    frame = frame[features]
+    # Blank strings become real "missing" values and numbers are parsed, so an
+    # empty form field means "unknown" rather than crashing the pipeline.
+    frame = trust._coerce_frame(req.rows, features, reference)
 
     try:
         preds = pipeline.predict(frame)
@@ -502,12 +539,29 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
             }
             confidence = round(float(max(probabilities[i])), 4)
 
+        guard = trust.check_row(reference, row, confidence) if reference else None
+        if guard:
+            guard["summary"] = trust.TRUST_PHRASE[guard["level"]]
+
+        explanation = None
+        if req.explain and reference and background is not None and i < 5:
+            try:
+                explanation = trust.explain_row(
+                    pipeline, features, task, row, background, reference,
+                    target_class=str(value) if task == "classification" else None,
+                )
+                explanation["narration"] = trust.narrate_explanation(explanation, target, task)
+            except Exception as exc:  # explanation is a bonus; never block the prediction
+                print(f"[explain] failed: {type(exc).__name__}: {exc}", flush=True)
+
         results.append(
             schemas.PredictionOut(
                 row=row,
                 prediction=value,
                 confidence=confidence,
                 probabilities=proba_map,
+                trust=guard,
+                explanation=explanation,
             )
         )
         db.add(
@@ -517,6 +571,8 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
                 output_json=json.dumps(
                     {"prediction": value, "confidence": confidence}, default=str
                 ),
+                trust_level=guard["level"] if guard else None,
+                confidence=confidence,
             )
         )
 
@@ -529,6 +585,300 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
         target=target,
         results=results,
     )
+
+
+# ----------------------------------------------------------------------------
+# Trust layer — what-if, fairness audit, monitoring, report
+# ----------------------------------------------------------------------------
+
+def _model_bundle(model_id: int, db: Session):
+    m = db.query(models.MLModel).filter(models.MLModel.id == model_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Model not found")
+    if not m.artifact_path or not os.path.exists(m.artifact_path):
+        raise HTTPException(status_code=400, detail="This model has no saved artifact.")
+    bundle = joblib.load(m.artifact_path)
+    return m, bundle
+
+
+def _dataset_frame_for(m: models.MLModel, db: Session) -> pd.DataFrame:
+    exp = m.experiment
+    d = db.query(models.Dataset).filter(models.Dataset.id == exp.dataset_id).first()
+    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    return _read_any(path)
+
+
+@app.post("/models/{model_id}/whatif")
+def what_if(model_id: int, req: schemas.WhatIfRequest, db: Session = Depends(get_db)):
+    """How would the answer change if this one input were different?"""
+    m, bundle = _model_bundle(model_id, db)
+    reference = bundle.get("reference")
+    if not reference:
+        raise HTTPException(status_code=400, detail="This model was trained before what-if support. Retrain it to use this.")
+    task = bundle["task"]
+    target_class = req.target_class
+    if task == "classification" and target_class is None:
+        # Default to the outcome the model actually predicted for this row.
+        frame = trust._coerce_frame([req.row], bundle["features"], reference)
+        target_class = str(bundle["pipeline"].predict(frame)[0])
+    try:
+        return trust.sweep(
+            bundle["pipeline"], bundle["features"], task, req.row, req.feature, reference, target_class
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/models/{model_id}/fairness/options")
+def fairness_options(model_id: int, db: Session = Depends(get_db)):
+    m, bundle = _model_bundle(model_id, db)
+    df = _dataset_frame_for(m, db)
+    df = df.drop(columns=[bundle["target"]], errors="ignore")
+    return {"columns": trust.group_options(df, exclude=[])}
+
+
+def _run_audit(m: models.MLModel, bundle: dict, group: str, db: Session) -> dict:
+    df = _dataset_frame_for(m, db)
+    target, task = bundle["target"], bundle["task"]
+    if group not in df.columns:
+        raise HTTPException(status_code=400, detail=f"'{group}' is not a column in this dataset.")
+    data = df.dropna(subset=[target])
+    exp = m.experiment
+    if not exp.n_test or exp.n_test >= len(data):
+        raise HTTPException(status_code=400, detail="Can't reconstruct the held-out rows for this model.")
+    _, test_rows = automl.split_data(data, target, task, int(exp.n_test))
+    X_test = test_rows[bundle["features"]]
+    preds = bundle["pipeline"].predict(X_test)
+    classes = json.loads(m.classes_json) if m.classes_json else None
+    pos = trust.positive_class(classes) if (task == "classification" and classes and len(classes) == 2) else None
+    return trust.audit(test_rows, test_rows[target], preds, group, task, pos)
+
+
+@app.get("/models/{model_id}/fairness")
+def fairness(model_id: int, group: str = Query(...), db: Session = Depends(get_db)):
+    """Audit held-out predictions across the groups of one column, and save the result."""
+    m, bundle = _model_bundle(model_id, db)
+    result = _run_audit(m, bundle, group, db)
+    db.add(
+        models.FairnessAudit(
+            model_id=m.id,
+            group_column=group,
+            status=result["status"],
+            disparity_ratio=result["disparity_ratio"],
+            result_json=json.dumps(result, default=str),
+        )
+    )
+    db.commit()
+    return result
+
+
+@app.get("/models/{model_id}/monitoring")
+def monitoring(model_id: int, db: Session = Depends(get_db)):
+    m = db.query(models.MLModel).filter(models.MLModel.id == model_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Model not found")
+    rows = (
+        db.query(models.Prediction)
+        .filter(models.Prediction.model_id == model_id)
+        .order_by(models.Prediction.created_at.asc(), models.Prediction.id.asc())
+        .all()
+    )
+    out = trust.monitor(
+        [{"trust_level": p.trust_level, "confidence": p.confidence} for p in rows]
+    )
+    out["recent"] = [
+        {
+            "id": p.id,
+            "trust_level": p.trust_level,
+            "confidence": p.confidence,
+            "input": json.loads(p.input_json or "{}"),
+            "output": json.loads(p.output_json or "{}"),
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        }
+        for p in rows[-10:][::-1]
+    ]
+    return out
+
+
+@app.get("/models/{model_id}/report")
+def model_report(
+    model_id: int,
+    audience: str = Query("simple", pattern="^(simple|technical)$"),
+    group: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """A self-contained, print-ready report a shop owner can hand to someone else."""
+    from fastapi.responses import HTMLResponse
+
+    m, bundle = _model_bundle(model_id, db)
+    exp = m.experiment
+    d = db.query(models.Dataset).filter(models.Dataset.id == exp.dataset_id).first()
+    audit_result = _run_audit(m, bundle, group, db) if group else None
+    siblings = sorted(exp.ml_models, key=lambda x: (x.rank is None, x.rank or 0))
+    html = report_service.build_report(
+        dataset_name=d.file_name,
+        experiment=exp,
+        model=m,
+        leaderboard=siblings,
+        importance=json.loads(m.importance_json or "[]"),
+        reference=bundle.get("reference") or {},
+        audit=audit_result,
+        monitoring=monitoring(model_id, db),
+        audience=audience,
+    )
+    return HTMLResponse(html)
+
+
+# ----------------------------------------------------------------------------
+# Insights: briefing, trends, segments, anomalies, samples, downloads
+# ----------------------------------------------------------------------------
+
+SAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples")
+SAMPLES = {
+    "kirana_sales": ("Kirana store: a year of daily sales", "kirana_sales.csv", "Sales over time, best sellers, unusual bulk orders"),
+    "customers": ("Customers: who buys and who doesn't", "customers.csv", "Predict purchases, find customer groups"),
+}
+
+
+def _frames(d: models.Dataset):
+    raw = _read_any(d.storage_path)
+    cleaned = _read_any(d.cleaned_path) if (d.cleaned_path and os.path.exists(d.cleaned_path)) else raw
+    return raw, cleaned
+
+
+@app.get("/samples")
+def list_samples():
+    return [{"id": k, "title": v[0], "blurb": v[2]} for k, v in SAMPLES.items()]
+
+
+@app.post("/samples/{name}/load", response_model=schemas.DatasetOut)
+def load_sample(name: str, db: Session = Depends(get_db)):
+    """One click to try the app with realistic data, no file needed."""
+    if name not in SAMPLES:
+        raise HTTPException(status_code=404, detail="Unknown sample")
+    title, fname, _ = SAMPLES[name]
+    src = os.path.join(SAMPLES_DIR, fname)
+    stored = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}.csv")
+    shutil.copyfile(src, stored)
+    df = _read_any(stored)
+    d = models.Dataset(
+        file_name=fname, storage_path=stored, row_count=int(df.shape[0]),
+        column_count=int(df.shape[1]), columns_json=json.dumps(list(df.columns.astype(str))),
+    )
+    db.add(d)
+    db.commit()
+    db.refresh(d)
+    return _to_out(d)
+
+
+@app.get("/datasets/{dataset_id}/briefing")
+def dataset_briefing(dataset_id: int, db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    raw, cleaned = _frames(d)
+    return analytics.briefing(cleaned, raw)
+
+
+@app.get("/datasets/{dataset_id}/trend")
+def dataset_trend(dataset_id: int, metric: str | None = None, date_col: str | None = None,
+                  horizon: int | None = Query(None, ge=1, le=24), db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    _, df = _frames(d)
+    for c in (metric, date_col):
+        if c and c not in df.columns:
+            raise HTTPException(status_code=400, detail=f"'{c}' is not a column in this dataset.")
+    return analytics.trend(df, date_col, metric, horizon)
+
+
+@app.get("/datasets/{dataset_id}/segments")
+def dataset_segments(dataset_id: int, db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    return analytics.segments(_frames(d)[1])
+
+
+@app.get("/datasets/{dataset_id}/anomalies")
+def dataset_anomalies(dataset_id: int, top: int = Query(8, ge=1, le=50), db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    return analytics.anomalies(_frames(d)[1], top)
+
+
+@app.get("/datasets/{dataset_id}/download")
+def download_dataset(dataset_id: int, db: Session = Depends(get_db)):
+    """The cleaned data as CSV, ready for Excel."""
+    d = _get_dataset_or_404(dataset_id, db)
+    _, cleaned = _frames(d)
+    name = os.path.splitext(d.file_name)[0] + "_cleaned.csv"
+    return Response(
+        cleaned.to_csv(index=False).encode("utf-8-sig"),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
+
+
+# ----------------------------------------------------------------------------
+# Actions: batch scoring, call-first list, levers
+# ----------------------------------------------------------------------------
+
+@app.post("/models/{model_id}/score-file")
+async def score_file(model_id: int, file: UploadFile = File(...), format: str = Query("json", pattern="^(json|csv)$"),
+                     db: Session = Depends(get_db)):
+    """Score a whole file of new customers/rows at once."""
+    m, bundle = _model_bundle(model_id, db)
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type '{ext}'. Use CSV or Excel.")
+    tmp = os.path.join(UPLOAD_DIR, f"score_{uuid.uuid4().hex}{ext}")
+    with open(tmp, "wb") as buf:
+        shutil.copyfileobj(file.file, buf)
+    try:
+        df = _read_any(tmp)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not read that file: {exc}")
+    finally:
+        os.remove(tmp)
+    present = [f for f in bundle["features"] if f in df.columns]
+    if not present:
+        raise HTTPException(status_code=400, detail=(
+            "None of this file's columns match what the model was trained on. It expects: "
+            + ", ".join(bundle["features"]) + "."))
+    try:
+        scored = actions.score_frame(bundle, df)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if format == "csv":
+        name = os.path.splitext(file.filename)[0] + "_scored.csv"
+        return Response(scored.to_csv(index=False).encode("utf-8-sig"), media_type="text/csv",
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+    pred_col = f"predicted_{bundle['target']}"
+    summary = {"rows": int(len(scored)), "missing_columns": [f for f in bundle["features"] if f not in df.columns],
+               "low_trust": int((scored["trust"] == "low").sum())}
+    if bundle["task"] == "classification":
+        summary["by_prediction"] = {str(k): int(v) for k, v in scored[pred_col].astype(str).value_counts().items()}
+    else:
+        summary["average_prediction"] = float(scored[pred_col].mean())
+    preview = [{k: actions._plain(v) for k, v in r.items()} for r in scored.head(25).to_dict("records")]
+    return {"summary": summary, "preview": preview, "target": bundle["target"], "task": bundle["task"]}
+
+
+@app.get("/models/{model_id}/rank")
+def rank_rows(model_id: int, top: int = Query(10, ge=1, le=100), direction: str = Query("most", pattern="^(most|least)$"),
+              db: Session = Depends(get_db)):
+    """Who or what to act on first, from the rows in your own file."""
+    m, bundle = _model_bundle(model_id, db)
+    df = _dataset_frame_for(m, db)
+    try:
+        return actions.rank(bundle, df, top=top, direction=direction)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/models/{model_id}/levers")
+def model_levers(model_id: int, req: schemas.LeversRequest, db: Session = Depends(get_db)):
+    m, bundle = _model_bundle(model_id, db)
+    if not bundle.get("reference"):
+        raise HTTPException(status_code=400, detail="Retrain this model to use levers.")
+    return {"levers": actions.levers(bundle, req.row, req.target_class)}
 
 
 # ----------------------------------------------------------------------------
@@ -715,8 +1065,104 @@ def _label_for(resolved: dict) -> str:
     return next((t["label"] for t in insights.TEMPLATES if t["id"] == kind), "What does my data look like?")
 
 
+RANK_RE = re.compile(
+    r"\b(who|which (customers?|people|clients?|leads?|rows?)).{0,45}(call|contact|follow ?up|target|approach|reach|most likely|least likely|likely to|unlikely|at risk|leave|churn)"
+    r"|\b(hot leads?|call (first|list)|priority list)\b", re.I)
+
+
+def _best_model_for(d: models.Dataset, df: pd.DataFrame, target: str, db: Session):
+    """Reuse the latest trained model for this target, or train one now."""
+    exp = (db.query(models.Experiment)
+           .filter(models.Experiment.dataset_id == d.id, models.Experiment.target_column == target)
+           .order_by(models.Experiment.id.desc()).first())
+    if exp:
+        best = next((m for m in exp.ml_models if m.is_best and m.artifact_path and os.path.exists(m.artifact_path)), None)
+        if best:
+            return best
+    result = automl.run_automl(df, target=target)
+    _, best_id, _ = _persist_experiment(db, d.id, result)
+    return db.query(models.MLModel).filter(models.MLModel.id == best_id).first()
+
+
+def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, question: str, db: Session):
+    """Questions with a purpose-built answer: briefing, trend, groups, unusual rows, who-first."""
+    intent = analytics.detect_intent(question)
+    if intent is None and RANK_RE.search(question):
+        intent = "rank"
+    if intent is None:
+        return None
+
+    if intent == "briefing":
+        b = analytics.briefing(df, raw)
+        blocks = [{"type": "stats", "stats": b["stats"]}] + [{"type": "chart", **c} for c in b["charts"]]
+        narrative = list(b["headline"])
+        if b["quality"]["issues"]:
+            narrative.append("Worth fixing: " + " ".join(b["quality"]["issues"][:2]))
+        return schemas.ChatResponse(narrative=narrative, kind="briefing", source="analytics", blocks=blocks)
+
+    if intent in ("trend", "forecast"):
+        t = analytics.trend(df)
+        if not t["available"]:
+            return schemas.ChatResponse(narrative=[t["reason"]], kind="text", source="analytics")
+        title = f"{analytics.cap(analytics.pretty(t['metric']))} by {t['freq']}"
+        lines = t["narrative"]
+        return schemas.ChatResponse(
+            narrative=lines, kind="chart", source="analytics",
+            blocks=[{"type": "chart", "chart": "line", "title": title, "unit": t["unit"], "points": t["series"], "forecast": t["forecast"]}],
+        )
+
+    if intent == "segments":
+        sg = analytics.segments(df)
+        if not sg["available"]:
+            return schemas.ChatResponse(narrative=[sg["reason"]], kind="text", source="analytics")
+        return schemas.ChatResponse(narrative=sg["narrative"], kind="segments", source="analytics",
+                                    blocks=[{"type": "segments", "segments": sg["segments"]}])
+
+    if intent == "anomalies":
+        an = analytics.anomalies(df)
+        if not an["available"]:
+            return schemas.ChatResponse(narrative=[an["reason"]], kind="text", source="analytics")
+        return schemas.ChatResponse(narrative=an["narrative"], kind="anomalies", source="analytics",
+                                    blocks=[{"type": "anomalies", "rows": an["rows"]}])
+
+    if intent == "quality":
+        q = analytics.quality(raw)
+        lines = [f"Data health is {q['score']}/100 ({q['label'].lower()})."] + (q["issues"] or ["No problems found."])
+        return schemas.ChatResponse(narrative=lines, kind="text", source="analytics")
+
+    if intent == "rank":
+        target = analytics.pick_outcome(df)
+        if not target:
+            return None   # no yes/no column to score; let the LLM or offline engine try
+        try:
+            m = _best_model_for(d, df, target, db)
+            bundle = joblib.load(m.artifact_path)
+            direction = "least" if re.search(r"least|unlikely|won'?t|not likely", question, re.I) else "most"
+            out = actions.rank(bundle, df, top=10, direction=direction)
+        except (automl.TrainingError, ValueError):
+            return None
+        rows = []
+        for r in out["rows"]:
+            r = dict(r)
+            if r.get("chance") is not None:
+                r["chance"] = f"{round(r['chance'] * 100)}%"
+            r.pop("trust", None)
+            rows.append(r)
+        return schemas.ChatResponse(narrative=[out["headline"]], kind="table", source="analytics",
+                                    table=rows, model_id=m.id, target=target, task=bundle["task"])
+    return None
+
+
 @app.post("/datasets/{dataset_id}/chat", response_model=schemas.ChatResponse)
 def chat(dataset_id: int, req: schemas.ChatRequest, db: Session = Depends(get_db)):
+    resp = _chat_core(dataset_id, req, db)
+    # Offline engines write English; translate their words when another language is chosen.
+    if resp.source != "llm" and req.lang != "en":
+        resp.narrative = lang.translate_lines(resp.narrative, req.lang)
+    return resp
+
+
+def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
     """
     The actual chatbot endpoint. Tries, in priority order:
       1. LLM tool-use (llm_chat) — genuinely open-ended, if an API key is set.
@@ -740,10 +1186,16 @@ def chat(dataset_id: int, req: schemas.ChatRequest, db: Session = Depends(get_db
     if not question:
         raise HTTPException(status_code=400, detail="Ask something first.")
 
+    # ---- 0. Purpose-built answers (briefing, trends, groups, unusual rows, who-first)
+    raw = _read_any(d.storage_path)
+    rich = _rich_intent(d, raw, df, question, db)
+    if rich:
+        return rich
+
     # ---- 1. LLM tool-use: the real "answer anything" path -------------------
     columns = [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]
     history = [{"role": m.role, "content": m.content} for m in req.history[-6:]]
-    llm_result = llm_chat.chat(df, columns, question, history=history or None)
+    llm_result = llm_chat.chat(df, columns, question, history=history or None, lang=req.lang)
     if llm_result:
         return schemas.ChatResponse(narrative=llm_result["narrative"], kind="text", source="llm")
 

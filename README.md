@@ -331,3 +331,49 @@ frontend/src/
     (`--ink: 47 125 110`) with Tailwind's documented `rgb(var(--x) / <alpha-value>)`
     pattern. Caught by inspecting a chart that rendered as flat grey instead
     of colored bars, not by reading the code.
+
+- **Day 10: the trust layer.** Every answer now comes with the evidence to
+  believe or question it.
+  - **Why this answer:** per-prediction Monte-Carlo Shapley values
+    (`trust.explain_row`). Contributions add up exactly to
+    `output - base` (tested). Simple Mode words them as "tenure raised it by
+    about 41 points".
+  - **Out-of-range guard:** the training data is fingerprinted
+    (`automl.build_reference`). Unseen cities, impossible numbers and blank
+    fields are flagged high/medium/low trust with plain reasons and
+    "did you mean" hints.
+  - **What-if simulator:** vary one input and plot how the answer moves
+    (`/models/{id}/whatif`).
+  - **Fairness audit:** per-group selection rate, accuracy or error on the
+    exact held-out rows, with the four-fifths rule. Saved as `FairnessAudit`.
+  - **Monitoring:** every prediction logs trust and confidence. Drift is
+    flagged when recent inputs leave the training data.
+  - **Report:** `/models/{id}/report` gives a print-ready plain or technical
+    report with a model card. Print it, then Save as PDF.
+  - **Self-healing database:** `ensure_schema()` adds missing columns to an
+    old `predictwise.db`, so `no column named cleaned_path` can't happen again.
+  - **Bug found by the tests:** a blank form field crashed prediction (empty
+    string in a numeric column). Fixed by coercing blanks to missing values.
+  - `requirements.txt` now uses `>=` pins because exact old pins fail to build
+    on Python 3.13.
+  - Tests: `cd backend && python -m pytest tests -q` (7 tests, run in a temp
+    directory so your real data is untouched).
+
+- **Day 11: for everyone, not just analysts.**
+  - **Try without a file:** one-click sample data (a kirana store's year of
+    sales, and a customer list).
+  - **Automatic briefing** on opening any file: size, data quality, sales
+    trend with forecast band, best sellers, concentration risk.
+  - **Ask in plain words:** "what will sales look like next month", "show my
+    customer groups", "which rows look unusual" are answered by purpose-built
+    engines (`analytics.py`) before any LLM is involved.
+  - **Unusual rows judged fairly:** each row is compared with *its own*
+    product/group, so a pricey product isn't flagged just for being pricey.
+    Tiny gaps (Rs 533 vs Rs 521) are ignored. Regression-tested.
+  - **Score a whole file:** upload a list of new customers, get every row
+    scored and ranked with trust levels, then download the CSV.
+  - **What would help most:** lever suggestions from the what-if engine.
+  - **Hindi, Hinglish, voice in and out**, and **Share on WhatsApp** for any
+    answer. Answers are translated by the LLM when a key is set.
+  - **Download cleaned data** as CSV.
+  - Tests: 18 passing (`cd backend && python -m pytest tests -q`).

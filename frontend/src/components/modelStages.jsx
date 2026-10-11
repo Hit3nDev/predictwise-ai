@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Panel, Button, Field, Select, Readout, Empty, Notice } from "./ui";
 import { ImportanceBars } from "./charts";
 import Leaderboard from "./Leaderboard";
+import { TrustNote, Contributions, WhatIf, FairnessPanel, MonitorPanel, ReportLinks } from "./trust";
 
 const METRIC_LABELS = {
   accuracy: "accuracy",
@@ -164,6 +165,8 @@ export function PredictStage({ result, onPredict, busy, output }) {
                 </p>
               )}
 
+              <TrustNote trust={r.trust} />
+
               {r.probabilities && (
                 <div className="mt-5 space-y-1.5">
                   {Object.entries(r.probabilities)
@@ -181,10 +184,53 @@ export function PredictStage({ result, onPredict, busy, output }) {
                     ))}
                 </div>
               )}
+              {r.explanation && (
+                <div className="mt-6 border-t border-rule pt-4">
+                  <p className="mb-1 text-[12px] text-slate/50">Why this prediction · contribution of each input</p>
+                  <Contributions explanation={r.explanation} />
+                </div>
+              )}
+              <div className="mt-6 border-t border-rule pt-4">
+                <p className="text-[12px] text-slate/50">What-if</p>
+                <WhatIf modelId={output.model_id} row={r.row} features={result.features} />
+              </div>
             </div>
           ))}
         </Panel>
       )}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- 6. Audit */
+
+export function AuditStage({ result, predictionCount }) {
+  if (!result) {
+    return (
+      <Panel title="Audit">
+        <Empty>Train a model first. Audits run against the selected model.</Empty>
+      </Panel>
+    );
+  }
+  const id = result.best_model_id;
+  return (
+    <div className="space-y-px">
+      <Panel title="Fairness audit" note="held-out rows only">
+        <FairnessPanel modelId={id} />
+        <p className="mt-4 text-[12px] text-slate/50">
+          Uses the same held-back rows the leaderboard score came from, so the audit
+          measures behaviour on data the model never trained on. Groups under 5 people are excluded.
+        </p>
+      </Panel>
+      <Panel title="Live monitoring" note="prediction log">
+        <MonitorPanel modelId={id} refreshKey={predictionCount} />
+      </Panel>
+      <Panel title="Reports">
+        <ReportLinks modelId={id} />
+        <p className="mt-3 text-[12px] text-slate/50">
+          Opens a print-ready page. Use Print, then Save as PDF.
+        </p>
+      </Panel>
     </div>
   );
 }

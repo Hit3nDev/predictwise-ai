@@ -35,8 +35,24 @@ export const getEDA = (id, useCleaned = true) =>
 export const trainModels = (id, body) =>
   api.post(`/datasets/${id}/train`, body).then((r) => r.data);
 
-export const predict = (modelId, rows) =>
-  api.post(`/models/${modelId}/predict`, { rows }).then((r) => r.data);
+export const predict = (modelId, rows, explain = true) =>
+  api.post(`/models/${modelId}/predict`, { rows, explain }).then((r) => r.data);
+
+export const whatIf = (modelId, row, feature, targetClass) =>
+  api.post(`/models/${modelId}/whatif`, { row, feature, target_class: targetClass ?? null }).then((r) => r.data);
+
+export const fairnessOptions = (modelId) =>
+  api.get(`/models/${modelId}/fairness/options`).then((r) => r.data.columns);
+
+export const runFairness = (modelId, group) =>
+  api.get(`/models/${modelId}/fairness`, { params: { group } }).then((r) => r.data);
+
+export const getMonitoring = (modelId) =>
+  api.get(`/models/${modelId}/monitoring`).then((r) => r.data);
+
+// A plain URL, not an API call: the report is a page you open, print or save as PDF.
+export const reportUrl = (modelId, audience = "simple", group = "") =>
+  `${api.defaults.baseURL}/models/${modelId}/report?audience=${audience}${group ? `&group=${encodeURIComponent(group)}` : ""}`;
 
 export { detail };
 
@@ -46,5 +62,44 @@ export const getQuestionTemplates = (id) =>
 export const askQuestion = (id, body) =>
   api.post(`/datasets/${id}/ask`, body).then((r) => r.data);
 
-export const chatWithDataset = (id, message, history) =>
-  api.post(`/datasets/${id}/chat`, { message, history }).then((r) => r.data);
+export const chatWithDataset = (id, message, history, lang = "en") =>
+  api.post(`/datasets/${id}/chat`, { message, history, lang }).then((r) => r.data);
+
+export const llmStatus = () => api.get("/health/llm").then((r) => r.data);
+
+/* ---- insights ---- */
+export const listSamples = () => api.get("/samples").then((r) => r.data);
+export const loadSample = (name) => api.post(`/samples/${name}/load`).then((r) => r.data);
+export const getBriefing = (id) => api.get(`/datasets/${id}/briefing`).then((r) => r.data);
+export const getTrend = (id, params = {}) => api.get(`/datasets/${id}/trend`, { params }).then((r) => r.data);
+export const getSegments = (id) => api.get(`/datasets/${id}/segments`).then((r) => r.data);
+export const getAnomalies = (id) => api.get(`/datasets/${id}/anomalies`).then((r) => r.data);
+
+/* ---- actions ---- */
+export const rankRows = (modelId, top = 10, direction = "most") =>
+  api.get(`/models/${modelId}/rank`, { params: { top, direction } }).then((r) => r.data);
+export const getLevers = (modelId, row) =>
+  api.post(`/models/${modelId}/levers`, { row }).then((r) => r.data.levers);
+export const scoreFile = (modelId, file) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return api.post(`/models/${modelId}/score-file`, fd).then((r) => r.data);
+};
+
+/* Downloads need the file's bytes, so fetch as a blob and hand it to the browser. */
+const saveBlob = (blob, name) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+export const downloadCleaned = async (id, fileName = "data") => {
+  const r = await api.get(`/datasets/${id}/download`, { responseType: "blob" });
+  saveBlob(r.data, fileName.replace(/\.[^.]+$/, "") + "_cleaned.csv");
+};
+export const downloadScored = async (modelId, file) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await api.post(`/models/${modelId}/score-file`, fd, { params: { format: "csv" }, responseType: "blob" });
+  saveBlob(r.data, file.name.replace(/\.[^.]+$/, "") + "_scored.csv");
+};

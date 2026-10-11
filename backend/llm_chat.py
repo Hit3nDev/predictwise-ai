@@ -31,6 +31,7 @@ import re
 import numpy as np
 import pandas as pd
 
+import lang as lang_service
 import llm_provider
 
 MAX_TOOL_ROUNDS = 4
@@ -92,7 +93,7 @@ def _describe(columns: list) -> str:
     return "\n".join(f"- {c['name']} ({c['dtype']})" for c in columns)
 
 
-def chat(df: pd.DataFrame, columns: list, question: str, history=None) -> dict | None:
+def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str | None = None) -> dict | None:
     """
     Returns {"narrative": [str, ...]} on success, or None if no provider is
     configured or the exchange fails for any reason -- the caller should
@@ -108,7 +109,7 @@ def chat(df: pd.DataFrame, columns: list, question: str, history=None) -> dict |
     })
 
     for _ in range(MAX_TOOL_ROUNDS):
-        result = llm_provider.complete(messages, SYSTEM_PROMPT, tools=[RUN_QUERY_TOOL], max_tokens=500)
+        result = llm_provider.complete(messages, SYSTEM_PROMPT + lang_service.instruction(lang), tools=[RUN_QUERY_TOOL], max_tokens=500)
         if result is None:
             return None
 

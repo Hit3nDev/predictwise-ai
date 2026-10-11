@@ -38,6 +38,13 @@ ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 TIMEOUT_SECONDS = 20.0
 
 
+_PLACEHOLDER_MARKERS = ("your_key_here", "your-key-here", "xxx", "gsk_...", "sk-ant-...")
+
+
+def _looks_like_placeholder(key: str) -> bool:
+    return any(m in key.lower() for m in _PLACEHOLDER_MARKERS)
+
+
 def active_provider() -> str | None:
     """Groq first -- it's the free path. Anthropic as a fallback if configured."""
     if GROQ_API_KEY:
@@ -45,6 +52,13 @@ def active_provider() -> str | None:
     if ANTHROPIC_API_KEY:
         return "anthropic"
     return None
+
+
+if GROQ_API_KEY and _looks_like_placeholder(GROQ_API_KEY):
+    print("[llm_provider] WARNING: GROQ_API_KEY looks like the placeholder text from an example, "
+          "not a real key copied from console.groq.com/keys — every call will fail.", flush=True)
+if ANTHROPIC_API_KEY and _looks_like_placeholder(ANTHROPIC_API_KEY):
+    print("[llm_provider] WARNING: ANTHROPIC_API_KEY looks like placeholder text, not a real key.", flush=True)
 
 
 def configured() -> bool:
@@ -78,7 +92,18 @@ def complete(messages: list, system: str, tools=None, max_tokens: int = 500):
         if provider == "groq":
             return _complete_groq(messages, system, tools, max_tokens)
         return _complete_anthropic(messages, system, tools, max_tokens)
-    except Exception:
+    except httpx.HTTPStatusError as exc:
+        # The single most useful line in this whole file: a bad/placeholder
+        # key, an expired key, or a rate limit all land here, and previously
+        # got silently swallowed into the same generic "couldn't answer"
+        # message as a model genuinely having no answer — completely
+        # indistinguishable from the person's point of view. This prints to
+        # the same terminal uvicorn is already running in.
+        body = exc.response.text[:300] if exc.response is not None else ""
+        print(f"[llm_provider] {provider} call failed: HTTP {exc.response.status_code if exc.response is not None else '?'} — {body}", flush=True)
+        return None
+    except Exception as exc:
+        print(f"[llm_provider] {provider} call failed: {type(exc).__name__}: {exc}", flush=True)
         return None
 
 

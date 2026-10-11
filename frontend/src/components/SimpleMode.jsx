@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   uploadDataset, cleanDataset, getQuestionTemplates, chatWithDataset, predict, detail,
+  listSamples, loadSample, getBriefing, downloadCleaned, llmStatus,
 } from "../api";
+import { TrustNote, Contributions, WhatIf, FairnessPanel, ReportLinks } from "./trust";
+import { Blocks, BatchScore, Levers } from "./blocks";
+import { LANGS, t } from "../i18n";
+import { canListen, canSpeak, listen, speak, stopSpeaking } from "./voice";
 
 /* A real chat over the dataset. Template cards are just quick-start prompts
    shown once, before the first message — after that it's a normal
@@ -70,11 +75,11 @@ function phraseOutcome(value) {
   return String(value);
 }
 
-function PredictForm({ msg, onPredict, busy }) {
+function PredictForm({ msg, onPredict, busy, lang }) {
   const [values, setValues] = useState(Object.fromEntries((msg.fields || []).map((f) => [f.name, ""])));
   return (
     <div className="mt-4 border-t border-rule pt-3">
-      <p className="mb-2 text-[12px] text-slate/50">Try it for a specific case:</p>
+      <p className="mb-2 text-[12px] text-slate/50">{t(lang, "tryCase")}</p>
       <div className="grid gap-2.5 sm:grid-cols-2">
         {msg.fields.map((f) => (
           <div key={f.name}>
@@ -109,63 +114,164 @@ function PredictForm({ msg, onPredict, busy }) {
         disabled={busy}
         className="mt-3 bg-ink px-4 py-2 text-[13px] font-medium text-white hover:bg-slate disabled:bg-rule disabled:text-slate/40"
       >
-        {busy ? "Working it out…" : "Get my answer"}
+        {busy ? t(lang, "working") : t(lang, "getAnswer")}
       </button>
     </div>
   );
 }
 
-function AssistantContent({ msg, onPredict, predicting }) {
+function Fold({ label, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mt-3 border-t border-rule pt-2.5">
+      <button onClick={() => setOpen(!open)} className="text-[13px] text-ink hover:underline underline-offset-2">
+        {label} <span className="num text-slate/40">{open ? "−" : "+"}</span>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+function Toolbar({ msg, lang, speakingId, onSpeak, id }) {
+  const text = msg.narrative.join(" ");
+  const wa = `https://wa.me/?text=${encodeURIComponent(text + "\n\n(PredictWise)")}`;
+  const link = "text-[12px] text-slate/45 hover:text-ink";
+  return (
+    <div className="mt-3 flex gap-4">
+      {canSpeak() && (
+        <button className={link} onClick={() => onSpeak(id, text)}>
+          {speakingId === id ? t(lang, "stop") : t(lang, "listen")}
+        </button>
+      )}
+      <a className={link} href={wa} target="_blank" rel="noreferrer">{t(lang, "share")}</a>
+    </div>
+  );
+}
+
+function AssistantContent({ msg, onPredict, predicting, lang }) {
   return (
     <div>
       {msg.narrative.map((line, i) => (
         <p key={i} className={i > 0 ? "mt-2" : ""}>{line}</p>
       ))}
+      <Blocks blocks={msg.blocks} />
       {msg.kind === "ranking" && msg.ranking && <RankingBars rows={msg.ranking} />}
       {msg.kind === "table" && msg.table && <DataTable rows={msg.table} />}
+      {msg.kind === "prediction" && (
+        <>
+          <TrustNote trust={msg.trust} plain />
+          {msg.explanation && (
+            <Fold label={t(lang, "why")} defaultOpen>
+              <Contributions explanation={msg.explanation} plain limit={5} />
+            </Fold>
+          )}
+          <Fold label={t(lang, "levers")}>
+            <Levers modelId={msg.model_id} row={msg.row} plain />
+          </Fold>
+          <Fold label={t(lang, "whatIf")}>
+            <WhatIf modelId={msg.model_id} row={msg.row} features={msg.features} plain />
+          </Fold>
+        </>
+      )}
       {msg.kind === "predictable" && msg.fields?.length > 0 && (
-        <PredictForm msg={msg} onPredict={onPredict} busy={predicting} />
+        <>
+          <PredictForm msg={msg} onPredict={onPredict} busy={predicting} lang={lang} />
+          <Fold label={t(lang, "scoreFile")}>
+            <BatchScore modelId={msg.model_id} plain />
+          </Fold>
+          <Fold label={t(lang, "fair")}>
+            <div className="mt-3">
+              <FairnessPanel modelId={msg.model_id} plain />
+              <div className="mt-4"><ReportLinks modelId={msg.model_id} /></div>
+            </div>
+          </Fold>
+        </>
       )}
     </div>
   );
+}
+
+function loadLang() {
+  try { return localStorage.getItem("pw-lang") || "en"; } catch { return "en"; }
 }
 
 export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
   const [step, setStep] = useState("upload");
   const [file, setFile] = useState(null);
   const [templates, setTemplates] = useState([]);
+  const [samples, setSamples] = useState([]);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [predicting, setPredicting] = useState(false);
   const [error, setError] = useState("");
+  const [lang, setLangState] = useState(loadLang);
+  const [llmOk, setLlmOk] = useState(true);
+  const [listening, setListening] = useState(false);
+  const [speakingId, setSpeakingId] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
   const scrollRef = useRef(null);
+  const recRef = useRef(null);
+
+  const speech = LANGS.find((l) => l.id === lang)?.speech ?? "en-IN";
+  const setLang = (l) => {
+    setLangState(l);
+    try { localStorage.setItem("pw-lang", l); } catch { /* private mode: fine */ }
+  };
 
   useEffect(() => {
-    if (dataset) {
-      setStep("chat");
-      setMessages([]);
-      getQuestionTemplates(dataset.id).then(setTemplates).catch(() => {});
-    }
+    listSamples().then(setSamples).catch(() => {});
+    llmStatus().then((s) => setLlmOk(Boolean(s.configured))).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!dataset) return;
+    setStep("chat");
+    setMessages([]);
+    setSuggestions([]);
+    getQuestionTemplates(dataset.id).then(setTemplates).catch(() => {});
+    // The first thing you see is what the data says, before you ask anything.
+    getBriefing(dataset.id)
+      .then((b) => {
+        const narrative = [...b.headline];
+        if (b.quality.issues.length) narrative.push(b.quality.issues[0]);
+        setMessages([{
+          role: "assistant", kind: "briefing", source: "analytics", lead: true,
+          narrative,
+          blocks: [{ type: "stats", stats: b.stats }, ...b.charts.map((c) => ({ type: "chart", ...c }))],
+        }]);
+        setSuggestions(b.suggested_questions);
+      })
+      .catch(() => {});
   }, [dataset]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => () => { stopSpeaking?.(); recRef.current?.stop?.(); }, []);
+
+  const finishUpload = async (d) => {
+    await cleanDataset(d.id, {
+      drop_duplicates: true, numeric_strategy: "median",
+      categorical_strategy: "mode", outlier_method: "iqr_clip",
+    }).catch(() => {});
+    setDataset({ ...d, is_cleaned: true });
+    refresh();
+  };
+
   const handleUpload = () => {
     if (!file) return;
     setBusy(true); setError("");
-    uploadDataset(file)
-      .then(async (d) => {
-        await cleanDataset(d.id, {
-          drop_duplicates: true, numeric_strategy: "median",
-          categorical_strategy: "mode", outlier_method: "iqr_clip",
-        }).catch(() => {});
-        setDataset({ ...d, is_cleaned: true });
-        refresh();
-      })
+    uploadDataset(file).then(finishUpload)
       .catch((e) => setError(detail(e, "Couldn't read that file.")))
+      .finally(() => setBusy(false));
+  };
+
+  const handleSample = (id) => {
+    setBusy(true); setError("");
+    loadSample(id).then(finishUpload)
+      .catch((e) => setError(detail(e, "Couldn't load the sample.")))
       .finally(() => setBusy(false));
   };
 
@@ -174,17 +280,38 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     if (!question || busy) return;
     setInput("");
     setError("");
-    const history = messages.map((m) => ({ role: m.role, content: m.text || m.narrative?.[0] || "" }));
+    setSuggestions([]);
+    const history = messages
+      .filter((m) => !m.lead)
+      .map((m) => ({ role: m.role, content: m.text || m.narrative?.[0] || "" }));
     setMessages((m) => [...m, { role: "user", text: question }]);
     setBusy(true);
     try {
-      const r = await chatWithDataset(dataset.id, question, history);
+      const r = await chatWithDataset(dataset.id, question, history, lang);
       setMessages((m) => [...m, { role: "assistant", ...r }]);
     } catch (e) {
       setError(detail(e, "Something went wrong reaching the server."));
     } finally {
       setBusy(false);
     }
+  };
+
+  const toggleMic = () => {
+    if (listening) { recRef.current?.stop(); return; }
+    setError("");
+    setListening(true);
+    let heard = "";
+    recRef.current = listen(speech, {
+      onText: (txt) => { heard = txt; setInput(txt); },
+      onEnd: () => { setListening(false); if (heard.trim()) send(heard); },
+      onError: (e) => { setListening(false); setError(e === "not-allowed" ? "Microphone access was blocked. Allow it in the browser's address bar and try again." : "Couldn't hear that. Try again."); },
+    });
+  };
+
+  const onSpeak = (id, text) => {
+    if (speakingId === id) { stopSpeaking(); setSpeakingId(null); return; }
+    setSpeakingId(id);
+    speak(text, speech, () => setSpeakingId(null));
   };
 
   const handlePredict = async (msg, values) => {
@@ -204,10 +331,17 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
           ? res.prediction.toLocaleString(undefined, { maximumFractionDigits: 2 })
           : String(res.prediction);
       const lines = [`For that case: ${value}${msg.target ? ` (${msg.target})` : ""}.`];
-      if (res.confidence != null) {
+      if (res.confidence != null && res.trust?.level !== "low") {
         lines.push(`About ${Math.round(res.confidence * 100)} out of 100 similar cases show this.`);
       }
-      setMessages((m) => [...m, { role: "assistant", narrative: lines, kind: "text" }]);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant", narrative: lines, kind: "prediction",
+          trust: res.trust, explanation: res.explanation, row,
+          model_id: msg.model_id, features: msg.fields.map((f) => f.name), task: msg.task,
+        },
+      ]);
     } catch (e) {
       setError(detail(e, "Couldn't get a prediction for that."));
     } finally {
@@ -215,15 +349,16 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     }
   };
 
+  const chips = [...suggestions, ...templates.filter((x) => x.available).map((x) => x.label)];
+  const uniqueChips = [...new Set(chips)].slice(0, 9);
+
   return (
     <div className="mx-auto flex h-[calc(100vh-49px)] max-w-2xl flex-col">
       {step === "upload" && (
-        <div className="flex flex-1 items-start justify-center px-5 py-16">
+        <div className="flex flex-1 items-start justify-center overflow-y-auto px-5 py-12">
           <div className="w-full border border-rule bg-paper p-6">
-            <h1 className="text-[22px] leading-snug tracking-tight">Add your business data</h1>
-            <p className="mt-2 text-[14px] text-slate/60">
-              A spreadsheet of customers, sales, or orders. Once it's in, just ask questions about it.
-            </p>
+            <h1 className="text-[22px] leading-snug tracking-tight">{t(lang, "addTitle")}</h1>
+            <p className="mt-2 text-[14px] text-slate/60">{t(lang, "addBody")}</p>
             <input
               type="file"
               accept=".csv,.xlsx,.xls"
@@ -238,13 +373,32 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
               className="mt-5 w-full bg-ink px-5 py-3 text-[15px] font-medium text-white
                          hover:bg-slate disabled:cursor-not-allowed disabled:bg-rule disabled:text-slate/40"
             >
-              {busy ? "Reading your file…" : "Add this file"}
+              {busy ? t(lang, "reading") : t(lang, "addFile")}
             </button>
             {error && <p className="mt-3 text-[13px] text-clay">{error}</p>}
 
+            {samples.length > 0 && (
+              <div className="mt-8 border-t border-rule pt-5">
+                <p className="mb-3 text-[13px] text-slate/50">{t(lang, "trySample")}</p>
+                <div className="space-y-1.5">
+                  {samples.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => handleSample(s.id)}
+                      disabled={busy}
+                      className="block w-full border border-rule px-4 py-2.5 text-left hover:border-ink disabled:opacity-50"
+                    >
+                      <span className="block text-[13.5px]">{s.title}</span>
+                      <span className="block text-[12px] text-slate/50">{s.blurb}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {datasets.length > 0 && (
               <div className="mt-8 border-t border-rule pt-5">
-                <p className="mb-3 text-[13px] text-slate/50">Or continue with something you added before:</p>
+                <p className="mb-3 text-[13px] text-slate/50">{t(lang, "earlier")}</p>
                 <div className="space-y-1.5">
                   {datasets.map((d) => (
                     <button
@@ -264,47 +418,67 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
 
       {step === "chat" && dataset && (
         <>
-          <div className="flex items-center justify-between border-b border-rule px-5 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-rule px-5 py-2.5">
             <span className="text-[12px] text-slate/50">
-              Chatting about <span className="text-slate">{dataset.file_name}</span>
+              {t(lang, "chattingAbout")} <span className="text-slate">{dataset.file_name}</span>
             </span>
-            <button onClick={() => setStep("upload")} className="text-[12px] text-slate/50 hover:text-ink">
-              Switch file
-            </button>
+            <div className="flex items-center gap-4">
+              <div className="flex border border-rule" role="group" aria-label="Language">
+                {LANGS.map((l) => (
+                  <button
+                    key={l.id}
+                    onClick={() => setLang(l.id)}
+                    className={`px-2 py-0.5 text-[11.5px] ${lang === l.id ? "bg-slate text-white" : "text-slate/55 hover:text-slate"}`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => downloadCleaned(dataset.id, dataset.file_name)} className="text-[12px] text-slate/50 hover:text-ink">
+                {t(lang, "download")}
+              </button>
+              <button onClick={() => setStep("upload")} className="text-[12px] text-slate/50 hover:text-ink">
+                {t(lang, "switchFile")}
+              </button>
+            </div>
           </div>
+          {lang !== "en" && !llmOk && (
+            <p className="border-b border-rule bg-field px-5 py-1.5 text-[12px] text-slate/60">{t(lang, "hindiNote")}</p>
+          )}
 
           <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-            {messages.length === 0 && (
+            {messages.map((m, i) => (
+              <Bubble key={i} role={m.role}>
+                {m.role === "user" ? m.text : (
+                  <>
+                    {m.lead && <p className="mb-2 text-[12px] text-slate/45">{t(lang, "hello")}</p>}
+                    <AssistantContent msg={m} onPredict={handlePredict} predicting={predicting} lang={lang} />
+                    <Toolbar msg={m} lang={lang} speakingId={speakingId} onSpeak={onSpeak} id={i} />
+                  </>
+                )}
+              </Bubble>
+            ))}
+
+            {messages.length > 0 && !busy && uniqueChips.length > 0 && messages.length <= 1 && (
               <div>
-                <p className="mb-3 text-[14px] text-slate/60">
-                  Ask anything about this data — a count, an average, what affects something,
-                  or a prediction. Or start with one of these:
-                </p>
+                <p className="mb-2 text-[13px] text-slate/55">{t(lang, "tryAsking")}</p>
                 <div className="flex flex-wrap gap-2">
-                  {templates.filter((t) => t.available).map((t) => (
+                  {uniqueChips.map((q) => (
                     <button
-                      key={t.id}
-                      onClick={() => send(t.label)}
-                      className="border border-rule bg-paper px-3 py-1.5 text-[13px] hover:border-ink hover:text-ink"
+                      key={q}
+                      onClick={() => send(q)}
+                      className="border border-rule bg-paper px-3 py-1.5 text-left text-[13px] hover:border-ink hover:text-ink"
                     >
-                      {t.label}
+                      {q}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {messages.map((m, i) => (
-              <Bubble key={i} role={m.role}>
-                {m.role === "user" ? m.text : (
-                  <AssistantContent msg={m} onPredict={handlePredict} predicting={predicting} />
-                )}
-              </Bubble>
-            ))}
-
             {busy && (
               <Bubble role="assistant">
-                <span className="text-slate/40">Thinking…</span>
+                <span className="text-slate/40">{t(lang, "thinking")}</span>
               </Bubble>
             )}
           </div>
@@ -316,15 +490,25 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Ask about your data…"
+              placeholder={listening ? t(lang, "listening") : t(lang, "ask")}
               className="flex-1 border border-rule bg-paper px-4 py-2.5 text-[14px]"
             />
+            {canListen() && (
+              <button
+                onClick={toggleMic}
+                aria-label={t(lang, "speak")}
+                aria-pressed={listening}
+                className={`border px-3 text-[13px] ${listening ? "border-clay bg-clay text-white" : "border-rule bg-paper text-slate/70 hover:border-ink hover:text-ink"}`}
+              >
+                {listening ? "●" : t(lang, "speak")}
+              </button>
+            )}
             <button
               onClick={() => send()}
               disabled={!input.trim() || busy}
               className="bg-ink px-5 text-[13px] font-medium text-white hover:bg-slate disabled:bg-rule disabled:text-slate/40"
             >
-              Send
+              {t(lang, "send")}
             </button>
           </div>
         </>

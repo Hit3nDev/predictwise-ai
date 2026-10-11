@@ -102,6 +102,7 @@ class ExperimentResult(BaseModel):
 
 class PredictRequest(BaseModel):
     rows: list[dict[str, Any]]
+    explain: bool = False
 
 
 class PredictionOut(BaseModel):
@@ -109,6 +110,19 @@ class PredictionOut(BaseModel):
     prediction: Any
     confidence: Optional[float] = None
     probabilities: Optional[dict[str, float]] = None
+    trust: Optional[dict[str, Any]] = None
+    explanation: Optional[dict[str, Any]] = None
+
+
+class LeversRequest(BaseModel):
+    row: dict[str, Any]
+    target_class: Optional[str] = None
+
+
+class WhatIfRequest(BaseModel):
+    row: dict[str, Any]
+    feature: str
+    target_class: Optional[str] = None
 
 
 class PredictResponse(BaseModel):
@@ -170,6 +184,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: list[ChatMessage] = []
+    lang: str = "en"
 
 
 class ChatResponse(BaseModel):
@@ -185,3 +200,4 @@ class ChatResponse(BaseModel):
     fields: list[FieldSpec] = []
     ranking: Optional[list[dict]] = None
     table: Optional[list[dict]] = None
+    blocks: list[dict] = []        # rich extras: chart | stats | segments | anomalies | actions

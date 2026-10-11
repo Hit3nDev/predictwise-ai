@@ -4,7 +4,7 @@ import {
 } from "../api";
 import { Notice } from "./ui";
 import { DataStage, CleanStage, ExploreStage } from "./stages";
-import { ModelStage, PredictStage } from "./modelStages";
+import { ModelStage, PredictStage, AuditStage } from "./modelStages";
 
 const STAGES = [
   { id: "data",    name: "Data",    hint: "upload a file" },
@@ -12,6 +12,7 @@ const STAGES = [
   { id: "explore", name: "Explore", hint: "see what's in it" },
   { id: "model",   name: "Model",   hint: "train and compare" },
   { id: "predict", name: "Predict", hint: "run it on new rows" },
+  { id: "audit",   name: "Audit",   hint: "fairness, drift, report" },
 ];
 
 export default function TechnicalMode({ dataset, setDataset, datasets, refresh }) {
@@ -20,6 +21,7 @@ export default function TechnicalMode({ dataset, setDataset, datasets, refresh }
   const [eda, setEda] = useState(null);
   const [training, setTraining] = useState(null);
   const [prediction, setPrediction] = useState(null);
+  const [predCount, setPredCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -55,12 +57,14 @@ export default function TechnicalMode({ dataset, setDataset, datasets, refresh }
     });
 
   const handlePredict = (row) =>
-    run(() => predict(training.best_model_id, [row]), setPrediction);
+    run(() => predict(training.best_model_id, [row]), (r) => {
+      setPrediction(r); setPredCount((n) => n + 1);
+    });
 
   const reachable = (id) => {
     if (id === "data") return true;
     if (!dataset) return false;
-    if (id === "predict") return Boolean(training);
+    if (id === "predict" || id === "audit") return Boolean(training);
     return true;
   };
 
@@ -161,6 +165,8 @@ export default function TechnicalMode({ dataset, setDataset, datasets, refresh }
           {stage === "predict" && (
             <PredictStage result={training} onPredict={handlePredict} busy={busy} output={prediction} />
           )}
+
+          {stage === "audit" && <AuditStage result={training} predictionCount={predCount} />}
         </div>
       </main>
     </div>
