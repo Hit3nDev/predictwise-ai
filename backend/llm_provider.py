@@ -27,11 +27,24 @@ import os
 
 import httpx
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+def _clean_key(v):
+    # Keys pasted into PowerShell often carry stray quotes or spaces.
+    return v.strip().strip("\"'").strip() if v else None
+
+
+GROQ_API_KEY = _clean_key(os.environ.get("GROQ_API_KEY"))
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+# Groq retires models from time to time. If the first one is refused, try the
+# next so the chat keeps working instead of silently falling back.
+GROQ_MODELS = [GROQ_MODEL] + [
+    m for m in ("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b", "openai/gpt-oss-120b")
+    if m != GROQ_MODEL
+]
+LAST_ERROR = {"message": None}
+_working = {"model": None}
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+ANTHROPIC_API_KEY = _clean_key(os.environ.get("ANTHROPIC_API_KEY"))
 ANTHROPIC_MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-4-5")
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
@@ -100,26 +113,96 @@ def complete(messages: list, system: str, tools=None, max_tokens: int = 500):
         # indistinguishable from the person's point of view. This prints to
         # the same terminal uvicorn is already running in.
         body = exc.response.text[:300] if exc.response is not None else ""
+        LAST_ERROR["message"] = _explain(exc.response.status_code if exc.response is not None else None, body)
         print(f"[llm_provider] {provider} call failed: HTTP {exc.response.status_code if exc.response is not None else '?'} — {body}", flush=True)
         return None
     except Exception as exc:
         print(f"[llm_provider] {provider} call failed: {type(exc).__name__}: {exc}", flush=True)
+        LAST_ERROR["message"] = (
+            "couldn't reach the AI service from this computer (check your internet or firewall)"
+            if "connect" in type(exc).__name__.lower() or "timeout" in type(exc).__name__.lower()
+            else f"{type(exc).__name__}: {exc}"
+        )
         return None
+
+
+def _explain(status, body: str) -> str:
+    """Turn an API failure into a sentence a person can act on."""
+    low = (body or "").lower()
+    if status in (401, 403) or "invalid api key" in low:
+        return "Groq rejected the API key (it may be wrong, expired or revoked). Make a new one at console.groq.com/keys"
+    if status == 429:
+        return "Groq's free limit was hit for now. Wait a minute and try again"
+    if status in (400, 404) and "model" in low:
+        return "the AI model is no longer available on Groq"
+    return f"HTTP {status}: {(body or '')[:160]}"
+
+
+_NOT_CHAT = ("whisper", "guard", "tts", "playai", "embed", "distil-whisper", "orpheus", "safeguard", "compound")
+_PREFER = ("llama-3.3", "llama-3.1-70b", "gpt-oss-120b", "qwen", "llama-4", "gpt-oss-20b", "llama-3.1-8b", "llama")
+_discovered: list = []
+
+
+def _discover_groq_models() -> list:
+    """Ask Groq which chat models this key can actually use, best-looking first."""
+    if _discovered:
+        return _discovered
+    resp = httpx.get(
+        "https://api.groq.com/openai/v1/models",
+        headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+        timeout=TIMEOUT_SECONDS,
+    )
+    resp.raise_for_status()
+    ids = [m["id"] for m in resp.json().get("data", []) if m.get("active", True)]
+    ids = [i for i in ids if not any(x in i.lower() for x in _NOT_CHAT)]
+    ids.sort(key=lambda i: next((n for n, p in enumerate(_PREFER) if p in i.lower()), len(_PREFER)))
+    print(f"[llm_provider] models available to this key: {ids}", flush=True)
+    _discovered.extend(ids)
+    return _discovered
+
+
+def _is_model_error(resp) -> bool:
+    low = resp.text.lower()
+    return resp.status_code in (400, 404) and ("model" in low) and ("tool" not in low or "not_found" in low)
 
 
 def _complete_groq(messages, system, tools, max_tokens) -> dict:
     payload_messages = [{"role": "system", "content": system}] + messages
-    body = {"model": GROQ_MODEL, "messages": payload_messages, "max_tokens": max_tokens}
-    if tools:
-        body["tools"] = [_to_openai_tool(t) for t in tools]
+    tried = []
+    resp = None
 
-    resp = httpx.post(
-        GROQ_URL,
-        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "content-type": "application/json"},
-        json=body,
-        timeout=TIMEOUT_SECONDS,
-    )
+    def attempt(model):
+        body = {"model": model, "messages": payload_messages, "max_tokens": max_tokens}
+        if tools:
+            body["tools"] = [_to_openai_tool(t) for t in tools]
+        return httpx.post(
+            GROQ_URL,
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "content-type": "application/json"},
+            json=body,
+            timeout=TIMEOUT_SECONDS,
+        )
+
+    # Remembered from an earlier success so we don't re-probe on every message.
+    queue = ([_working["model"]] if _working["model"] else []) + list(GROQ_MODELS)
+    discovered = False
+    while queue:
+        model = queue.pop(0)
+        if model in tried:
+            continue
+        tried.append(model)
+        resp = attempt(model)
+        if resp.status_code < 400:
+            _working["model"] = model
+            break
+        if _is_model_error(resp):
+            print(f"[llm_provider] groq model {model} unavailable, trying another", flush=True)
+            if not queue and not discovered:
+                discovered = True
+                queue.extend(_discover_groq_models())
+            continue
+        break
     resp.raise_for_status()
+    LAST_ERROR["message"] = None
     choice = resp.json()["choices"][0]["message"]
 
     tool_calls = []

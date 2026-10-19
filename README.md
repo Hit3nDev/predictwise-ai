@@ -377,3 +377,66 @@ frontend/src/
     answer. Answers are translated by the LLM when a key is set.
   - **Download cleaned data** as CSV.
   - Tests: 18 passing (`cd backend && python -m pytest tests -q`).
+
+- **Day 12: AI chat that explains its own failures.** Chat falls back to the
+  data overview when the AI call fails; it now says *why* ("Groq rejected the
+  API key", "free limit hit", "no internet"). `/health/llm?probe=true` makes one
+  real test call and reports the exact reason. If Groq retires a model, the app
+  tries the next one automatically. Stray quotes around a pasted key are
+  stripped. Tests: 22 passing.
+
+- **Day 13: self-selecting AI model.** Groq answered `model_not_found` for the
+  hard-coded model. If a model is refused, the backend now asks Groq which chat
+  models the key can use, picks the best one and remembers it. Tests: 23 passing.
+
+- **Day 14: answers in rupees, no clarifying questions.** The AI prompt now
+  states that money is in Indian rupees, forbids markdown and forbids asking
+  the user a question back. A sanitizer converts any stray `$` to `₹` with
+  Indian grouping and strips `**`. The built-in starter questions (e.g. "What
+  number should I expect?") go to their dedicated prediction engines instead of
+  the free-form LLM. Tests: 25 passing.
+
+- **Day 15: pitch features.**
+  - **Hindi fixed:** the AI prompt said "plain English", which fought the Hindi
+    setting. It now says "simple everyday words", repeats the language in the
+    question, and any answer that still comes back in the wrong script is
+    translated (`lang.ensure`).
+  - **Weekly playbook:** "What should I do this week?" gives up to six actions
+    from the file (stock up before the busiest day, a product that fell 22%,
+    never run out of the top sellers, which city to focus on, unusual entries).
+    `/datasets/{id}/playbook`.
+  - **Show your work:** every AI answer can show the exact calculations behind it.
+  - **Private mode:** nothing about the question goes to any AI service.
+  - **Why PredictWise?** in-app page comparing it honestly with a general chat
+    assistant. `PITCH.md` has a 3-minute demo script and honest answers.
+  - Tests: 31 passing.
+
+- **Day 16: advanced tools.**
+  - **Stock planner:** "How much should I order?" gives per-product order
+    quantities for the next 7 days with a 15% safety buffer (`/datasets/{id}/stock-plan`).
+  - **Chart on request:** "Show me sales by city as a chart" draws it.
+  - **Customer value groups (RFM):** Best / Regular / New / At risk / Lost, plus a
+    win-back call list.
+  - **Compare with an older file:** what changed between two uploads.
+  - **Share today's summary:** a short digest ready to send on WhatsApp.
+  - **Sweet-shop sample dataset**, CSV download on every table, tidier header toolbar.
+  - Tests: 39 passing.
+
+- **Day 17: the shop toolkit.** Built for a neighbourhood shopkeeper who keeps bills, not spreadsheets.
+  One click each (or just ask), all computed from the shop's own file, no AI service needed:
+  - **What earns me money:** profit and margin per product, flags items that sell a lot but earn
+    little (with what a 2% price rise is worth), and warns when a supplier's cost price has crept up.
+  - **Udhaar tracker:** who owes how much, how old the credit is, who has stopped visiting
+    (most likely to be forgotten). Repayment rows reduce the balance.
+  - **Stopped / fading products:** money stuck on the shelf, with what to do.
+  - **Festival planner:** the next festivals (Diwali, Dhanteras, Holi, Eid, Rakhi and more), what
+    sold in the week before them last time, and how much to stock. Dates are approximate and
+    the answer says so.
+  - **Bought together:** pairs like Bread + Butter with how often, for shelf placement and combos.
+  - **Busiest days:** weekday pattern with plain staffing and offer advice.
+  - **WhatsApp messages:** udhaar reminders, win-back texts, festival broadcast and the weekly
+    supplier order, in English or Hindi (fixed hand-written wording, so Hindi works without a key),
+    editable, one tap to open WhatsApp with the customer's number filled in.
+  - A new sample (provision store: bills, phone numbers, udhaar, a Diwali rush) and a
+    "Shop toolkit" panel that only offers what the uploaded file can support.
+  - Tests: 60 passing. Known limit: table column headings stay in English.

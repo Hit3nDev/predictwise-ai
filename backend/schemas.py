@@ -185,6 +185,8 @@ class ChatRequest(BaseModel):
     message: str
     history: list[ChatMessage] = []
     lang: str = "en"
+    private: bool = False          # True: nothing about this question is sent to any AI service
+    shop: str = ""                 # the shop's name, used in ready-to-send messages
 
 
 class ChatResponse(BaseModel):

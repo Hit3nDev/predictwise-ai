@@ -62,8 +62,12 @@ export const getQuestionTemplates = (id) =>
 export const askQuestion = (id, body) =>
   api.post(`/datasets/${id}/ask`, body).then((r) => r.data);
 
-export const chatWithDataset = (id, message, history, lang = "en") =>
-  api.post(`/datasets/${id}/chat`, { message, history, lang }).then((r) => r.data);
+export const chatWithDataset = (id, message, history, lang = "en", priv = false, shop = "") =>
+  api.post(`/datasets/${id}/chat`, { message, history, lang, private: priv, shop }).then((r) => r.data);
+
+export const getToolkit = (id) => api.get(`/datasets/${id}/toolkit`).then((r) => r.data);
+
+export const getPlaybook = (id) => api.get(`/datasets/${id}/playbook`).then((r) => r.data);
 
 export const llmStatus = () => api.get("/health/llm").then((r) => r.data);
 
@@ -103,3 +107,6 @@ export const downloadScored = async (modelId, file) => {
   const r = await api.post(`/models/${modelId}/score-file`, fd, { params: { format: "csv" }, responseType: "blob" });
   saveBlob(r.data, file.name.replace(/\.[^.]+$/, "") + "_scored.csv");
 };
+
+export const getDigest = (id) => api.get(`/datasets/${id}/digest`).then((r) => r.data);
+export const compareFiles = (id, otherId) => api.get(`/datasets/${id}/compare/${otherId}`).then((r) => r.data);

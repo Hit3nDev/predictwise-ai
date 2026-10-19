@@ -37,6 +37,8 @@ import llm_resolver
 import query_engine
 import lang
 import actions
+import advanced
+import shop as shop_service
 import analytics
 import report as report_service
 import trust
@@ -110,7 +112,7 @@ def health():
 
 
 @app.get("/health/llm")
-def health_llm():
+def health_llm(probe: bool = False):
     """
     Check whether Simple Mode's AI understanding is actually configured,
     without needing to dig through a chat response to infer it. Does NOT
@@ -120,7 +122,13 @@ def health_llm():
     that" as the first diagnostic step.
     """
     provider = llm_provider.active_provider()
+    live = None
+    if probe and provider:
+        # ?probe=true makes one tiny real call so you can see the true reason it fails.
+        out = llm_provider.complete([{"role": "user", "content": "Reply with the single word: ok"}], "You are a test.", max_tokens=5)
+        live = {"working": out is not None, "error": None if out else llm_provider.LAST_ERROR["message"]}
     return {
+        "live_test": live,
         "configured": provider is not None,
         "provider": provider,
         "groq_key_present": bool(llm_provider.GROQ_API_KEY),
@@ -737,6 +745,8 @@ SAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples"
 SAMPLES = {
     "kirana_sales": ("Kirana store: a year of daily sales", "kirana_sales.csv", "Sales over time, best sellers, unusual bulk orders"),
     "customers": ("Customers: who buys and who doesn't", "customers.csv", "Predict purchases, find customer groups"),
+    "sweet_shop": ("Sweet shop: customers and their orders", "sweet_shop.csv", "Best and lapsing customers, who to call first"),
+    "provision_store": ("Provision store: bills, udhaar and a Diwali rush", "provision_store.csv", "Profit, udhaar, festival stock, items bought together, WhatsApp reminders"),
 }
 
 
@@ -771,6 +781,42 @@ def load_sample(name: str, db: Session = Depends(get_db)):
     return _to_out(d)
 
 
+
+@app.get("/datasets/{dataset_id}/shop/{tool}")
+def shop_tool(dataset_id: int, tool: str, kind: str = "winback", lang_code: str = Query("en", alias="lang"),
+              shop: str = "our shop", db: Session = Depends(get_db)):
+    """Direct access to each shop tool, for the toolkit screen."""
+    d = _get_dataset_or_404(dataset_id, db)
+    _, df = _frames(d)
+    if tool == "messages":
+        return shop_service.messages(df, kind, lang_code, shop or "our shop")
+    fn = {"profit": shop_service.profit, "udhaar": shop_service.udhaar, "slow": shop_service.slow_movers,
+          "festival": shop_service.festivals, "bundles": shop_service.bundles, "peak": shop_service.peak}.get(tool)
+    if not fn:
+        raise HTTPException(status_code=404, detail="Unknown tool")
+    res = fn(df)
+    res.pop("raw", None)
+    res.pop("now", None)
+    return res
+
+
+@app.get("/datasets/{dataset_id}/toolkit")
+def shop_toolkit(dataset_id: int, db: Session = Depends(get_db)):
+    """Which shop tools this file can power, so the screen only offers what will work."""
+    d = _get_dataset_or_404(dataset_id, db)
+    _, df = _frames(d)
+    out = {}
+    for name, fn in (("profit", shop_service.profit), ("udhaar", shop_service.udhaar), ("slow", shop_service.slow_movers),
+                     ("festival", shop_service.festivals), ("bundles", shop_service.bundles), ("peak", shop_service.peak),
+                     ("stock", advanced.stock_plan), ("rfm", advanced.rfm)):
+        try:
+            r = fn(df)
+            out[name] = {"available": bool(r["available"]), "reason": r.get("reason", "")}
+        except Exception as exc:        # never let one tool break the screen
+            out[name] = {"available": False, "reason": f"Could not check: {exc}"}
+    return out
+
+
 @app.get("/datasets/{dataset_id}/briefing")
 def dataset_briefing(dataset_id: int, db: Session = Depends(get_db)):
     d = _get_dataset_or_404(dataset_id, db)
@@ -793,6 +839,39 @@ def dataset_trend(dataset_id: int, metric: str | None = None, date_col: str | No
 def dataset_segments(dataset_id: int, db: Session = Depends(get_db)):
     d = _get_dataset_or_404(dataset_id, db)
     return analytics.segments(_frames(d)[1])
+
+
+@app.get("/datasets/{dataset_id}/playbook")
+def dataset_playbook(dataset_id: int, db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    raw, df = _frames(d)
+    return analytics.playbook(df, raw)
+
+
+@app.get("/datasets/{dataset_id}/stock-plan")
+def dataset_stock_plan(dataset_id: int, days: int = Query(7, ge=1, le=30), db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    return advanced.stock_plan(_frames(d)[1], horizon=days)
+
+
+@app.get("/datasets/{dataset_id}/customers")
+def dataset_customers(dataset_id: int, db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    return advanced.rfm(_frames(d)[1])
+
+
+@app.get("/datasets/{dataset_id}/compare/{other_id}")
+def dataset_compare(dataset_id: int, other_id: int, db: Session = Depends(get_db)):
+    """What changed between an older file (other_id) and this newer one."""
+    new, old = _get_dataset_or_404(dataset_id, db), _get_dataset_or_404(other_id, db)
+    return advanced.compare(_frames(old)[1], _frames(new)[1])
+
+
+@app.get("/datasets/{dataset_id}/digest")
+def dataset_digest(dataset_id: int, db: Session = Depends(get_db)):
+    d = _get_dataset_or_404(dataset_id, db)
+    raw, cleaned = _frames(d)
+    return advanced.digest(cleaned, raw, d.file_name)
 
 
 @app.get("/datasets/{dataset_id}/anomalies")
@@ -1084,13 +1163,95 @@ def _best_model_for(d: models.Dataset, df: pd.DataFrame, target: str, db: Sessio
     return db.query(models.MLModel).filter(models.MLModel.id == best_id).first()
 
 
-def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, question: str, db: Session):
+SHOP_INTENTS = ("messages", "udhaar", "profit", "slow", "festival", "bundles", "peak")
+
+
+def _table(rows, columns, caption=None, csv=None):
+    b = {"type": "table", "columns": columns, "rows": rows}
+    if caption:
+        b["caption"] = caption
+    if csv:
+        b["csv"] = csv
+    return b
+
+
+def _shop_answer(intent: str, df: pd.DataFrame, question: str, lang_code: str, shop_name: str):
+    """Shopkeeper tools from shop.py, turned into chat answers."""
+    def say(lines, blocks=None, kind="table_block"):
+        return schemas.ChatResponse(narrative=lines, kind=kind, source="analytics", blocks=blocks or [])
+
+    def unavailable(res):
+        return say([res["reason"]], kind="text")
+
+    if intent == "messages":
+        q = question.lower()
+        kind = ("udhaar" if re.search(r"udhaar|udhar|owe|due|pending|unpaid|baki|khata", q)
+                else "supplier" if re.search(r"supplier|wholesaler|order|stock", q)
+                else "festival" if re.search(r"festival|diwali|holi|eid|rakhi|dussehra|navratri|christmas", q)
+                else "winback")
+        res = shop_service.messages(df, kind, lang_code, shop_name or "our shop")
+        if not res["available"]:
+            return unavailable(res)
+        return say(res["narrative"], [{"type": "messages", "kind": kind, "messages": res["messages"]}], kind="messages")
+
+    if intent == "udhaar":
+        res = shop_service.udhaar(df)
+        if not res["available"]:
+            return unavailable(res)
+        blocks = [_table(res["rows"], res["columns"], csv="udhaar_list.csv")] if res["rows"] else []
+        return say(res["narrative"], blocks)
+
+    if intent == "profit":
+        res = shop_service.profit(df)
+        if not res["available"]:
+            return unavailable(res)
+        blocks = [_table(res["rows"], res["columns"], csv="profit_by_product.csv")]
+        if res["watch"]:
+            blocks.append(_table(res["watch"], list(res["watch"][0].keys()), caption="Cost prices that went up"))
+        lines = list(res["narrative"])
+        if res["watch"]:
+            lines.append(f"{len(res['watch'])} products cost you more than before; check the table below and consider raising their price.")
+        return say(lines, blocks)
+
+    if intent == "slow":
+        res = shop_service.slow_movers(df)
+        if not res["available"]:
+            return unavailable(res)
+        blocks = [_table(res["rows"], res["columns"], csv="slow_products.csv")] if res["rows"] else []
+        return say(res["narrative"], blocks)
+
+    if intent == "festival":
+        res = shop_service.festivals(df)
+        if not res["available"]:
+            return unavailable(res)
+        return say(res["narrative"], res["blocks"])
+
+    if intent == "bundles":
+        res = shop_service.bundles(df)
+        if not res["available"]:
+            return unavailable(res)
+        blocks = [_table(res["rows"], res["columns"], csv="bought_together.csv")] if res["rows"] else []
+        return say(res["narrative"], blocks)
+
+    if intent == "peak":
+        res = shop_service.peak(df)
+        if not res["available"]:
+            return unavailable(res)
+        return say(res["narrative"], res["blocks"])
+    return None
+
+
+def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, question: str, db: Session,
+                 lang_code: str = "en", shop_name: str = ""):
     """Questions with a purpose-built answer: briefing, trend, groups, unusual rows, who-first."""
     intent = analytics.detect_intent(question)
     if intent is None and RANK_RE.search(question):
         intent = "rank"
     if intent is None:
         return None
+
+    if intent in SHOP_INTENTS:
+        return _shop_answer(intent, df, question, lang_code, shop_name)
 
     if intent == "briefing":
         b = analytics.briefing(df, raw)
@@ -1125,6 +1286,39 @@ def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, questio
         return schemas.ChatResponse(narrative=an["narrative"], kind="anomalies", source="analytics",
                                     blocks=[{"type": "anomalies", "rows": an["rows"]}])
 
+    if intent == "stock":
+        sp = advanced.stock_plan(df)
+        if not sp["available"]:
+            return schemas.ChatResponse(narrative=[sp["reason"]], kind="text", source="analytics")
+        return schemas.ChatResponse(narrative=sp["narrative"], kind="table_block", source="analytics",
+                                    blocks=[{"type": "table", "columns": sp["columns"], "rows": sp["rows"], "csv": "stock_plan.csv"}])
+
+    if intent == "rfm":
+        r = advanced.rfm(df)
+        if not r["available"]:
+            if RANK_RE.search(question):
+                intent = "rank"          # no purchase history: fall back to "who is most likely to buy" from the model
+            else:
+                return schemas.ChatResponse(narrative=[r["reason"]], kind="text", source="analytics")
+    if intent == "rfm":
+        blocks = [{"type": "table", "columns": list(r["groups"][0].keys()), "rows": r["groups"]}]
+        if r["winback"]:
+            blocks.append({"type": "table", "caption": "Call these first", "columns": list(r["winback"][0].keys()), "rows": r["winback"], "csv": "win_back_list.csv"})
+        return schemas.ChatResponse(narrative=r["narrative"], kind="table_block", source="analytics", blocks=blocks)
+
+    if intent == "chart":
+        c = advanced.chart_request(df, question)
+        if not c["available"]:
+            return schemas.ChatResponse(narrative=[c["reason"]], kind="text", source="analytics")
+        return schemas.ChatResponse(narrative=c["narrative"], kind="chart", source="analytics", blocks=[c["chart"]])
+
+    if intent == "playbook":
+        pb = analytics.playbook(df, raw)
+        if not pb["available"]:
+            return schemas.ChatResponse(narrative=[pb["reason"]], kind="text", source="analytics")
+        return schemas.ChatResponse(narrative=[pb["headline"]], kind="playbook", source="analytics",
+                                    blocks=[{"type": "playbook", "items": pb["items"]}])
+
     if intent == "quality":
         q = analytics.quality(raw)
         lines = [f"Data health is {q['score']}/100 ({q['label'].lower()})."] + (q["issues"] or ["No problems found."])
@@ -1157,7 +1351,7 @@ def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, questio
 def chat(dataset_id: int, req: schemas.ChatRequest, db: Session = Depends(get_db)):
     resp = _chat_core(dataset_id, req, db)
     # Offline engines write English; translate their words when another language is chosen.
-    if resp.source != "llm" and req.lang != "en":
+    if resp.source != "llm" and req.lang != "en" and not req.private:
         resp.narrative = lang.translate_lines(resp.narrative, req.lang)
     return resp
 
@@ -1188,16 +1382,24 @@ def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
 
     # ---- 0. Purpose-built answers (briefing, trends, groups, unusual rows, who-first)
     raw = _read_any(d.storage_path)
-    rich = _rich_intent(d, raw, df, question, db)
+    rich = _rich_intent(d, raw, df, question, db, req.lang, req.shop)
     if rich:
         return rich
 
     # ---- 1. LLM tool-use: the real "answer anything" path -------------------
     columns = [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]
     history = [{"role": m.role, "content": m.content} for m in req.history[-6:]]
-    llm_result = llm_chat.chat(df, columns, question, history=history or None, lang=req.lang)
+    # The four built-in starter questions have dedicated engines (model + drivers),
+    # so they skip the free-form LLM, which tends to ask a clarifying question instead.
+    is_starter = any(
+        t["label"].lower() == question.lower().rstrip(" ?") + "?" or t["label"].lower() == question.lower()
+        for t in insights.TEMPLATES if t["id"] != "profile"
+    )
+    use_llm = not (is_starter or req.private)
+    llm_result = llm_chat.chat(df, columns, question, history=history or None, lang=req.lang) if use_llm else None
     if llm_result:
-        return schemas.ChatResponse(narrative=llm_result["narrative"], kind="text", source="llm")
+        blocks = [{"type": "work", "steps": llm_result["trace"][:6]}] if llm_result.get("trace") else []
+        return schemas.ChatResponse(narrative=llm_result["narrative"], kind="text", source="llm", blocks=blocks)
 
     # ---- 2. Offline factual queries: counts, filters, aggregates, top-N -----
     offline_result = query_engine.try_offline_query(df, question)
@@ -1211,7 +1413,7 @@ def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
 
     # ---- 3. Prediction / drivers / compare — reuses the existing resolver ---
     avail = insights.availability(df)
-    resolved = llm_resolver.resolve(columns, question) or insights.resolve_question(df, question)
+    resolved = (None if req.private else llm_resolver.resolve(columns, question)) or insights.resolve_question(df, question)
     if resolved["kind"] in ("repeat", "drivers_repeat") and resolved.get("target"):
         if not insights._is_binary(df[resolved["target"]]):
             resolved["kind"] = "drivers_number" if resolved["kind"] == "drivers_repeat" else "predict_number"
@@ -1263,8 +1465,14 @@ def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
     # ---- 4. Profile: the honest fallback -------------------------------------
     eda = eda_service.build_eda(df)
     narrative = insights.narrate_profile(eda, df)
-    if llm_provider.configured():
-        narrative.insert(0, "I couldn't work out a clear answer to that one — here's a general overview instead. Try asking about a specific number or column by name.")
+    if req.private:
+        narrative.insert(0, "Private mode is on, so I only used what I can work out on this computer. Here is a general overview; turn Private mode off for open-ended questions.")
+    elif llm_provider.configured():
+        why = llm_provider.LAST_ERROR["message"]
+        if why:
+            narrative.insert(0, f"The AI assistant isn't answering right now: {why}. Here's a general overview from the data instead.")
+        else:
+            narrative.insert(0, "I couldn't work out a clear answer to that one — here's a general overview instead. Try asking about a specific number or column by name.")
     else:
         narrative.insert(0, (
             "I couldn't match that to something I can compute offline — here's a general "

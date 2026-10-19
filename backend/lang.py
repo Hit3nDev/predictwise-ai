@@ -9,6 +9,7 @@ in English and the interface says so rather than pretending.
 """
 
 import json
+import re
 
 import llm_provider
 
@@ -48,3 +49,23 @@ def translate_lines(lines: list[str], lang: str | None) -> list[str]:
     except Exception:
         pass
     return lines
+
+
+def _devanagari_share(text: str) -> float:
+    letters = [c for c in text if c.isalpha()]
+    return sum(1 for c in letters if "\u0900" <= c <= "\u097f") / max(len(letters), 1)
+
+
+def ensure(lines: list[str], lang: str | None) -> list[str]:
+    """
+    Models sometimes answer in English even when told not to. Check the script
+    of what came back and translate if it is clearly the wrong language.
+    """
+    if lang not in ("hi", "hinglish") or not lines:
+        return lines
+    text = " ".join(lines)
+    if not re.search(r"[A-Za-z]{4,}", text) and lang == "hinglish":
+        return lines
+    share = _devanagari_share(text)
+    wrong = (lang == "hi" and share < 0.25) or (lang == "hinglish" and share > 0.2)
+    return translate_lines(lines, lang) if wrong else lines

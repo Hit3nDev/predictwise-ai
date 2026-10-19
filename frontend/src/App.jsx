@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { listDatasets } from "./api";
 import TechnicalMode from "./components/TechnicalMode";
 import SimpleMode from "./components/SimpleMode";
+import Pitch from "./components/Pitch";
 
 export default function App() {
   const [mode, setMode] = useState("simple");   // simple | technical
   const [dataset, setDataset] = useState(null);
   const [datasets, setDatasets] = useState([]);
+  const [showPitch, setShowPitch] = useState(false);
 
   const refresh = () => listDatasets().then(setDatasets).catch(() => {});
   useEffect(() => { refresh(); }, []);
@@ -16,7 +18,10 @@ export default function App() {
       {/* Always-visible mode switch — either audience can flip at any point,
           without losing the dataset they've already picked. */}
       <header className="flex items-center justify-between border-b border-rule bg-paper px-5 py-3">
-        <span className="text-[14px] tracking-tight">PredictWise</span>
+        <div className="flex items-baseline gap-5">
+          <span className="text-[14px] tracking-tight">PredictWise</span>
+          <button onClick={() => setShowPitch(true)} className="text-[12px] text-slate/50 hover:text-ink">Why PredictWise?</button>
+        </div>
 
         <div className="flex border border-rule">
           <button
@@ -37,6 +42,8 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {showPitch && <Pitch onClose={() => setShowPitch(false)} />}
 
       <div className="min-h-[calc(100vh-49px)] bg-field">
         {mode === "simple" ? (

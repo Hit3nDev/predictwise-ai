@@ -683,8 +683,16 @@ def briefing(df: pd.DataFrame, raw: pd.DataFrame | None = None) -> dict:
         ask.append("Which rows look unusual?")
 
     headline.append(f"Data health: {q['score']}/100 ({q['label'].lower()}).")
+    try:
+        import advanced
+        if advanced.stock_plan(df)["available"]:
+            ask.insert(1, "How much should I order for next week?")
+        if advanced.rfm(df)["available"]:
+            ask.insert(1, "Which customers should I call first?")
+    except Exception:
+        pass
     ask += [f"How many rows have {pretty(cat)} = {df[cat].mode().iloc[0]}?"] if cat else []
-    ask = list(dict.fromkeys(ask))[:6]
+    ask = list(dict.fromkeys(ask))[:7]
 
     return {
         "headline": headline,
@@ -701,6 +709,18 @@ def briefing(df: pd.DataFrame, raw: pd.DataFrame | None = None) -> dict:
 # ---------------------------------------------------------------------------
 
 INTENTS = [
+    ("messages", r"\b(whatsapp|sms|draft|write (a |the )?(message|text)|(message|text|msg)s?\b.{0,30}\b(customers?|supplier|wholesaler|reminder)|reminder (message|text)s?|send (a )?(message|reminder))\b"),
+    ("chart", r"\b(chart|graph|plot|visuali[sz]e|bar ?chart|breakdown of|split (of )?)\b"),
+    ("udhaar", r"\b(udhaar|udhar|khata|credit (sales?|customers?|given|balance)|owe[sd]?|dues?|pending (payment|amount|balance)s?|unpaid|baki|outstanding|recover(y)? (of )?(my )?money|who (has not|hasn'?t) paid)\b"),
+    ("festival", r"\b(festivals?|diwali|deepavali|dhanteras|holi|eid|rakhi|raksha ?bandhan|dussehra|navratri|karva ?chauth|christmas|lohri|upcoming (rush|season)|wedding season)\b"),
+    ("profit", r"\b(profit\w*|margins?|markup|loss.?making|cost price|which (product|item)s? (earn|make)s?|where (do|am) i (make|lose)|how much (do )?i (earn|make)|earn(ing)?s?)\b"),
+    ("slow", r"\b(dead stock|slow.?moving?|slow movers?|not selling|stopped selling|unsold|stuck stock|clearance|fading|stop (buying|ordering)|what (should|can) i (stop|clear))\b"),
+    ("bundles", r"\b(bought together|buy together|combos?|bundles?|pairs?|goes? with|cross.?sell|also buy|sold together)\b"),
+    ("peak", r"\b(busiest|slowest|quietest|peak|rush hours?|which (day|days|weekday)|best day|worst day|staff\w*|extra (help|person))\b"),
+    ("stock", r"\b(stock plan|re-?stock|re-?order|how much (.{0,25})(order|buy|stock)|what (should|to) (i )?(order|buy|stock)|inventory|order list|shopping list|purchase plan)\b"),
+    ("rfm", r"\b(best|top|loyal|valuable|lost|inactive|at.?risk|win.?back|lapsed|dormant)\b.{0,25}\bcustomers?\b|\bcustomers?\b.{0,30}(haven'?t|have not|stopped|not (come|back|return|visit)|gone quiet|at.?risk|lost|inactive|call first)|\b(rfm|win.?back)\b"),
+    ("chart", r"\b(chart|graph|plot|visuali[sz]e|bar ?chart|breakdown of|split (of )?)\b"),
+    ("playbook", r"\b(what (should|can|do) i do|what to do|playbook|to-?do|action (plan|items?)|advice|suggest\w*|recommend\w*|tips?|how (can|do) i (grow|improve|increase)|grow my|increase (my )?sales|improve (my )?(sales|business)|today)\b"),
     ("briefing", r"\b(summary|summari[sz]e|overview|briefing|health check|tell me about (this|my) (data|file)|what('s| is) (in )?(this|my) (data|file)|insights?)\b"),
     ("forecast", r"\b(forecast|predict(ion)? (for )?(next|future)|next (month|week|day|year|quarter)|will .* (be|look like) next|future)\b"),
     ("trend", r"\b(trend|over time|growing|growth|declin\w*|per (month|week|day)|monthly|weekly|daily|seasonal\w*|by month|by week|going (up|down))\b"),
@@ -716,3 +736,137 @@ def detect_intent(question: str) -> str | None:
         if re.search(pat, q):
             return name
     return None
+
+
+# ---------------------------------------------------------------------------
+# Playbook: plain things to do, in priority order
+# ---------------------------------------------------------------------------
+
+WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+def playbook(df: pd.DataFrame, raw: pd.DataFrame | None = None) -> dict:
+    """
+    What a shopkeeper could do this week, worked out from the file alone.
+    Each item: {"tone": do|watch|good, "title", "detail"}. Nothing here is
+    guessed by a language model; every sentence is built from a computed number.
+    """
+    import trust
+
+    items = []
+    date = detect_date_col(df)
+    metric = pick_metric(df, date)
+    cat = pick_category(df, exclude=(date,) if date else ())
+    outcome = pick_outcome(df)
+
+    if date and metric:
+        d = to_dates(df, date)
+        data = df.loc[d.notna()].assign(_d=d[d.notna()])
+        if len(data) >= 30:
+            end = data["_d"].max()
+            recent = data[data["_d"] > end - pd.Timedelta(days=30)]
+            prior = data[(data["_d"] <= end - pd.Timedelta(days=30)) & (data["_d"] > end - pd.Timedelta(days=60))]
+            if len(recent) >= 10 and len(prior) >= 10 and prior[metric].sum() > 0:
+                r, pr = float(recent[metric].sum()), float(prior[metric].sum())
+                chg = (r - pr) / pr
+                items.append({
+                    "tone": "good" if chg >= 0 else "watch",
+                    "title": f"{cap(pretty(metric))} in the last 30 days: {fmt(metric, r)}",
+                    "detail": f"That is {abs(chg):.0%} {'more' if chg >= 0 else 'less'} than the 30 days before ({fmt(metric, pr)}).",
+                })
+                if cat:
+                    gr = recent.groupby(cat)[metric].sum()
+                    gp = prior.groupby(cat)[metric].sum()
+                    both = pd.concat([gr.rename("r"), gp.rename("p")], axis=1).fillna(0)
+                    both = both[both["p"] >= 0.03 * pr]
+                    both["chg"] = (both["r"] - both["p"]) / both["p"]
+                    if len(both):
+                        low = both["chg"].idxmin()
+                        if both.loc[low, "chg"] <= -0.15:
+                            items.append({
+                                "tone": "do",
+                                "title": f"{low} is selling {abs(both.loc[low, 'chg']):.0%} less than last month",
+                                "detail": "Check its price, freshness, shelf position or whether a competitor changed something. A quick fix here is worth the most.",
+                            })
+                        high = both["chg"].idxmax()
+                        if both.loc[high, "chg"] >= 0.15:
+                            items.append({
+                                "tone": "good",
+                                "title": f"{high} is selling {both.loc[high, 'chg']:.0%} more than last month",
+                                "detail": "Keep extra stock so you do not run out while it is popular.",
+                            })
+            daily = data.groupby(data["_d"].dt.normalize())[metric].sum()
+            if len(daily) >= 21:
+                wd = daily.groupby(daily.index.dayofweek).mean()
+                avg = float(daily.mean())
+                best, worst = int(wd.idxmax()), int(wd.idxmin())
+                if avg > 0 and wd.iloc[best] >= avg * 1.15:
+                    items.append({
+                        "tone": "do",
+                        "title": f"Stock up before {WEEKDAYS[best]}",
+                        "detail": f"{WEEKDAYS[best]} is your busiest day: about {fmt(metric, float(wd.iloc[best]))}, {wd.iloc[best] / avg - 1:.0%} above a normal day.",
+                    })
+                if avg > 0 and wd.iloc[worst] <= avg * 0.85:
+                    items.append({
+                        "tone": "do",
+                        "title": f"{WEEKDAYS[worst]} is your quietest day",
+                        "detail": f"About {fmt(metric, float(wd.iloc[worst]))}, {1 - wd.iloc[worst] / avg:.0%} below a normal day. A small offer or restocking day fits here.",
+                    })
+
+    if cat and metric:
+        c = concentration(df, cat, metric)
+        if c and len(c["ranking"]) >= 3:
+            top3 = sum(r["value"] for r in c["ranking"][:3])
+            total = float(df.groupby(cat)[metric].sum(numeric_only=True).clip(lower=0).sum())
+            if total > 0 and top3 / total >= 0.5:
+                names = ", ".join(r["name"] for r in c["ranking"][:3])
+                sells = any(w in cat.lower() for w in ("product", "item", "sku", "category", "goods", "brand"))
+                if sells:
+                    items.append({
+                        "tone": "do",
+                        "title": f"Never run out of {names}",
+                        "detail": f"These three bring {top3 / total:.0%} of your total {pretty(metric)}.",
+                    })
+                else:
+                    items.append({
+                        "tone": "watch",
+                        "title": f"Most of your {pretty(metric)} comes from {names}",
+                        "detail": f"These three {pretty(cat)} values make up {top3 / total:.0%} of the total, so a problem there would hurt a lot.",
+                    })
+
+    if outcome and cat:
+        s = df[outcome].dropna().astype(str)
+        pos = trust.positive_class(sorted(s.unique()))
+        g = df.assign(_y=(df[outcome].astype(str) == pos)).groupby(cat)["_y"].agg(["mean", "size"])
+        g = g[g["size"] >= 10]
+        if len(g) >= 2:
+            lo, hi = g["mean"].idxmin(), g["mean"].idxmax()
+            if g.loc[hi, "mean"] - g.loc[lo, "mean"] >= 0.10:
+                items.append({
+                    "tone": "do",
+                    "title": f"Focus on {lo}",
+                    "detail": f"Only {g.loc[lo, 'mean']:.0%} of customers there have {pretty(outcome)} = {pos}, against {g.loc[hi, 'mean']:.0%} in {hi}.",
+                })
+
+    an = anomalies(df, top=5)
+    if an.get("available") and an["count"]:
+        items.append({
+            "tone": "watch",
+            "title": f"Check {an['count']} unusual entries",
+            "detail": "They may be billing mistakes or genuine bulk orders. Ask me to show unusual rows.",
+        })
+
+    q = quality(raw if raw is not None else df)
+    if q["score"] < 80 and q["issues"]:
+        items.append({"tone": "watch", "title": f"Tidy your data ({q['score']}/100)", "detail": q["issues"][0]})
+
+    order = {"do": 0, "watch": 1, "good": 2}
+    items.sort(key=lambda i: order[i["tone"]])
+    items = items[:6]
+    if not items:
+        return {"available": False, "reason": "I need dates and a sales or amount column, or a yes/no column such as purchased, to suggest actions."}
+    return {
+        "available": True,
+        "items": items,
+        "headline": f"{len(items)} things worth your attention, most useful first.",
+    }

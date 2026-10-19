@@ -160,9 +160,140 @@ function Anomalies({ rows }) {
   );
 }
 
-export function Blocks({ blocks }) {
+const TONE = {
+  do:    { bar: "bg-ink",      word: "text-ink" },
+  watch: { bar: "bg-clay",     word: "text-clay" },
+  good:  { bar: "bg-slate/40", word: "text-slate/70" },
+};
+
+/* A to-do list, most useful first. The coloured edge says what kind of item
+   it is: green to act on, clay to look at, grey for good news. */
+function Playbook({ items }) {
+  return (
+    <ul className="mt-3 space-y-2">
+      {items.map((it, i) => (
+        <li key={i} className="flex border border-rule bg-paper">
+          <span className={`w-1 shrink-0 ${TONE[it.tone]?.bar ?? "bg-rule"}`} />
+          <div className="px-3 py-2.5">
+            <p className="text-[14px] font-medium">{it.title}</p>
+            <p className="mt-0.5 text-[13px] text-slate/65">{it.detail}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* The exact calculations behind an AI answer: the check a chat assistant
+   that recalls numbers from memory cannot offer. */
+function Work({ steps, label }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3 border-t border-rule pt-2.5">
+      <button onClick={() => setOpen(!open)} className="text-[13px] text-ink hover:underline underline-offset-2">
+        {label} <span className="num text-slate/40">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2">
+          {steps.map((s, i) => (
+            <div key={i} className="border border-rule bg-field px-3 py-2">
+              <p className="num break-all text-[12px]">{s.expr}</p>
+              <p className="num mt-1 break-all text-[12px] text-ink">= {s.result}</p>
+            </div>
+          ))}
+          <p className="text-[11.5px] text-slate/45">Calculated from your file by code, not remembered or guessed.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+/* A plain table of results (order list, customer groups, call list) that can be
+   taken away as a spreadsheet file: the shopkeeper's actual next step. */
+function TableBlock({ block, downloadLabel }) {
+  const { columns, rows, caption, csv } = block;
+  const save = () => {
+    const text = [columns.map(csvCell).join(","), ...rows.map((r) => columns.map((c) => csvCell(r[c])).join(","))].join("\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff" + text], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = csv || "table.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+  const TREND = { rising: "text-ink", falling: "text-clay" };
+  return (
+    <div className="mt-3">
+      {caption && <p className="mb-1.5 text-[12.5px] text-slate/60">{caption}</p>}
+      <div className="overflow-x-auto border border-rule">
+        <table className="w-full text-left text-[12.5px]">
+          <thead className="bg-field text-slate/55">
+            <tr>{columns.map((c) => <th key={c} className="whitespace-nowrap px-3 py-2 font-medium">{c}</th>)}</tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t border-rule/60 align-top">
+                {columns.map((c) => (
+                  <td key={c} className={`px-3 py-2 ${typeof r[c] === "string" && r[c].length > 40 ? "min-w-[14rem]" : ""} ${typeof r[c] === "number" ? "num text-right" : ""} ${c === "Trend" ? TREND[r[c]] ?? "text-slate/60" : ""}`}>
+                    {typeof r[c] === "number" ? r[c].toLocaleString("en-IN") : r[c]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {csv && <button onClick={save} className="mt-1.5 text-[12.5px] text-ink hover:underline underline-offset-2">{downloadLabel}</button>}
+    </div>
+  );
+}
+
+const MSG_DEFAULTS = { send: "Send on WhatsApp", copy: "Copy", copied: "Copied", noNumber: "No number on file. WhatsApp will let you pick the contact.", showAll: "Show all" };
+
+/** Ready-to-send texts. Each one can be edited before it opens in WhatsApp. */
+function Messages({ messages, labels }) {
+  const L = { ...MSG_DEFAULTS, ...labels };
+  const [texts, setTexts] = useState(() => messages.map((m) => m.text));
+  const [done, setDone] = useState(null);
+  const [all, setAll] = useState(false);
+  const link = (m, i) => `https://wa.me/${m.phone || ""}?text=${encodeURIComponent(texts[i])}`;
+  const copy = async (i) => {
+    try { await navigator.clipboard.writeText(texts[i]); setDone(i); setTimeout(() => setDone(null), 1500); } catch { /* clipboard blocked */ }
+  };
+  return (
+    <div className="mt-3 space-y-2.5">
+      {messages.slice(0, all ? messages.length : 4).map((m, i) => (
+        <div key={i} className="border border-rule bg-field/50 p-3">
+          <p className="mb-1.5 text-[12.5px] text-slate/60">
+            <span className="text-slate">{m.to}</span>
+            {m.phone ? <span className="num ml-2">+{m.phone}</span> : <span className="ml-2 text-slate/45">{L.noNumber}</span>}
+          </p>
+          <textarea
+            value={texts[i]}
+            onChange={(e) => setTexts((t) => t.map((x, j) => (j === i ? e.target.value : x)))}
+            rows={Math.min(8, Math.max(3, texts[i].split("\n").length + 1))}
+            className="w-full resize-y border border-rule bg-paper px-2.5 py-2 text-[13px] leading-snug"
+          />
+          <div className="mt-1.5 flex gap-4 text-[12.5px]">
+            <a href={link(m, i)} target="_blank" rel="noopener noreferrer" className="font-medium text-ink hover:underline underline-offset-2">{L.send}</a>
+            <button onClick={() => copy(i)} className="text-slate/60 hover:text-ink">{done === i ? L.copied : L.copy}</button>
+          </div>
+        </div>
+      ))}
+      {!all && messages.length > 4 && (
+        <button onClick={() => setAll(true)} className="text-[12.5px] text-ink hover:underline underline-offset-2">{L.showAll} ({messages.length})</button>
+      )}
+    </div>
+  );
+}
+
+export function Blocks({ blocks, workLabel = "How I worked this out", downloadLabel = "Download as CSV", msgLabels }) {
   if (!blocks?.length) return null;
   return blocks.map((b, i) => {
+    if (b.type === "table") return <TableBlock key={i} block={b} downloadLabel={downloadLabel} />;
+    if (b.type === "messages") return <Messages key={i} messages={b.messages} labels={msgLabels} />;
+    if (b.type === "playbook") return <Playbook key={i} items={b.items} />;
+    if (b.type === "work") return <Work key={i} steps={b.steps} label={workLabel} />;
     if (b.type === "chart") return <Chart key={i} block={b} />;
     if (b.type === "stats") return <Stats key={i} stats={b.stats} />;
     if (b.type === "segments") return <Segments key={i} segments={b.segments} />;

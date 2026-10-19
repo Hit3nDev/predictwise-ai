@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   uploadDataset, cleanDataset, getQuestionTemplates, chatWithDataset, predict, detail,
-  listSamples, loadSample, getBriefing, downloadCleaned, llmStatus,
+  listSamples, loadSample, getBriefing, downloadCleaned, llmStatus, getDigest, compareFiles, getToolkit,
 } from "../api";
 import { TrustNote, Contributions, WhatIf, FairnessPanel, ReportLinks } from "./trust";
 import { Blocks, BatchScore, Levers } from "./blocks";
@@ -120,6 +120,55 @@ function PredictForm({ msg, onPredict, busy, lang }) {
   );
 }
 
+/* One-click shop tools. Each is an ordinary question, so the answer lands in the chat
+   and can be followed up. Only the tools this file can power are offered. */
+const TOOLKIT = [
+  { id: "profit",  key: "tkProfit",   q: "Which products give me the most profit?" },
+  { id: "udhaar",  key: "tkUdhaar",   q: "Who owes me money?" },
+  { id: "stock",   key: "tkStock",    q: "How much should I order?" },
+  { id: "festival", key: "tkFestival", q: "What should I stock for the next festival?" },
+  { id: "slow",    key: "tkSlow",     q: "What is not selling?" },
+  { id: "bundles", key: "tkBundles",  q: "What do customers buy together?" },
+  { id: "peak",    key: "tkPeak",     q: "Which day is busiest?" },
+  { id: "rfm",     key: "tkWinback",  q: "Which customers should I win back?" },
+  { id: "udhaar",  key: "tkMsgUdhaar",   q: "Write a WhatsApp reminder message for my udhaar customers", msg: true },
+  { id: "stock",   key: "tkMsgSupplier", q: "Write a WhatsApp order message to my supplier", msg: true },
+  { id: "rfm",     key: "tkMsgWinback",  q: "Write a WhatsApp message to bring back my customers", msg: true },
+];
+
+function ToolkitBar({ toolkit, lang, onAsk, shop, setShop, open, setOpen }) {
+  const tools = TOOLKIT.filter((x) => toolkit?.[x.id]?.available);
+  if (!tools.length) return null;
+  return (
+    <div className="border-b border-rule px-5 py-2">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="text-[13px] font-medium text-ink hover:underline underline-offset-2">
+        {t(lang, "toolkit")} <span className="num text-slate/40">{tools.length} {open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="mt-2 pb-1">
+          <div className="flex flex-wrap gap-1.5">
+            {tools.map((x) => (
+              <button
+                key={x.key} onClick={() => onAsk(x.q)}
+                className={`border px-2.5 py-1 text-left text-[12.5px] hover:border-ink hover:text-ink ${x.msg ? "border-ink/30 bg-ink/[0.04]" : "border-rule bg-paper"}`}
+              >
+                {t(lang, x.key)}
+              </button>
+            ))}
+          </div>
+          <label className="mt-2 block text-[11.5px] text-slate/50">
+            {t(lang, "shopName")}
+            <input
+              value={shop} onChange={(e) => setShop(e.target.value)} maxLength={60}
+              className="mt-0.5 block w-full max-w-xs border border-rule bg-paper px-2 py-1 text-[13px] text-slate"
+            />
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Fold({ label, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -133,7 +182,8 @@ function Fold({ label, children, defaultOpen = false }) {
 }
 
 function Toolbar({ msg, lang, speakingId, onSpeak, id }) {
-  const text = msg.narrative.join(" ");
+  const playbook = msg.blocks?.find((b) => b.type === "playbook");
+  const text = [...msg.narrative, ...(playbook ? playbook.items.map((i, n) => `${n + 1}. ${i.title}. ${i.detail}`) : [])].join(playbook ? "\n" : " ");
   const wa = `https://wa.me/?text=${encodeURIComponent(text + "\n\n(PredictWise)")}`;
   const link = "text-[12px] text-slate/45 hover:text-ink";
   return (
@@ -154,7 +204,10 @@ function AssistantContent({ msg, onPredict, predicting, lang }) {
       {msg.narrative.map((line, i) => (
         <p key={i} className={i > 0 ? "mt-2" : ""}>{line}</p>
       ))}
-      <Blocks blocks={msg.blocks} />
+      <Blocks
+        blocks={msg.blocks} workLabel={t(lang, "work")} downloadLabel={t(lang, "downloadTable")}
+        msgLabels={{ send: t(lang, "sendWa"), copy: t(lang, "copy"), copied: t(lang, "copied"), noNumber: t(lang, "noNumber"), showAll: t(lang, "showAll") }}
+      />
       {msg.kind === "ranking" && msg.ranking && <RankingBars rows={msg.ranking} />}
       {msg.kind === "table" && msg.table && <DataTable rows={msg.table} />}
       {msg.kind === "prediction" && (
@@ -206,10 +259,16 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
   const [predicting, setPredicting] = useState(false);
   const [error, setError] = useState("");
   const [lang, setLangState] = useState(loadLang);
+  const [priv, setPrivState] = useState(() => { try { return localStorage.getItem("pw-private") === "1"; } catch { return false; } });
+  const setPriv = (v) => { setPrivState(v); try { localStorage.setItem("pw-private", v ? "1" : "0"); } catch { /* fine */ } };
   const [llmOk, setLlmOk] = useState(true);
   const [listening, setListening] = useState(false);
   const [speakingId, setSpeakingId] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
+  const [toolkit, setToolkit] = useState(null);
+  const [tkOpen, setTkOpen] = useState(true);
+  const [shop, setShopState] = useState(() => { try { return localStorage.getItem("pw-shop") || ""; } catch { return ""; } });
+  const setShop = (v) => { setShopState(v); try { localStorage.setItem("pw-shop", v); } catch { /* storage blocked */ } };
   const scrollRef = useRef(null);
   const recRef = useRef(null);
 
@@ -230,6 +289,9 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     setMessages([]);
     setSuggestions([]);
     getQuestionTemplates(dataset.id).then(setTemplates).catch(() => {});
+    setToolkit(null);
+    setTkOpen(true);
+    getToolkit(dataset.id).then(setToolkit).catch(() => {});
     // The first thing you see is what the data says, before you ask anything.
     getBriefing(dataset.id)
       .then((b) => {
@@ -280,6 +342,7 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     if (!question || busy) return;
     setInput("");
     setError("");
+    setTkOpen(false);
     setSuggestions([]);
     const history = messages
       .filter((m) => !m.lead)
@@ -287,7 +350,7 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     setMessages((m) => [...m, { role: "user", text: question }]);
     setBusy(true);
     try {
-      const r = await chatWithDataset(dataset.id, question, history, lang);
+      const r = await chatWithDataset(dataset.id, question === t("hi", "playbookQ") ? t("en", "playbookQ") : question, history, lang, priv, shop);
       setMessages((m) => [...m, { role: "assistant", ...r }]);
     } catch (e) {
       setError(detail(e, "Something went wrong reaching the server."));
@@ -312,6 +375,25 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     if (speakingId === id) { stopSpeaking(); setSpeakingId(null); return; }
     setSpeakingId(id);
     speak(text, speech, () => setSpeakingId(null));
+  };
+
+  const shareDigest = async () => {
+    try {
+      const { text } = await getDigest(dataset.id);
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    } catch (e) { setError(detail(e, "Couldn't build the summary.")); }
+  };
+
+  const compareWith = async (otherId) => {
+    if (!otherId) return;
+    const other = datasets.find((x) => String(x.id) === String(otherId));
+    setBusy(true); setError("");
+    try {
+      const r = await compareFiles(dataset.id, otherId);
+      const lines = r.available ? [`Compared with ${other?.file_name}:`, ...r.findings] : [r.reason];
+      setMessages((m) => [...m, { role: "assistant", narrative: lines, kind: "text" }]);
+    } catch (e) { setError(detail(e, "Couldn't compare those files.")); }
+    finally { setBusy(false); }
   };
 
   const handlePredict = async (msg, values) => {
@@ -349,7 +431,7 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     }
   };
 
-  const chips = [...suggestions, ...templates.filter((x) => x.available).map((x) => x.label)];
+  const chips = [t(lang, "playbookQ"), ...suggestions, ...templates.filter((x) => x.available).map((x) => x.label)];
   const uniqueChips = [...new Set(chips)].slice(0, 9);
 
   return (
@@ -418,11 +500,11 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
 
       {step === "chat" && dataset && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-rule px-5 py-2.5">
+          <div className="flex flex-col gap-1.5 border-b border-rule px-5 py-2.5 [&_button]:whitespace-nowrap [&_select]:whitespace-nowrap">
             <span className="text-[12px] text-slate/50">
               {t(lang, "chattingAbout")} <span className="text-slate">{dataset.file_name}</span>
             </span>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <div className="flex border border-rule" role="group" aria-label="Language">
                 {LANGS.map((l) => (
                   <button
@@ -434,6 +516,24 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => setPriv(!priv)}
+                title={t(lang, "privateHint")}
+                aria-pressed={priv}
+                className={`border px-2 py-0.5 text-[11.5px] ${priv ? "border-ink bg-ink text-white" : "border-rule text-slate/55 hover:text-slate"}`}
+              >
+                {t(lang, "privateMode")}
+              </button>
+              <button onClick={shareDigest} className="text-[12px] text-slate/50 hover:text-ink">{t(lang, "shareSummary")}</button>
+              {datasets.filter((x) => x.id !== dataset.id).length > 0 && (
+                <select
+                  value="" onChange={(e) => compareWith(e.target.value)} aria-label={t(lang, "compareWith")}
+                  className="sel max-w-[11rem] border border-rule bg-paper px-1.5 py-0.5 text-[11.5px] text-slate/60"
+                >
+                  <option value="">{t(lang, "compareWith")}</option>
+                  {datasets.filter((x) => x.id !== dataset.id).map((x) => <option key={x.id} value={x.id}>{x.file_name}</option>)}
+                </select>
+              )}
               <button onClick={() => downloadCleaned(dataset.id, dataset.file_name)} className="text-[12px] text-slate/50 hover:text-ink">
                 {t(lang, "download")}
               </button>
@@ -442,7 +542,11 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
               </button>
             </div>
           </div>
-          {lang !== "en" && !llmOk && (
+          <ToolkitBar toolkit={toolkit} lang={lang} onAsk={send} shop={shop} setShop={setShop} open={tkOpen} setOpen={setTkOpen} />
+          {priv && (
+            <p className="border-b border-rule bg-field px-5 py-1.5 text-[12px] text-slate/60">{t(lang, "privateHint")}</p>
+          )}
+          {lang !== "en" && !llmOk && !priv && (
             <p className="border-b border-rule bg-field px-5 py-1.5 text-[12px] text-slate/60">{t(lang, "hindiNote")}</p>
           )}
 

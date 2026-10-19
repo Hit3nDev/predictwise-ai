@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 
 import lang as lang_service
+import analytics
 import llm_provider
 
 MAX_TOOL_ROUNDS = 4
@@ -74,10 +75,34 @@ RUN_QUERY_TOOL = {
 }
 
 SYSTEM_PROMPT = """You are a data analyst answering questions about one uploaded dataset for someone with
-no data-analysis background -- a small business owner, not an analyst. Use the run_query tool to compute
-real numbers from the data; never guess or make up a figure. Keep your final answer to 1-3 short sentences
-in plain English, with no jargon (no "R-squared", "standard deviation", "p-value" etc.) and no code shown.
-If a question can't be answered from this data, say so plainly rather than guessing."""
+no data-analysis background -- a small business owner in India, not an analyst. Use the run_query tool to
+compute real numbers from the data; never guess or make up a figure.
+
+Rules for the final answer:
+- 1-3 short sentences in simple everyday words, no jargon (no "R-squared", "standard deviation", "p-value"), no code.
+- Never ask the person a question back. If the request is vague, pick the most sensible reading, compute it,
+  and say which reading you used (for example "Taking that as average sales per order: ...").
+- All money is in Indian rupees. Write amounts with the rupee sign, like ₹1,250 or ₹33.9 lakh. Never use
+  dollars or the $ sign, whatever the column is called.
+- Plain text only: no markdown, no asterisks, no bullet symbols, no headings.
+- If the data truly cannot answer the question, say so plainly in one sentence and mention what it can answer."""
+
+
+_MD = re.compile(r"(\*\*|__|`|^#+\s*|^\s*[-*]\s+)", re.M)
+_AMOUNT = re.compile(r"[₹$]\s?(\d[\d,]*(?:\.\d+)?)")
+
+
+def clean_answer(text: str) -> str:
+    """Last line of defence: rupees not dollars, Indian digit grouping, no stray markdown."""
+    def rupee(m):
+        try:
+            return analytics.money(float(m.group(1).replace(",", "")))
+        except ValueError:
+            return m.group(0)
+
+    text = _AMOUNT.sub(rupee, text)
+    text = _MD.sub("", text)
+    return re.sub(r"[ \t]+", " ", text).strip()
 
 
 def _safe_eval(expression: str, df: pd.DataFrame):
@@ -103,10 +128,12 @@ def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str
         return None
 
     messages = list(history or [])
+    reply_in = lang_service.instruction(lang)
     messages.append({
         "role": "user",
-        "content": f"Dataset columns:\n{_describe(columns)}\n\nQuestion: {question}",
+        "content": f"Dataset columns:\n{_describe(columns)}\n\nQuestion: {question}" + (f"\n\n{reply_in.strip()}" if reply_in else ""),
     })
+    trace = []
 
     for _ in range(MAX_TOOL_ROUNDS):
         result = llm_provider.complete(messages, SYSTEM_PROMPT + lang_service.instruction(lang), tools=[RUN_QUERY_TOOL], max_tokens=500)
@@ -118,7 +145,8 @@ def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str
         if not result["tool_calls"]:
             if not result["text"]:
                 return None
-            return {"narrative": [result["text"]], "history": messages}
+            lines = lang_service.ensure([clean_answer(result["text"])], lang)
+            return {"narrative": lines, "history": messages, "trace": trace}
 
         outputs = []
         for call in result["tool_calls"]:
@@ -126,6 +154,7 @@ def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str
             try:
                 value = _safe_eval(expr, df)
                 output = str(value)[:2000]
+                trace.append({"expr": expr, "result": output[:300]})
             except Exception as exc:
                 output = f"Error: {exc}"
             outputs.append((call["id"], output))
