@@ -440,3 +440,19 @@ frontend/src/
   - A new sample (provision store: bills, phone numbers, udhaar, a Diwali rush) and a
     "Shop toolkit" panel that only offers what the uploaded file can support.
   - Tests: 60 passing. Known limit: table column headings stay in English.
+
+- **Day 18: evidence and engineering.** See `ARCHITECTURE.md`.
+  - **Self-checking forecasts (`forecast.py`):** four methods replayed week by week over the shop's own
+    history, best one chosen by replay error, order sized to "enough stock in 95% of weeks" (say "99%" in
+    the question to change it), then tested on the latest six weeks that were kept out of the sizing and
+    compared with a flat 15% cushion. It reports the cost too: more stock left over.
+  - **Privacy shield (`privacy.py`):** customer names, phone numbers and emails are replaced with codes
+    before a question, the chat history or any query result reaches the AI service, and restored in the
+    answer. The "How I worked this out" panel says when it was used.
+  - **Tested ranges on every prediction (`calibration.py` wired in):** a numeric prediction shows a likely
+    range that held for X% of unseen rows; a yes/no prediction shows how often the model was right when it
+    was this sure.
+  - **Accuracy suite grown to 30 questions;** it exposed and fixed two real bugs (distinct customers/bills
+    counted as rows; "top 3 products" ranked single bills instead of totals).
+  - **Observability:** one JSON log line per request and Prometheus-format `/metrics` per route template.
+  - Tests: 85+ passing.

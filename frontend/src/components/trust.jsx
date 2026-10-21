@@ -42,6 +42,29 @@ export function TrustNote({ trust, plain }) {
   );
 }
 
+/* Track record: a range for a number, or how often the model was right when it felt this sure.
+   Both come from rows the model never trained on, so they are a fair test, not a boast. */
+export function Track({ range, reliability }) {
+  if (!range && !reliability) return null;
+  const n = (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return (
+    <div className="mt-3 border-l-2 border-ink/30 pl-3 text-[13px] text-slate/70">
+      {range && (
+        <p>
+          Likely between <span className="num text-slate">{n(range.low)}</span> and <span className="num text-slate">{n(range.high)}</span>.
+          {" "}This {range.level}% range held for {Math.round(range.held_out_coverage * 100)}% of {range.n_test} cases the model had never seen.
+        </p>
+      )}
+      {reliability && (
+        <p>
+          When the model was about this sure, it was right {Math.round(reliability.accuracy * 100)}% of the time
+          ({reliability.n} past cases it had never seen).
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------- explanation */
 
 /* Diverging bars around a centre line: ink pushes the answer up, clay pushes

@@ -15,6 +15,7 @@ naive "fit the scaler on everything first" implementations suffer from.
 
 import time
 
+import calibration
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -365,6 +366,7 @@ def run_automl(
         "best_metrics": ok[0]["metrics"],
         "feature_importance": feature_importance(best_pipeline, X_test, y_test),
         "reference": build_reference(X_train),
+        "calibration": calibration.calibrate(task, best_pipeline, X_train, y_train, X_test, y_test, folds),
         "_background": X_train.sample(n=min(100, len(X_train)), random_state=42),
         "_pipeline": best_pipeline,
         "_classes": (

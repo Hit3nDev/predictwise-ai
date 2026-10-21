@@ -39,6 +39,11 @@ import lang
 import actions
 import advanced
 import shop as shop_service
+import privacy
+import forecast as forecast_service
+import verify
+import calibration
+import validation
 import analytics
 import report as report_service
 import trust
@@ -65,7 +70,8 @@ app = FastAPI(title="PredictWise AI", version="0.4.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"]
+    + [o.strip() for o in os.environ.get("PW_CORS", "").split(",") if o.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -105,6 +111,45 @@ def _to_out(d: models.Dataset) -> schemas.DatasetOut:
 # ----------------------------------------------------------------------------
 # Routes
 # ----------------------------------------------------------------------------
+
+# ---- observability: one JSON log line per request, and counters at /metrics ----
+import logging
+import time
+from collections import defaultdict
+
+_log = logging.getLogger("predictwise.request")
+_STATS = {"started": time.time(), "count": defaultdict(int), "ms": defaultdict(float)}
+
+
+@app.middleware("http")
+async def _observe(request, call_next):
+    t0, status = time.perf_counter(), 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        route = request.scope.get("route")
+        path = getattr(route, "path", "static")          # route template, so ids do not explode the counters
+        ms = (time.perf_counter() - t0) * 1000
+        key = (request.method, path, status)
+        _STATS["count"][key] += 1
+        _STATS["ms"][key] += ms
+        _log.info(json.dumps({"method": request.method, "path": path, "status": status, "ms": round(ms, 1)}))
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    """Prometheus text format: request counts and total latency per route."""
+    lines = ["# TYPE predictwise_requests_total counter"]
+    for (m, p, st), n in sorted(_STATS["count"].items()):
+        lines.append(f'predictwise_requests_total{{method="{m}",route="{p}",status="{st}"}} {n}')
+    lines.append("# TYPE predictwise_request_ms_sum counter")
+    for (m, p, st), v in sorted(_STATS["ms"].items()):
+        lines.append(f'predictwise_request_ms_sum{{method="{m}",route="{p}",status="{st}"}} {v:.1f}')
+    lines += ["# TYPE predictwise_uptime_seconds gauge", f"predictwise_uptime_seconds {time.time() - _STATS['started']:.0f}"]
+    return Response("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
+
 
 @app.get("/health")
 def health():
@@ -345,6 +390,7 @@ def _persist_experiment(db: Session, dataset_id: int, result: dict):
                     "task": result["task"],
                     "target": result["target"],
                     "reference": result["reference"],
+                    "calibration": result.get("calibration"),
                     "background": result["_background"],
                 },
                 artifact_path,
@@ -547,6 +593,9 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
             }
             confidence = round(float(max(probabilities[i])), 4)
 
+        cal = bundle.get("calibration")
+        interval = calibration.range_for(cal, float(value), 90) if task == "regression" and isinstance(value, (int, float)) else None
+        track = calibration.reliability_for(cal, confidence) if task == "classification" else None
         guard = trust.check_row(reference, row, confidence) if reference else None
         if guard:
             guard["summary"] = trust.TRUST_PHRASE[guard["level"]]
@@ -570,6 +619,8 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
                 probabilities=proba_map,
                 trust=guard,
                 explanation=explanation,
+                range=interval,
+                reliability=track,
             )
         )
         db.add(
@@ -800,6 +851,15 @@ def shop_tool(dataset_id: int, tool: str, kind: str = "winback", lang_code: str 
     return res
 
 
+
+@app.get("/datasets/{dataset_id}/forecast")
+def dataset_forecast(dataset_id: int, service: float = Query(0.95, ge=0.5, le=0.99), db: Session = Depends(get_db)):
+    """Next week's demand per product, sized for a chosen service level, with the replay that justifies it."""
+    d = _get_dataset_or_404(dataset_id, db)
+    _, df = _frames(d)
+    return forecast_service.plan(df, service)
+
+
 @app.get("/datasets/{dataset_id}/toolkit")
 def shop_toolkit(dataset_id: int, db: Session = Depends(get_db)):
     """Which shop tools this file can power, so the screen only offers what will work."""
@@ -851,7 +911,14 @@ def dataset_playbook(dataset_id: int, db: Session = Depends(get_db)):
 @app.get("/datasets/{dataset_id}/stock-plan")
 def dataset_stock_plan(dataset_id: int, days: int = Query(7, ge=1, le=30), db: Session = Depends(get_db)):
     d = _get_dataset_or_404(dataset_id, db)
-    return advanced.stock_plan(_frames(d)[1], horizon=days)
+    return validation.stock_plan_with_ranges(_frames(d)[1], horizon=days)
+
+
+@app.get("/datasets/{dataset_id}/stock-plan/backtest")
+def dataset_stock_backtest(dataset_id: int, db: Session = Depends(get_db)):
+    """How well the plan would have done on this shop's own past weeks."""
+    d = _get_dataset_or_404(dataset_id, db)
+    return validation.backtest(_frames(d)[1])
 
 
 @app.get("/datasets/{dataset_id}/customers")
@@ -1163,6 +1230,15 @@ def _best_model_for(d: models.Dataset, df: pd.DataFrame, target: str, db: Sessio
     return db.query(models.MLModel).filter(models.MLModel.id == best_id).first()
 
 
+def _masked(df: pd.DataFrame, question: str) -> str:
+    """The question with customer names, phones and emails swapped for codes (see privacy.py)."""
+    sh = privacy.Shield(df)
+    if sh.active:
+        sh.frame()
+        return sh.mask(question)
+    return question
+
+
 SHOP_INTENTS = ("messages", "udhaar", "profit", "slow", "festival", "bundles", "peak")
 
 
@@ -1286,7 +1362,22 @@ def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, questio
         return schemas.ChatResponse(narrative=an["narrative"], kind="anomalies", source="analytics",
                                     blocks=[{"type": "anomalies", "rows": an["rows"]}])
 
+    if intent == "backtest":
+        bt = validation.backtest(df)
+        if not bt["available"]:
+            return schemas.ChatResponse(narrative=[bt["reason"]], kind="text", source="analytics")
+        return schemas.ChatResponse(narrative=bt["narrative"], kind="table_block", source="analytics",
+                                    blocks=[{"type": "table", "columns": bt["columns"], "rows": bt["rows"]}])
+
     if intent == "stock":
+        m = re.search(r"\b(8\d|9\d)\s?%", question)
+        service = int(m.group(1)) / 100 if m else 0.95
+        fp = forecast_service.plan(df, service)
+        if fp["available"]:
+            blocks = [{"type": "table", "columns": fp["columns"], "rows": fp["rows"], "csv": "stock_plan.csv"}]
+            blocks.append({"type": "table", "caption": "How each method would have done on your past weeks",
+                           "columns": list(fp["proof_rows"][0].keys()), "rows": fp["proof_rows"]})
+            return schemas.ChatResponse(narrative=fp["narrative"], kind="table_block", source="analytics", blocks=blocks)
         sp = advanced.stock_plan(df)
         if not sp["available"]:
             return schemas.ChatResponse(narrative=[sp["reason"]], kind="text", source="analytics")
@@ -1398,7 +1489,10 @@ def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
     use_llm = not (is_starter or req.private)
     llm_result = llm_chat.chat(df, columns, question, history=history or None, lang=req.lang) if use_llm else None
     if llm_result:
-        blocks = [{"type": "work", "steps": llm_result["trace"][:6]}] if llm_result.get("trace") else []
+        blocks = [{"type": "work", "steps": [{"expr": x["expr"], "result": x["result"]} for x in llm_result["trace"][:6]]}] if llm_result.get("trace") else []
+        check = verify.check(llm_result["narrative"], llm_result.get("trace") or [])
+        if check["status"] != "nofigures":
+            blocks.append({"type": "verified", **check})
         return schemas.ChatResponse(narrative=llm_result["narrative"], kind="text", source="llm", blocks=blocks)
 
     # ---- 2. Offline factual queries: counts, filters, aggregates, top-N -----
@@ -1413,7 +1507,7 @@ def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
 
     # ---- 3. Prediction / drivers / compare — reuses the existing resolver ---
     avail = insights.availability(df)
-    resolved = (None if req.private else llm_resolver.resolve(columns, question)) or insights.resolve_question(df, question)
+    resolved = (None if req.private else llm_resolver.resolve(columns, _masked(df, question))) or insights.resolve_question(df, question)
     if resolved["kind"] in ("repeat", "drivers_repeat") and resolved.get("target"):
         if not insights._is_binary(df[resolved["target"]]):
             resolved["kind"] = "drivers_number" if resolved["kind"] == "drivers_repeat" else "predict_number"
@@ -1482,3 +1576,14 @@ def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
             "For genuinely open-ended questions like this one, set GROQ_API_KEY (free, no card -- see console.groq.com) on the backend to turn on full language understanding."
         ))
     return schemas.ChatResponse(narrative=narrative, kind="profile", source="offline")
+
+
+# ----------------------------------------------------------------------------
+# One-container deployment: if a built frontend is present, serve it from here.
+# Registered last so every API route above takes precedence.
+# ----------------------------------------------------------------------------
+
+_DIST = os.environ.get("FRONTEND_DIST") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "dist")
+if os.path.isdir(_DIST):
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=_DIST, html=True), name="frontend")

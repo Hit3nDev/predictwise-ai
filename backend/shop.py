@@ -331,7 +331,9 @@ FESTIVALS = [
 
 
 def _reference_today(data_end: pd.Timestamp, today: _date | None) -> pd.Timestamp:
-    real = pd.Timestamp(today or _date.today())
+    import os
+    env = os.environ.get("PW_TODAY")            # fixed "today" for demos and repeatable tests
+    real = pd.Timestamp(today or (pd.Timestamp(env).date() if env else _date.today()))
     return real if (real - data_end).days <= 60 else data_end
 
 
@@ -550,7 +552,10 @@ def messages(df: pd.DataFrame, kind: str = "winback", lang: str = "en", shop: st
             out.append(_msg(x["customer"], x["phone"], tx["udhaar"].format(name=x["customer"].split()[0], shop=shop, amt=money(x["amount"]))))
         lead = f"{len(out)} reminders are ready. Tap Send to open WhatsApp with the message filled in."
     elif kind == "supplier":
-        sp = advanced.stock_plan(df)
+        import forecast
+        sp = forecast.plan(df)
+        if not sp["available"]:
+            sp = advanced.stock_plan(df)
         if not sp["available"]:
             return {"available": False, "reason": sp["reason"]}
         lines = "\n".join(f"- {x['Product']}: {x['Order about']:,}" for x in sp["rows"][:15])

@@ -287,10 +287,21 @@ function Messages({ messages, labels }) {
   );
 }
 
-export function Blocks({ blocks, workLabel = "How I worked this out", downloadLabel = "Download as CSV", msgLabels }) {
+/** Did every number in an AI answer come out of the data? Green if yes, a warning naming the ones that did not. */
+function Verified({ block, text }) {
+  const good = block.status === "all";
+  return (
+    <p className={`mt-2 border-l-2 px-2.5 py-1 text-[12.5px] ${good ? "border-ink/50 text-slate/70" : "border-clay text-clay"}`} role="status">
+      <span aria-hidden="true">{good ? "✓ " : "! "}</span>{text}
+    </p>
+  );
+}
+
+export function Blocks({ blocks, workLabel = "How I worked this out", downloadLabel = "Download as CSV", msgLabels, verifyText }) {
   if (!blocks?.length) return null;
   return blocks.map((b, i) => {
     if (b.type === "table") return <TableBlock key={i} block={b} downloadLabel={downloadLabel} />;
+    if (b.type === "verified") return <Verified key={i} block={b} text={verifyText ? verifyText(b) : `${b.matched} of ${b.checked} figures traced to your data`} />;
     if (b.type === "messages") return <Messages key={i} messages={b.messages} labels={msgLabels} />;
     if (b.type === "playbook") return <Playbook key={i} items={b.items} />;
     if (b.type === "work") return <Work key={i} steps={b.steps} label={workLabel} />;

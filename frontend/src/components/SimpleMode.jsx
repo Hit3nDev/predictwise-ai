@@ -3,7 +3,7 @@ import {
   uploadDataset, cleanDataset, getQuestionTemplates, chatWithDataset, predict, detail,
   listSamples, loadSample, getBriefing, downloadCleaned, llmStatus, getDigest, compareFiles, getToolkit,
 } from "../api";
-import { TrustNote, Contributions, WhatIf, FairnessPanel, ReportLinks } from "./trust";
+import { TrustNote, Track, Contributions, WhatIf, FairnessPanel, ReportLinks } from "./trust";
 import { Blocks, BatchScore, Levers } from "./blocks";
 import { LANGS, t } from "../i18n";
 import { canListen, canSpeak, listen, speak, stopSpeaking } from "./voice";
@@ -206,6 +206,10 @@ function AssistantContent({ msg, onPredict, predicting, lang }) {
       ))}
       <Blocks
         blocks={msg.blocks} workLabel={t(lang, "work")} downloadLabel={t(lang, "downloadTable")}
+        verifyText={(b) => {
+          const key = { all: "vAll", partly: "vPart", none: "vNone", nocalc: "vNoCalc" }[b.status];
+          return t(lang, key).replace("{n}", b.checked).replace("{m}", b.matched).replace("{list}", b.unmatched.join(", "));
+        }}
         msgLabels={{ send: t(lang, "sendWa"), copy: t(lang, "copy"), copied: t(lang, "copied"), noNumber: t(lang, "noNumber"), showAll: t(lang, "showAll") }}
       />
       {msg.kind === "ranking" && msg.ranking && <RankingBars rows={msg.ranking} />}
@@ -213,6 +217,7 @@ function AssistantContent({ msg, onPredict, predicting, lang }) {
       {msg.kind === "prediction" && (
         <>
           <TrustNote trust={msg.trust} plain />
+          <Track range={msg.range} reliability={msg.reliability} />
           {msg.explanation && (
             <Fold label={t(lang, "why")} defaultOpen>
               <Contributions explanation={msg.explanation} plain limit={5} />
@@ -420,7 +425,7 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
         ...m,
         {
           role: "assistant", narrative: lines, kind: "prediction",
-          trust: res.trust, explanation: res.explanation, row,
+          trust: res.trust, explanation: res.explanation, range: res.range, reliability: res.reliability, row,
           model_id: msg.model_id, features: msg.fields.map((f) => f.name), task: msg.task,
         },
       ]);

@@ -34,6 +34,7 @@ import pandas as pd
 import lang as lang_service
 import analytics
 import llm_provider
+import privacy
 
 MAX_TOOL_ROUNDS = 4
 
@@ -127,13 +128,17 @@ def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str
     if not llm_provider.active_provider() or not question or not question.strip():
         return None
 
-    messages = list(history or [])
+    shield = privacy.Shield(df)
+    safe_df = shield.frame() if shield.active else df
+    mask = shield.mask if shield.active else (lambda x: x)
+    messages = [{**m, "content": mask(m["content"])} if isinstance(m.get("content"), str) else m for m in (history or [])]
+    question = mask(question)
     reply_in = lang_service.instruction(lang)
     messages.append({
         "role": "user",
         "content": f"Dataset columns:\n{_describe(columns)}\n\nQuestion: {question}" + (f"\n\n{reply_in.strip()}" if reply_in else ""),
     })
-    trace = []
+    trace = [{"expr": "Privacy shield", "result": shield.summary(), "raw": shield.summary()}] if shield.active else []
 
     for _ in range(MAX_TOOL_ROUNDS):
         result = llm_provider.complete(messages, SYSTEM_PROMPT + lang_service.instruction(lang), tools=[RUN_QUERY_TOOL], max_tokens=500)
@@ -145,16 +150,16 @@ def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str
         if not result["tool_calls"]:
             if not result["text"]:
                 return None
-            lines = lang_service.ensure([clean_answer(result["text"])], lang)
+            lines = lang_service.ensure([clean_answer(shield.unmask(result["text"]))], lang)
             return {"narrative": lines, "history": messages, "trace": trace}
 
         outputs = []
         for call in result["tool_calls"]:
             expr = call.get("input", {}).get("expression", "")
             try:
-                value = _safe_eval(expr, df)
+                value = _safe_eval(expr, safe_df)
                 output = str(value)[:2000]
-                trace.append({"expr": expr, "result": output[:300]})
+                trace.append({"expr": shield.unmask(expr), "result": shield.unmask(output)[:300], "raw": shield.unmask(output)})
             except Exception as exc:
                 output = f"Error: {exc}"
             outputs.append((call["id"], output))

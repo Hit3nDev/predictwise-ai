@@ -50,3 +50,9 @@ Stock planner, chart on request, customer groups with a win-back list, compare w
 
 ## Day 17: what a general chat assistant cannot do for a shopkeeper
 Ask "who owes me money?", "what should I stock for Diwali?", "which item looks busy but earns almost nothing?" on the provision-store sample. Then tap one button and a Hindi WhatsApp reminder opens for each customer with their number filled in. The numbers come from the shop's own bills and can be checked by hand; the customer list never has to leave the computer.
+
+## Day 18: for a technical reviewer
+- "How do you know the forecast is any good?" Open the stock answer: it shows each method's replayed error on the shop's own past weeks, and a held-back check against a flat 15% cushion.
+- "Is customer data sent to an AI company?" No. Names, phones and emails become codes first; Private mode sends nothing. Show the "How I worked this out" panel.
+- "How do you test an assistant?" `python evals.py`: 30 questions checked against independent pandas truth, wired into CI. It caught two real bugs during development.
+- "Can I see it run in production?" `docker compose up --build`, then `/metrics` for counters and structured request logs.

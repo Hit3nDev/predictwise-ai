@@ -112,6 +112,8 @@ class PredictionOut(BaseModel):
     probabilities: Optional[dict[str, float]] = None
     trust: Optional[dict[str, Any]] = None
     explanation: Optional[dict[str, Any]] = None
+    range: Optional[dict[str, Any]] = None          # regression: likely range and how often it held on unseen rows
+    reliability: Optional[dict[str, Any]] = None    # classification: how often the model was right when this sure
 
 
 class LeversRequest(BaseModel):

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Panel, Button, Field, Select, Readout, Empty, Notice } from "./ui";
 import { ImportanceBars } from "./charts";
 import Leaderboard from "./Leaderboard";
-import { TrustNote, Contributions, WhatIf, FairnessPanel, MonitorPanel, ReportLinks } from "./trust";
+import { TrustNote, Track, Contributions, WhatIf, FairnessPanel, MonitorPanel, ReportLinks } from "./trust";
 
 const METRIC_LABELS = {
   accuracy: "accuracy",
@@ -166,6 +166,7 @@ export function PredictStage({ result, onPredict, busy, output }) {
               )}
 
               <TrustNote trust={r.trust} />
+              <Track range={r.range} reliability={r.reliability} />
 
               {r.probabilities && (
                 <div className="mt-5 space-y-1.5">

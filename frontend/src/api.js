@@ -1,6 +1,11 @@
 import axios from "axios";
 
-export const api = axios.create({ baseURL: "http://localhost:8000" });
+// Dev (5173) and `vite preview` (4173) talk to the backend on :8000. When the backend
+// serves the app itself (Docker), requests stay on the same address. VITE_API_URL overrides both.
+const devPorts = ["5173", "4173"];
+const baseURL = import.meta.env.VITE_API_URL
+  ?? (devPorts.includes(window.location.port) ? "http://localhost:8000" : "");
+export const api = axios.create({ baseURL });
 
 const detail = (err, fallback) => {
   // The backend answered with a specific reason (bad file, bad request, etc.) — use it.

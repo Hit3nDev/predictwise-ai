@@ -709,6 +709,7 @@ def briefing(df: pd.DataFrame, raw: pd.DataFrame | None = None) -> dict:
 # ---------------------------------------------------------------------------
 
 INTENTS = [
+    ("backtest", r"\b(how (accurate|reliable)|accuracy|back.?test|can i trust (the|this|your) (plan|numbers?|forecast|stock|predictions?)|how sure (are|is) (you|the))\b"),
     ("messages", r"\b(whatsapp|sms|draft|write (a |the )?(message|text)|(message|text|msg)s?\b.{0,30}\b(customers?|supplier|wholesaler|reminder)|reminder (message|text)s?|send (a )?(message|reminder))\b"),
     ("chart", r"\b(chart|graph|plot|visuali[sz]e|bar ?chart|breakdown of|split (of )?)\b"),
     ("udhaar", r"\b(udhaar|udhar|khata|credit (sales?|customers?|given|balance)|owe[sd]?|dues?|pending (payment|amount|balance)s?|unpaid|baki|outstanding|recover(y)? (of )?(my )?money|who (has not|hasn'?t) paid)\b"),
