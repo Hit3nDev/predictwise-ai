@@ -1,0 +1,259 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  PredictWise AI - network layer. A VPC across two Availability Zones with
+  public subnets (load balancer, NAT gateway) and private subnets (app servers,
+  database), plus the security groups and network ACLs that wall them off.
+
+Parameters:
+  Project:
+    Type: String
+    Default: predictwise
+  VpcCidr:
+    Type: String
+    Default: 10.20.0.0/16
+  CreateNatGateway:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      false = lean mode for a small budget. No NAT gateway (~$1.10/day); app servers
+      sit in the public subnets instead, still reachable only through the load
+      balancer because of AppSecurityGroup. Switching modes needs a teardown first.
+
+Conditions:
+  UseNat: !Equals [!Ref CreateNatGateway, "true"]
+
+Resources:
+  # ---------------------------------------------------------------- VPC
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true          # RDS endpoints resolve through VPC DNS
+      Tags: [{ Key: Name, Value: !Sub "${Project}-vpc" }]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [{ Key: Name, Value: !Sub "${Project}-igw" }]
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  # ---------------------------------------------------------------- subnets
+  # /20 blocks: 10.20.0.0 public A, .16 public B, .32 app A, .48 app B, .64 db A, .80 db B
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Select [0, !Cidr [!Ref VpcCidr, 6, 12]]
+      MapPublicIpOnLaunch: true
+      Tags: [{ Key: Name, Value: !Sub "${Project}-public-a" }]
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Select [1, !Cidr [!Ref VpcCidr, 6, 12]]
+      MapPublicIpOnLaunch: true
+      Tags: [{ Key: Name, Value: !Sub "${Project}-public-b" }]
+  AppSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Select [2, !Cidr [!Ref VpcCidr, 6, 12]]
+      Tags: [{ Key: Name, Value: !Sub "${Project}-app-a" }]
+  AppSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Select [3, !Cidr [!Ref VpcCidr, 6, 12]]
+      Tags: [{ Key: Name, Value: !Sub "${Project}-app-b" }]
+  DbSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Select [4, !Cidr [!Ref VpcCidr, 6, 12]]
+      Tags: [{ Key: Name, Value: !Sub "${Project}-db-a" }]
+  DbSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Select [5, !Cidr [!Ref VpcCidr, 6, 12]]
+      Tags: [{ Key: Name, Value: !Sub "${Project}-db-b" }]
+
+  # ---------------------------------------------------------------- routing
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: !Sub "${Project}-public-rt" }]
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicARoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref PublicSubnetA, RouteTableId: !Ref PublicRouteTable }
+  PublicBRoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref PublicSubnetB, RouteTableId: !Ref PublicRouteTable }
+
+  # One NAT gateway keeps the lab bill low. Production would run one per AZ so
+  # losing AZ A does not cut the app servers in AZ B off from the internet.
+  NatIp:
+    Type: AWS::EC2::EIP
+    Condition: UseNat
+    DependsOn: GatewayAttachment
+    Properties:
+      Domain: vpc
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Condition: UseNat
+    Properties:
+      AllocationId: !GetAtt NatIp.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags: [{ Key: Name, Value: !Sub "${Project}-nat" }]
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: !Sub "${Project}-private-rt" }]
+  PrivateDefaultRoute:
+    Type: AWS::EC2::Route
+    Condition: UseNat
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+  AppARoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref AppSubnetA, RouteTableId: !Ref PrivateRouteTable }
+  AppBRoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref AppSubnetB, RouteTableId: !Ref PrivateRouteTable }
+
+  # Database subnets get a route table with no internet route at all.
+  DbRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: !Sub "${Project}-db-rt" }]
+  DbARoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref DbSubnetA, RouteTableId: !Ref DbRouteTable }
+  DbBRoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref DbSubnetB, RouteTableId: !Ref DbRouteTable }
+
+  # Free gateway endpoint: S3 traffic from private subnets skips the NAT (cheaper, stays on AWS's network).
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref Vpc
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds: [!Ref PrivateRouteTable]
+
+  # ---------------------------------------------------------------- security groups (stateful, per instance)
+  # Chained: internet -> ALB:80 -> app:8000 -> database:5432. Nothing else is open.
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Load balancer - HTTP from anywhere
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+      Tags: [{ Key: Name, Value: !Sub "${Project}-alb-sg" }]
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: App servers - port 8000 from the load balancer only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 8000, ToPort: 8000, SourceSecurityGroupId: !Ref AlbSecurityGroup }
+      Tags: [{ Key: Name, Value: !Sub "${Project}-app-sg" }]
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Database - PostgreSQL from the app servers only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 5432, ToPort: 5432, SourceSecurityGroupId: !Ref AppSecurityGroup }
+      Tags: [{ Key: Name, Value: !Sub "${Project}-db-sg" }]
+
+  # ---------------------------------------------------------------- network ACL (stateless, per subnet)
+  # A second layer for the database subnets: only PostgreSQL from inside the
+  # VPC in, only replies (ephemeral ports) back out, nothing from the internet.
+  # The VPC range rather than the app subnets because in lean mode the app
+  # servers sit in the public subnets; DbSecurityGroup still admits only them.
+  DbNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: !Sub "${Project}-db-nacl" }]
+  DbAclInPostgres:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref DbNetworkAcl
+      RuleNumber: 120
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange: { From: 5432, To: 5432 }
+  DbAclOutReplies:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref DbNetworkAcl
+      RuleNumber: 100
+      Egress: true
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange: { From: 1024, To: 65535 }
+  DbAclA:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties: { SubnetId: !Ref DbSubnetA, NetworkAclId: !Ref DbNetworkAcl }
+  DbAclB:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties: { SubnetId: !Ref DbSubnetB, NetworkAclId: !Ref DbNetworkAcl }
+
+Outputs:
+  VpcId:
+    Value: !Ref Vpc
+    Export: { Name: !Sub "${Project}-VpcId" }
+  PublicSubnets:
+    Value: !Join [",", [!Ref PublicSubnetA, !Ref PublicSubnetB]]
+    Export: { Name: !Sub "${Project}-PublicSubnets" }
+  AppSubnets:
+    Description: Where the app servers run - private with a NAT gateway, public in lean mode
+    Value: !If
+      - UseNat
+      - !Join [",", [!Ref AppSubnetA, !Ref AppSubnetB]]
+      - !Join [",", [!Ref PublicSubnetA, !Ref PublicSubnetB]]
+    Export: { Name: !Sub "${Project}-AppSubnets" }
+  DbSubnets:
+    Value: !Join [",", [!Ref DbSubnetA, !Ref DbSubnetB]]
+    Export: { Name: !Sub "${Project}-DbSubnets" }
+  AlbSecurityGroup:
+    Value: !Ref AlbSecurityGroup
+    Export: { Name: !Sub "${Project}-AlbSg" }
+  AppSecurityGroup:
+    Value: !Ref AppSecurityGroup
+    Export: { Name: !Sub "${Project}-AppSg" }
+  DbSecurityGroup:
+    Value: !Ref DbSecurityGroup
+    Export: { Name: !Sub "${Project}-DbSg" }

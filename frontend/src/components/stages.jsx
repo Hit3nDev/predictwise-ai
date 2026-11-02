@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Panel, Button, Field, Select, Readout, Empty, Notice } from "./ui";
-import { MissingBars, Histogram, Heatmap, DataTable } from "./charts";
+import { MissingBars, Histogram, Heatmap, DataTable } from "./Charts";
 
 /* ---------------------------------------------------------------- 1. Data */
 

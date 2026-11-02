@@ -12,6 +12,15 @@ jobs:
         run: cd backend && python -m pytest -q
       - name: Chat accuracy suite (must stay at 100%)
         run: cd backend && python evals.py
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install cfn-lint
+      - name: Lint CloudFormation templates
+        run: cfn-lint --regions us-east-1 -- infra/*.yaml
   frontend:
     runs-on: ubuntu-latest
     steps:

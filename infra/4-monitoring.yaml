@@ -1,0 +1,239 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  PredictWise AI - monitoring. A CloudWatch dashboard, metrics extracted from
+  the app's JSON request logs, and alarms that email you through SNS.
+
+Parameters:
+  Project:
+    Type: String
+    Default: predictwise
+  AlertEmail:
+    Type: String
+    Default: ""
+    Description: Optional. AWS emails a confirmation link first; alerts arrive only after you click it.
+
+Conditions:
+  HasEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+
+Resources:
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${Project}-alerts"
+      DisplayName: PredictWise alerts
+
+  AlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasEmail
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  # ---------------------------------------------------------------- metrics from logs
+  # Each request logs {"method": ..., "path": ..., "status": ..., "ms": ...} (backend/main.py).
+  RequestsFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !ImportValue { "Fn::Sub": "${Project}-AppLogGroup" }
+      FilterPattern: "{ $.status >= 100 }"
+      MetricTransformations:
+        - { MetricNamespace: PredictWise, MetricName: Requests, MetricValue: "1", DefaultValue: 0, Unit: Count }
+  ServerErrorsFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !ImportValue { "Fn::Sub": "${Project}-AppLogGroup" }
+      FilterPattern: "{ $.status >= 500 }"
+      MetricTransformations:
+        - { MetricNamespace: PredictWise, MetricName: ServerErrors, MetricValue: "1", DefaultValue: 0, Unit: Count }
+  LatencyFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !ImportValue { "Fn::Sub": "${Project}-AppLogGroup" }
+      FilterPattern: "{ $.ms >= 0 }"
+      MetricTransformations:
+        - { MetricNamespace: PredictWise, MetricName: RequestMs, MetricValue: "$.ms", Unit: Milliseconds }
+
+  # ---------------------------------------------------------------- alarms
+  AppServerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Project}-app-5xx"
+      AlarmDescription: More than 5 server errors in 5 minutes (from the app's own logs)
+      Namespace: PredictWise
+      MetricName: ServerErrors
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  SlowResponsesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Project}-slow"
+      AlarmDescription: 90% of requests are taking longer than 5 seconds
+      Namespace: AWS/ApplicationELB
+      MetricName: TargetResponseTime
+      Dimensions: [{ Name: LoadBalancer, Value: !ImportValue { "Fn::Sub": "${Project}-AlbFullName" } }]
+      ExtendedStatistic: p90
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  UnhealthyServerAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Project}-unhealthy-server"
+      AlarmDescription: A server is failing load balancer health checks (Auto Scaling will replace it)
+      Namespace: AWS/ApplicationELB
+      MetricName: UnHealthyHostCount
+      Dimensions:
+        - { Name: LoadBalancer, Value: !ImportValue { "Fn::Sub": "${Project}-AlbFullName" } }
+        - { Name: TargetGroup, Value: !ImportValue { "Fn::Sub": "${Project}-TgFullName" } }
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  HighCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Project}-cpu-high"
+      AlarmDescription: Servers above 80% CPU for 10 minutes even after scaling out - check MaxSize
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions: [{ Name: AutoScalingGroupName, Value: !ImportValue { "Fn::Sub": "${Project}-AsgName" } }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions: [!Ref AlertTopic]
+
+  DbCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Project}-db-cpu-high"
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !ImportValue { "Fn::Sub": "${Project}-DbInstanceId" } }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions: [!Ref AlertTopic]
+
+  DbStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Project}-db-storage-low"
+      Namespace: AWS/RDS
+      MetricName: FreeStorageSpace
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !ImportValue { "Fn::Sub": "${Project}-DbInstanceId" } }]
+      Statistic: Minimum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 2147483648             # 2 GB
+      ComparisonOperator: LessThanThreshold
+      AlarmActions: [!Ref AlertTopic]
+
+  ProfilerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Project}-lambda-errors"
+      AlarmDescription: The upload profiler Lambda failed
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !ImportValue { "Fn::Sub": "${Project}-ProfilerFunction" } }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  # ---------------------------------------------------------------- dashboard
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${Project}"
+      DashboardBody: !Sub
+        - |
+          {
+            "widgets": [
+              {"type": "metric", "x": 0, "y": 0, "width": 8, "height": 6, "properties": {
+                "title": "Requests and errors", "region": "${AWS::Region}", "stat": "Sum", "period": 60,
+                "metrics": [
+                  ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", "${Alb}"],
+                  [".", "HTTPCode_Target_5XX_Count", ".", "."],
+                  ["PredictWise", "ServerErrors"]
+                ]}},
+              {"type": "metric", "x": 8, "y": 0, "width": 8, "height": 6, "properties": {
+                "title": "Response time (seconds)", "region": "${AWS::Region}", "period": 60,
+                "metrics": [
+                  ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "${Alb}", {"stat": "p50", "label": "median"}],
+                  ["...", {"stat": "p90", "label": "p90"}]
+                ]}},
+              {"type": "metric", "x": 16, "y": 0, "width": 8, "height": 6, "properties": {
+                "title": "Servers (Auto Scaling)", "region": "${AWS::Region}", "stat": "Average", "period": 60,
+                "metrics": [
+                  ["AWS/AutoScaling", "GroupInServiceInstances", "AutoScalingGroupName", "${Asg}"],
+                  ["AWS/ApplicationELB", "HealthyHostCount", "TargetGroup", "${Tg}", "LoadBalancer", "${Alb}"],
+                  [".", "UnHealthyHostCount", ".", ".", ".", "."]
+                ]}},
+              {"type": "metric", "x": 0, "y": 6, "width": 8, "height": 6, "properties": {
+                "title": "CPU %", "region": "${AWS::Region}", "stat": "Average", "period": 60,
+                "metrics": [
+                  ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${Asg}", {"label": "app servers"}],
+                  ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", "${Db}", {"label": "database"}]
+                ],
+                "annotations": {"horizontal": [{"value": 50, "label": "scale-out target"}]}}},
+              {"type": "metric", "x": 8, "y": 6, "width": 8, "height": 6, "properties": {
+                "title": "Database", "region": "${AWS::Region}", "stat": "Average", "period": 300,
+                "metrics": [
+                  ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "${Db}"],
+                  [".", "FreeStorageSpace", ".", ".", {"yAxis": "right"}]
+                ]}},
+              {"type": "metric", "x": 16, "y": 6, "width": 8, "height": 6, "properties": {
+                "title": "Uploads (Lambda profiler)", "region": "${AWS::Region}", "stat": "Sum", "period": 300,
+                "metrics": [
+                  ["PredictWise", "UploadsProfiled"],
+                  [".", "UploadedRows", {"yAxis": "right"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${Fn}"]
+                ]}},
+              {"type": "log", "x": 0, "y": 12, "width": 24, "height": 6, "properties": {
+                "title": "Slowest API routes (last 3 hours)", "region": "${AWS::Region}", "view": "table",
+                "query": "SOURCE '${Logs}' | filter ispresent(ms) | stats count(*) as requests, avg(ms) as avg_ms, max(ms) as max_ms by method, path | sort avg_ms desc | limit 10"}},
+              {"type": "alarm", "x": 0, "y": 18, "width": 24, "height": 3, "properties": {
+                "title": "Alarms", "alarms": [
+                  "${AppServerErrorsAlarm.Arn}", "${SlowResponsesAlarm.Arn}", "${UnhealthyServerAlarm.Arn}",
+                  "${HighCpuAlarm.Arn}", "${DbCpuAlarm.Arn}", "${DbStorageAlarm.Arn}", "${ProfilerErrorsAlarm.Arn}"
+                ]}}
+            ]
+          }
+        - Alb: !ImportValue { "Fn::Sub": "${Project}-AlbFullName" }
+          Tg: !ImportValue { "Fn::Sub": "${Project}-TgFullName" }
+          Asg: !ImportValue { "Fn::Sub": "${Project}-AsgName" }
+          Db: !ImportValue { "Fn::Sub": "${Project}-DbInstanceId" }
+          Fn: !ImportValue { "Fn::Sub": "${Project}-ProfilerFunction" }
+          Logs: !ImportValue { "Fn::Sub": "${Project}-AppLogGroup" }
+
+Outputs:
+  DashboardUrl:
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${Project}"
+  AlertTopicArn:
+    Value: !Ref AlertTopic

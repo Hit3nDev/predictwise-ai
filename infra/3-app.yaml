@@ -1,0 +1,298 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  PredictWise AI - compute layer. EC2 instances in an Auto Scaling group across
+  two AZs, each running the app as a Docker container, behind an Application
+  Load Balancer and a CloudFront CDN. Plus a Lambda function that profiles each
+  uploaded CSV, triggered by S3 events through EventBridge.
+
+Parameters:
+  Project:
+    Type: String
+    Default: predictwise
+  ReleaseKey:
+    Type: String
+    Description: S3 key of the app source archive (set by deploy.ps1, e.g. releases/app-20261102-1015.tar.gz)
+  LambdaCodeKey:
+    Type: String
+    Description: S3 key of the zipped Lambda code (set by deploy.ps1)
+  InstanceType:
+    Type: String
+    Default: t3.small                  # 2 GB RAM: enough to build the image and train models
+    AllowedValues: [t3.micro, t3.small, t3.medium, t3.large]
+  MinSize:
+    Type: Number
+    Default: 2                         # one per AZ, so losing an AZ does not take the site down
+  MaxSize:
+    Type: Number
+    Default: 4
+  CpuTargetPercent:
+    Type: Number
+    Default: 50
+  EnableCdn:
+    Type: String
+    Default: "false"                   # AWS Academy Learner Lab accounts are not allowed to use CloudFront
+    AllowedValues: ["true", "false"]
+  InstanceProfileName:
+    Type: String
+    Default: LabInstanceProfile        # AWS Academy Learner Lab: roles cannot be created, use the lab's own
+  LambdaRoleName:
+    Type: String
+    Default: LabRole
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Conditions:
+  UseCdn: !Equals [!Ref EnableCdn, "true"]
+
+Resources:
+  # ---------------------------------------------------------------- logs
+  AppLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/${Project}/app"
+      RetentionInDays: 14
+
+  # ---------------------------------------------------------------- load balancer
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${Project}-alb"
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Split [",", !ImportValue { "Fn::Sub": "${Project}-PublicSubnets" }]
+      SecurityGroups: [!ImportValue { "Fn::Sub": "${Project}-AlbSg" }]
+      LoadBalancerAttributes:
+        - { Key: idle_timeout.timeout_seconds, Value: "120" }     # model training can take a while
+        - { Key: routing.http.drop_invalid_header_fields.enabled, Value: "true" }
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${Project}-tg"
+      VpcId: !ImportValue { "Fn::Sub": "${Project}-VpcId" }
+      Protocol: HTTP
+      Port: 8000
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 15
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher: { HttpCode: "200" }
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: "30" }
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions: [{ Type: forward, TargetGroupArn: !Ref TargetGroup }]
+
+  # ---------------------------------------------------------------- EC2 + Auto Scaling
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${Project}-app"
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmiId
+        InstanceType: !Ref InstanceType
+        IamInstanceProfile: { Name: !Ref InstanceProfileName }
+        SecurityGroupIds: [!ImportValue { "Fn::Sub": "${Project}-AppSg" }]
+        MetadataOptions:
+          HttpTokens: required             # IMDSv2 only
+          HttpPutResponseHopLimit: 2       # lets the Docker container reach the instance role
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs: { VolumeSize: 20, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+        TagSpecifications:
+          - ResourceType: instance
+            Tags: [{ Key: Name, Value: !Sub "${Project}-app" }]
+        UserData:
+          Fn::Base64: !Sub
+            - |
+              #!/bin/bash
+              # First boot: install Docker, build the app image from the release in S3, run it,
+              # then tell CloudFormation whether it came up healthy.
+              set -euo pipefail
+              signal() { /opt/aws/bin/cfn-signal -e "$1" --stack ${AWS::StackName} --resource AppGroup --region ${AWS::Region} || true; }
+              # On failure keep the setup log in S3 (debug/), since a failed server is terminated straight away.
+              fail() {
+                aws s3 cp /var/log/cloud-init-output.log "s3://${Bucket}/debug/$(hostname)-$(date +%H%M%S).log" --region ${AWS::Region} || true
+                signal 1
+              }
+              trap fail ERR
+
+              # Swap so building the image on a 2 GB instance cannot run out of memory.
+              dd if=/dev/zero of=/swapfile bs=1M count=2048 && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+
+              dnf install -y docker aws-cfn-bootstrap
+              systemctl enable --now docker
+
+              mkdir -p /opt/predictwise && cd /opt/predictwise
+              aws s3 cp "s3://${Bucket}/${ReleaseKey}" app.tar.gz --region ${AWS::Region}
+              tar -xzf app.tar.gz
+              docker build -t predictwise:latest .
+
+              TOKEN=$(curl -s -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
+              INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+
+              docker run -d --name predictwise --restart unless-stopped -p 8000:8000 \
+                -e AWS_REGION=${AWS::Region} -e AWS_DEFAULT_REGION=${AWS::Region} \
+                -e PW_S3_BUCKET=${Bucket} -e PW_DB_SECRET_ID=${DbSecret} -e PW_APP_SECRET_ID=${AppSecret} \
+                -e PW_SERVER_NAME="$INSTANCE_ID" \
+                --log-driver awslogs --log-opt awslogs-region=${AWS::Region} \
+                --log-opt awslogs-group=${AppLogGroup} --log-opt awslogs-stream="$INSTANCE_ID" \
+                predictwise:latest
+
+              for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/health && break; sleep 5; done
+              curl -sf http://127.0.0.1:8000/health
+              signal 0
+            - Bucket: !ImportValue { "Fn::Sub": "${Project}-DataBucket" }
+              DbSecret: !ImportValue { "Fn::Sub": "${Project}-DbSecretArn" }
+              AppSecret: !ImportValue { "Fn::Sub": "${Project}-AppSecretArn" }
+
+  AppGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy:
+      ResourceSignal: { Count: !Ref MinSize, Timeout: PT25M }
+    UpdatePolicy:
+      # A new release replaces servers one at a time; if a new one never reports
+      # healthy, CloudFormation rolls back and the old servers keep serving.
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT25M
+        WaitOnResourceSignals: true
+        SuspendProcesses: [HealthCheck, ReplaceUnhealthy, AZRebalance, AlarmNotification, ScheduledActions]
+    Properties:
+      AutoScalingGroupName: !Sub "${Project}-asg"
+      VPCZoneIdentifier: !Split [",", !ImportValue { "Fn::Sub": "${Project}-AppSubnets" }]
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      TargetGroupARNs: [!Ref TargetGroup]
+      HealthCheckType: ELB              # replace a server the load balancer marks unhealthy, not only a dead one
+      HealthCheckGracePeriod: 900       # first boot builds the image, which takes several minutes
+      DefaultInstanceWarmup: 600
+      MetricsCollection: [{ Granularity: 1Minute }]
+      Tags:
+        - { Key: Project, Value: !Ref Project, PropagateAtLaunch: true }
+
+  CpuScaling:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AppGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification: { PredefinedMetricType: ASGAverageCPUUtilization }
+        TargetValue: !Ref CpuTargetPercent
+
+  # ---------------------------------------------------------------- CloudFront
+  Cdn:
+    Type: AWS::CloudFront::Distribution
+    Condition: UseCdn
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${Project} - HTTPS and edge caching in front of the load balancer"
+        PriceClass: PriceClass_200      # includes edge locations in India (PriceClass_100 does not)
+        HttpVersion: http2and3
+        Origins:
+          - Id: alb
+            DomainName: !GetAtt LoadBalancer.DNSName
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+              OriginReadTimeout: 60
+        DefaultCacheBehavior:
+          # The API is dynamic: never cache it, forward everything.
+          TargetOriginId: alb
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+          CachedMethods: [GET, HEAD]
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad          # Managed-CachingDisabled
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3  # Managed-AllViewer
+          Compress: true
+        CacheBehaviors:
+          # Vite puts a content hash in every file name under /assets, so these can be cached at the edge for good.
+          - PathPattern: /assets/*
+            TargetOriginId: alb
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e058f          # Managed-CachingOptimized
+            Compress: true
+
+  # ---------------------------------------------------------------- Lambda (event-driven)
+  ProfilerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Project}-upload-profiler"
+      RetentionInDays: 14
+
+  ProfilerFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: ProfilerLogGroup
+    Properties:
+      FunctionName: !Sub "${Project}-upload-profiler"
+      Description: Profiles each CSV uploaded to S3 and publishes data-quality metrics
+      Runtime: python3.12
+      Handler: upload_profiler.handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}"
+      Code:
+        S3Bucket: !ImportValue { "Fn::Sub": "${Project}-DataBucket" }
+        S3Key: !Ref LambdaCodeKey
+      MemorySize: 256
+      Timeout: 60
+      Environment:
+        Variables: { METRIC_NAMESPACE: PredictWise }
+
+  UploadRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${Project}-csv-uploaded"
+      Description: A new object under uploads/ in the data bucket
+      EventPattern:
+        source: [aws.s3]
+        detail-type: [Object Created]
+        detail:
+          bucket: { name: [!ImportValue { "Fn::Sub": "${Project}-DataBucket" }] }
+          object: { key: [{ prefix: uploads/ }] }
+      Targets:
+        - { Id: profiler, Arn: !GetAtt ProfilerFunction.Arn }
+
+  UploadRuleInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProfilerFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt UploadRule.Arn
+
+Outputs:
+  AppUrl:
+    Description: Open this in a browser
+    Value: !If [UseCdn, !Sub "https://${Cdn.DomainName}", !Sub "http://${LoadBalancer.DNSName}"]
+  LoadBalancerUrl:
+    Value: !Sub "http://${LoadBalancer.DNSName}"
+  LoadBalancerFullName:
+    Value: !GetAtt LoadBalancer.LoadBalancerFullName
+    Export: { Name: !Sub "${Project}-AlbFullName" }
+  TargetGroupFullName:
+    Value: !GetAtt TargetGroup.TargetGroupFullName
+    Export: { Name: !Sub "${Project}-TgFullName" }
+  TargetGroupArn:
+    Value: !Ref TargetGroup
+  AutoScalingGroup:
+    Value: !Ref AppGroup
+    Export: { Name: !Sub "${Project}-AsgName" }
+  AppLogGroup:
+    Value: !Ref AppLogGroup
+    Export: { Name: !Sub "${Project}-AppLogGroup" }
+  ProfilerFunction:
+    Value: !Ref ProfilerFunction
+    Export: { Name: !Sub "${Project}-ProfilerFunction" }

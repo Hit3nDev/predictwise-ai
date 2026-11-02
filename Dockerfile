@@ -1,12 +1,14 @@
 # One container: the React app is built once, then served by the FastAPI backend.
-FROM node:20-alpine AS web
+# Base images come from AWS's public mirror of Docker Hub, so servers building
+# this in the cloud never hit Docker Hub's anonymous pull limit.
+FROM public.ecr.aws/docker/library/node:20-alpine AS web
 WORKDIR /web
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.12-slim
+FROM public.ecr.aws/docker/library/python:3.12-slim
 ENV PYTHONUNBUFFERED=1 FRONTEND_DIST=/app/frontend-dist
 WORKDIR /app
 COPY backend/requirements.txt ./

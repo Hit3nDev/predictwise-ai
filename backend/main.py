@@ -19,7 +19,12 @@ import json
 import os
 import re
 import shutil
+import sys
 import uuid
+
+import cloud
+
+cloud.load_secrets()
 
 import joblib
 import numpy as np
@@ -49,6 +54,7 @@ import report as report_service
 import trust
 import eda as eda_service
 import models
+import storage
 import schemas
 from database import engine, get_db
 
@@ -83,6 +89,7 @@ app.add_middleware(
 # ----------------------------------------------------------------------------
 
 def _read_any(path: str) -> pd.DataFrame:
+    path = storage.fetch(path)
     ext = os.path.splitext(path)[1].lower()
     if ext == ".csv":
         return pd.read_csv(path)
@@ -118,6 +125,14 @@ import time
 from collections import defaultdict
 
 _log = logging.getLogger("predictwise.request")
+# Without a handler Python drops INFO lines. Bare JSON on stdout is what the
+# CloudWatch metric filters in infra/4-monitoring.yaml parse.
+if not _log.handlers:
+    _h = logging.StreamHandler(sys.stdout)
+    _h.setFormatter(logging.Formatter("%(message)s"))
+    _log.addHandler(_h)
+    _log.setLevel(logging.INFO)
+    _log.propagate = False
 _STATS = {"started": time.time(), "count": defaultdict(int), "ms": defaultdict(float)}
 
 
@@ -153,7 +168,10 @@ def metrics():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    # "server" shows which instance answered, so load balancing is visible on refresh.
+    return {"status": "ok", "server": os.environ.get("PW_SERVER_NAME", "local"),
+            "storage": "s3" if storage.enabled() else "local",
+            "database": engine.dialect.name}
 
 
 @app.get("/health/llm")
@@ -217,6 +235,8 @@ async def upload_dataset(file: UploadFile = File(...), db: Session = Depends(get
         os.remove(storage_path)
         raise HTTPException(status_code=400, detail="Uploaded file has no rows.")
 
+    storage.put(storage_path)
+
     dataset = models.Dataset(
         file_name=file.filename,
         storage_path=storage_path,
@@ -266,6 +286,7 @@ def clean_dataset(
 
     cleaned_path = os.path.join(CLEANED_DIR, f"{uuid.uuid4().hex}.csv")
     cleaned_df.to_csv(cleaned_path, index=False)
+    storage.put(cleaned_path)
 
     # Replace any previous cleaning history for this dataset
     db.query(models.CleaningLog).filter(models.CleaningLog.dataset_id == d.id).delete()
@@ -318,7 +339,7 @@ def get_eda(
     d = _get_dataset_or_404(dataset_id, db)
 
     path, source = d.storage_path, "raw"
-    if use_cleaned and d.cleaned_path and os.path.exists(d.cleaned_path):
+    if use_cleaned and d.cleaned_path and storage.exists(d.cleaned_path):
         path, source = d.cleaned_path, "cleaned"
 
     try:
@@ -395,6 +416,7 @@ def _persist_experiment(db: Session, dataset_id: int, result: dict):
                 },
                 artifact_path,
             )
+            storage.put(artifact_path)
             record.artifact_path = artifact_path
             best_model_id = record.id
 
@@ -430,7 +452,7 @@ def train_models(
     d = _get_dataset_or_404(dataset_id, db)
 
     # Always prefer the cleaned file when one exists.
-    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    path = d.cleaned_path if (d.cleaned_path and storage.exists(d.cleaned_path)) else d.storage_path
     try:
         df = _read_any(path)
     except Exception as exc:
@@ -547,7 +569,7 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
     m = db.query(models.MLModel).filter(models.MLModel.id == model_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Model not found")
-    if not m.artifact_path or not os.path.exists(m.artifact_path):
+    if not m.artifact_path or not storage.exists(m.artifact_path):
         raise HTTPException(
             status_code=400,
             detail="This model has no saved artifact — only the best model of each run is saved.",
@@ -555,7 +577,7 @@ def predict(model_id: int, req: schemas.PredictRequest, db: Session = Depends(ge
     if not req.rows:
         raise HTTPException(status_code=400, detail="Provide at least one row to predict.")
 
-    bundle = joblib.load(m.artifact_path)
+    bundle = joblib.load(storage.fetch(m.artifact_path))
     pipeline, features = bundle["pipeline"], bundle["features"]
     task, target = bundle["task"], bundle["target"]
     reference = bundle.get("reference") or {}
@@ -654,16 +676,16 @@ def _model_bundle(model_id: int, db: Session):
     m = db.query(models.MLModel).filter(models.MLModel.id == model_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Model not found")
-    if not m.artifact_path or not os.path.exists(m.artifact_path):
+    if not m.artifact_path or not storage.exists(m.artifact_path):
         raise HTTPException(status_code=400, detail="This model has no saved artifact.")
-    bundle = joblib.load(m.artifact_path)
+    bundle = joblib.load(storage.fetch(m.artifact_path))
     return m, bundle
 
 
 def _dataset_frame_for(m: models.MLModel, db: Session) -> pd.DataFrame:
     exp = m.experiment
     d = db.query(models.Dataset).filter(models.Dataset.id == exp.dataset_id).first()
-    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    path = d.cleaned_path if (d.cleaned_path and storage.exists(d.cleaned_path)) else d.storage_path
     return _read_any(path)
 
 
@@ -803,7 +825,7 @@ SAMPLES = {
 
 def _frames(d: models.Dataset):
     raw = _read_any(d.storage_path)
-    cleaned = _read_any(d.cleaned_path) if (d.cleaned_path and os.path.exists(d.cleaned_path)) else raw
+    cleaned = _read_any(d.cleaned_path) if (d.cleaned_path and storage.exists(d.cleaned_path)) else raw
     return raw, cleaned
 
 
@@ -821,6 +843,7 @@ def load_sample(name: str, db: Session = Depends(get_db)):
     src = os.path.join(SAMPLES_DIR, fname)
     stored = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}.csv")
     shutil.copyfile(src, stored)
+    storage.put(stored)
     df = _read_any(stored)
     d = models.Dataset(
         file_name=fname, storage_path=stored, row_count=int(df.shape[0]),
@@ -1059,7 +1082,7 @@ def _field_spec(df: pd.DataFrame, col: str) -> schemas.FieldSpec:
 def question_templates(dataset_id: int, db: Session = Depends(get_db)):
     """Which plain-language questions this dataset can actually answer, and why not."""
     d = _get_dataset_or_404(dataset_id, db)
-    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    path = d.cleaned_path if (d.cleaned_path and storage.exists(d.cleaned_path)) else d.storage_path
     try:
         df = _read_any(path)
     except Exception as exc:
@@ -1088,7 +1111,7 @@ def ask_question(dataset_id: int, req: schemas.AskRequest, db: Session = Depends
     their own terms) before ever falling back to coarse keyword scoring.
     """
     d = _get_dataset_or_404(dataset_id, db)
-    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    path = d.cleaned_path if (d.cleaned_path and storage.exists(d.cleaned_path)) else d.storage_path
     try:
         df = _read_any(path)
     except Exception as exc:
@@ -1222,7 +1245,7 @@ def _best_model_for(d: models.Dataset, df: pd.DataFrame, target: str, db: Sessio
            .filter(models.Experiment.dataset_id == d.id, models.Experiment.target_column == target)
            .order_by(models.Experiment.id.desc()).first())
     if exp:
-        best = next((m for m in exp.ml_models if m.is_best and m.artifact_path and os.path.exists(m.artifact_path)), None)
+        best = next((m for m in exp.ml_models if m.is_best and m.artifact_path and storage.exists(m.artifact_path)), None)
         if best:
             return best
     result = automl.run_automl(df, target=target)
@@ -1421,7 +1444,7 @@ def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, questio
             return None   # no yes/no column to score; let the LLM or offline engine try
         try:
             m = _best_model_for(d, df, target, db)
-            bundle = joblib.load(m.artifact_path)
+            bundle = joblib.load(storage.fetch(m.artifact_path))
             direction = "least" if re.search(r"least|unlikely|won'?t|not likely", question, re.I) else "most"
             out = actions.rank(bundle, df, top=10, direction=direction)
         except (automl.TrainingError, ValueError):
@@ -1461,7 +1484,7 @@ def _chat_core(dataset_id: int, req: schemas.ChatRequest, db: Session):
     follow-ups like "what about for Delhi only".
     """
     d = _get_dataset_or_404(dataset_id, db)
-    path = d.cleaned_path if (d.cleaned_path and os.path.exists(d.cleaned_path)) else d.storage_path
+    path = d.cleaned_path if (d.cleaned_path and storage.exists(d.cleaned_path)) else d.storage_path
     try:
         df = _read_any(path)
     except Exception as exc:

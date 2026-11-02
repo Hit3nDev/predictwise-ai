@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  PredictWise AI - data layer. S3 for uploads and trained models, RDS
+  PostgreSQL for the app database, Secrets Manager for credentials and API keys.
+  Everything is encrypted at rest and nothing here is reachable from the internet.
+
+Parameters:
+  Project:
+    Type: String
+    Default: predictwise
+  DbInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    AllowedValues: [db.t3.micro, db.t3.small, db.t4g.micro, db.t4g.small]
+  DbMultiAz:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: A standby copy in the second AZ with automatic failover (doubles the database cost).
+  BackupRetentionDays:
+    Type: Number
+    Default: 7
+    MinValue: 1
+    MaxValue: 35
+  GroqApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Optional - switches on open-ended chat. Stored only in Secrets Manager.
+  AnthropicApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+
+Resources:
+  # ---------------------------------------------------------------- S3
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Project}-data-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration: { Status: Enabled }       # an overwritten or deleted file can be recovered
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      NotificationConfiguration:
+        EventBridgeConfiguration: { EventBridgeEnabled: true }   # "file uploaded" events drive the Lambda
+      LifecycleConfiguration:
+        Rules:
+          # Old datasets are rarely opened again. Glacier *Instant* Retrieval, not
+          # Flexible: the app may still open an old dataset and needs it in milliseconds.
+          - Id: age-out-datasets
+            Status: Enabled
+            Prefix: uploads/
+            Transitions:
+              - { StorageClass: STANDARD_IA, TransitionInDays: 30 }
+              - { StorageClass: GLACIER_IR, TransitionInDays: 90 }
+          - Id: age-out-cleaned
+            Status: Enabled
+            Prefix: cleaned/
+            Transitions:
+              - { StorageClass: STANDARD_IA, TransitionInDays: 30 }
+              - { StorageClass: GLACIER_IR, TransitionInDays: 90 }
+          - Id: expire-old-releases
+            Status: Enabled
+            Prefix: releases/
+            ExpirationInDays: 90
+          - Id: tidy-up
+            Status: Enabled
+            NoncurrentVersionExpiration: { NoncurrentDays: 30 }
+            AbortIncompleteMultipartUpload: { DaysAfterInitiation: 7 }
+      Tags: [{ Key: Project, Value: !Ref Project }]
+
+  DataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: EncryptedTransportOnly
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource: [!GetAtt DataBucket.Arn, !Sub "${DataBucket.Arn}/*"]
+            Condition: { Bool: { "aws:SecureTransport": "false" } }
+
+  # ---------------------------------------------------------------- secrets
+  DbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${Project}/db"
+      Description: RDS master credentials. Generated here; no human ever sees the password.
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "pwadmin"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludePunctuation: true
+
+  AppSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${Project}/app"
+      Description: Optional LLM API keys read by the app at startup (backend/cloud.py).
+      SecretString: !Sub '{"GROQ_API_KEY": "${GroqApiKey}", "ANTHROPIC_API_KEY": "${AnthropicApiKey}"}'
+
+  # ---------------------------------------------------------------- RDS
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private database subnets in two AZs
+      SubnetIds: !Split [",", !ImportValue { "Fn::Sub": "${Project}-DbSubnets" }]
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete            # lab environment: teardown must stop all charges
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub "${Project}-db"
+      Engine: postgres
+      EngineVersion: "18"
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: "20"
+      MaxAllocatedStorage: 100        # storage grows by itself instead of filling up
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: predictwise
+      MasterUsername: !Sub "{{resolve:secretsmanager:${DbSecret}:SecretString:username}}"
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${DbSecret}:SecretString:password}}"
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VPCSecurityGroups: [!ImportValue { "Fn::Sub": "${Project}-DbSg" }]
+      PubliclyAccessible: false
+      MultiAZ: !Ref DbMultiAz
+      BackupRetentionPeriod: !Ref BackupRetentionDays    # daily snapshots + point-in-time restore
+      PreferredBackupWindow: "20:30-21:00"               # 02:00-02:30 IST
+      PreferredMaintenanceWindow: "sun:21:30-sun:22:00"
+      AutoMinorVersionUpgrade: true
+      CopyTagsToSnapshot: true
+      DeletionProtection: false
+      Tags: [{ Key: Project, Value: !Ref Project }]
+
+  # Adds host, port and dbname to the secret, so the app needs only the secret's name.
+  DbSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref DbSecret
+      TargetId: !Ref Database
+      TargetType: AWS::RDS::DBInstance
+
+Outputs:
+  DataBucket:
+    Value: !Ref DataBucket
+    Export: { Name: !Sub "${Project}-DataBucket" }
+  DbSecretArn:
+    Value: !Ref DbSecretAttachment
+    Export: { Name: !Sub "${Project}-DbSecretArn" }
+  AppSecretArn:
+    Value: !Ref AppSecret
+    Export: { Name: !Sub "${Project}-AppSecretArn" }
+  DbInstanceId:
+    Value: !Ref Database
+    Export: { Name: !Sub "${Project}-DbInstanceId" }
+  DbEndpoint:
+    Value: !GetAtt Database.Endpoint.Address

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Panel, Button, Field, Select, Readout, Empty, Notice } from "./ui";
-import { ImportanceBars } from "./charts";
+import { ImportanceBars } from "./Charts";
 import Leaderboard from "./Leaderboard";
 import { TrustNote, Track, Contributions, WhatIf, FairnessPanel, MonitorPanel, ReportLinks } from "./trust";
 
