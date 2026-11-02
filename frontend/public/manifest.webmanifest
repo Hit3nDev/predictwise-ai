@@ -1,0 +1,13 @@
+{
+  "name": "PredictWise AI",
+  "short_name": "PredictWise",
+  "description": "Ask questions about your shop's data in plain Hindi or English.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f2ee",
+  "theme_color": "#2c7a6b",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

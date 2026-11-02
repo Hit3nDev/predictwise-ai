@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+predictwise.db
+uploads/
+cleaned/
+artifacts/
+server.log
+.env

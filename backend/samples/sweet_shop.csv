@@ -1,0 +1,2180 @@
+customer,date,item,amount
+Meena Kapoor,2025-11-05,Kaju Katli 500g,620
+Vikram Yadav,2025-11-05,Jalebi 500g,320
+Meena Mehta,2025-11-05,Jalebi 500g,320
+Meena Mehta,2025-11-05,Kaju Katli 500g,620
+Priya Kapoor,2025-11-05,Samosa (6),90
+Kavita Malhotra,2025-11-05,Kaju Katli 500g,620
+Amit Jain,2025-11-05,Namkeen Mix 400g,120
+Rohit Jain,2025-11-05,Gulab Jamun 1kg,760
+Aarav Yadav,2025-11-06,Samosa (6),180
+Rahul Kapoor,2025-11-06,Kaju Katli 500g,620
+Suresh Yadav,2025-11-06,Gulab Jamun 1kg,760
+Aarav Gupta,2025-11-06,Jalebi 500g,160
+Amit Singh,2025-11-06,Rasgulla 1kg,680
+Rohit Malhotra,2025-11-06,Kaju Katli 500g,620
+Anjali Jain,2025-11-06,Jalebi 500g,160
+Aarav Yadav,2025-11-07,Kaju Katli 500g,620
+Sneha Sharma,2025-11-07,Samosa (6),90
+Karan Sharma,2025-11-07,Samosa (6),90
+Rahul Singh,2025-11-07,Jalebi 500g,160
+Karan Mehta,2025-11-07,Jalebi 500g,160
+Pooja Singh,2025-11-07,Namkeen Mix 400g,240
+Suresh Jain,2025-11-07,Kaju Katli 500g,620
+Neha Verma,2025-11-08,Namkeen Mix 400g,240
+Aarav Mehta,2025-11-08,Kaju Katli 500g,620
+Anjali Bansal,2025-11-08,Gift Box,950
+Karan Verma,2025-11-08,Jalebi 500g,160
+Aarav Yadav,2025-11-08,Gift Box,950
+Rahul Kapoor,2025-11-08,Gulab Jamun 1kg,760
+Aarav Malhotra,2025-11-09,Kaju Katli 500g,620
+Aarav Bansal,2025-11-09,Jalebi 500g,320
+Meena Mehta,2025-11-09,Samosa (6),90
+Aarav Jain,2025-11-09,Samosa (6),90
+Meena Yadav,2025-11-09,Namkeen Mix 400g,120
+Neha Verma,2025-11-10,Namkeen Mix 400g,240
+Rahul Sharma,2025-11-10,Kaju Katli 500g,620
+Priya Bansal,2025-11-10,Rasgulla 1kg,680
+Suresh Verma,2025-11-10,Samosa (6),180
+Aarav Malhotra,2025-11-10,Namkeen Mix 400g,120
+Amit Jain,2025-11-10,Kaju Katli 500g,620
+Kavita Bansal,2025-11-11,Kaju Katli 500g,620
+Pooja Kapoor,2025-11-11,Samosa (6),90
+Vikram Malhotra,2025-11-11,Jalebi 500g,160
+Vikram Kapoor,2025-11-11,Gulab Jamun 1kg,760
+Amit Jain,2025-11-11,Rasgulla 1kg,340
+Amit Kapoor,2025-11-11,Samosa (6),180
+Amit Verma,2025-11-11,Jalebi 500g,160
+Pooja Malhotra,2025-11-11,Jalebi 500g,320
+Amit Malhotra,2025-11-11,Samosa (6),90
+Rohit Verma,2025-11-11,Kaju Katli 500g,620
+Meena Kapoor,2025-11-11,Namkeen Mix 400g,240
+Vikram Yadav,2025-11-11,Samosa (6),90
+Vikram Sharma,2025-11-11,Namkeen Mix 400g,120
+Meena Mehta,2025-11-12,Kaju Katli 500g,620
+Kavita Gupta,2025-11-12,Kaju Katli 500g,620
+Rohit Sharma,2025-11-12,Kaju Katli 500g,620
+Vikram Jain,2025-11-12,Samosa (6),90
+Rohit Bansal,2025-11-12,Samosa (6),90
+Meena Mehta,2025-11-12,Namkeen Mix 400g,240
+Aarav Singh,2025-11-12,Gulab Jamun 1kg,760
+Sneha Yadav,2025-11-12,Gift Box,950
+Vikram Kapoor,2025-11-13,Kaju Katli 500g,620
+Pooja Mehta,2025-11-13,Namkeen Mix 400g,240
+Pooja Yadav,2025-11-13,Samosa (6),90
+Neha Gupta,2025-11-13,Samosa (6),90
+Meena Mehta,2025-11-13,Kaju Katli 500g,620
+Rohit Verma,2025-11-13,Kaju Katli 500g,620
+Pooja Malhotra,2025-11-14,Gulab Jamun 1kg,760
+Meena Jain,2025-11-14,Gift Box,950
+Priya Jain,2025-11-14,Gulab Jamun 1kg,760
+Suresh Bansal,2025-11-14,Kaju Katli 500g,620
+Suresh Verma,2025-11-15,Gift Box,950
+Aarav Bansal,2025-11-15,Kaju Katli 500g,620
+Priya Sharma,2025-11-15,Gift Box,950
+Sneha Gupta,2025-11-15,Gift Box,950
+Aarav Gupta,2025-11-15,Namkeen Mix 400g,240
+Rahul Kapoor,2025-11-15,Samosa (6),180
+Sneha Yadav,2025-11-15,Samosa (6),180
+Rahul Sharma,2025-11-16,Jalebi 500g,160
+Pooja Gupta,2025-11-16,Namkeen Mix 400g,120
+Meena Sharma,2025-11-16,Samosa (6),90
+Karan Yadav,2025-11-16,Namkeen Mix 400g,120
+Rahul Singh,2025-11-16,Gulab Jamun 1kg,380
+Anjali Gupta,2025-11-16,Jalebi 500g,320
+Amit Verma,2025-11-16,Samosa (6),180
+Rohit Sharma,2025-11-16,Jalebi 500g,320
+Amit Jain,2025-11-16,Samosa (6),90
+Rahul Verma,2025-11-16,Samosa (6),180
+Anjali Gupta,2025-11-17,Rasgulla 1kg,680
+Kavita Gupta,2025-11-17,Samosa (6),180
+Amit Singh,2025-11-17,Samosa (6),90
+Rohit Verma,2025-11-17,Namkeen Mix 400g,240
+Karan Sharma,2025-11-17,Samosa (6),90
+Sneha Sharma,2025-11-17,Gulab Jamun 1kg,380
+Amit Jain,2025-11-17,Samosa (6),180
+Priya Singh,2025-11-17,Samosa (6),90
+Priya Mehta,2025-11-18,Kaju Katli 500g,620
+Sneha Sharma,2025-11-18,Rasgulla 1kg,340
+Rohit Sharma,2025-11-18,Samosa (6),90
+Rohit Bansal,2025-11-18,Kaju Katli 500g,620
+Rohit Mehta,2025-11-18,Jalebi 500g,320
+Pooja Malhotra,2025-11-18,Namkeen Mix 400g,120
+Meena Jain,2025-11-18,Rasgulla 1kg,340
+Vikram Sharma,2025-11-18,Samosa (6),90
+Sneha Verma,2025-11-19,Jalebi 500g,160
+Karan Sharma,2025-11-19,Jalebi 500g,320
+Sneha Sharma,2025-11-19,Jalebi 500g,160
+Meena Bansal,2025-11-19,Samosa (6),180
+Amit Bansal,2025-11-19,Jalebi 500g,160
+Aarav Yadav,2025-11-20,Rasgulla 1kg,680
+Rohit Mehta,2025-11-20,Gulab Jamun 1kg,380
+Rahul Sharma,2025-11-20,Kaju Katli 500g,620
+Vikram Kapoor,2025-11-20,Samosa (6),180
+Kavita Malhotra,2025-11-20,Gulab Jamun 1kg,380
+Amit Mehta,2025-11-20,Jalebi 500g,320
+Aarav Malhotra,2025-11-20,Samosa (6),90
+Aarav Singh,2025-11-20,Namkeen Mix 400g,240
+Rohit Verma,2025-11-20,Jalebi 500g,160
+Suresh Mehta,2025-11-20,Gulab Jamun 1kg,760
+Karan Bansal,2025-11-21,Jalebi 500g,320
+Aarav Malhotra,2025-11-21,Samosa (6),180
+Sneha Mehta,2025-11-21,Kaju Katli 500g,620
+Sneha Sharma,2025-11-21,Samosa (6),180
+Sneha Mehta,2025-11-21,Jalebi 500g,320
+Meena Yadav,2025-11-21,Gulab Jamun 1kg,380
+Rohit Sharma,2025-11-21,Gulab Jamun 1kg,380
+Aarav Verma,2025-11-21,Samosa (6),180
+Suresh Singh,2025-11-21,Kaju Katli 500g,620
+Vikram Malhotra,2025-11-21,Rasgulla 1kg,680
+Rahul Verma,2025-11-22,Jalebi 500g,320
+Amit Yadav,2025-11-22,Kaju Katli 500g,620
+Sneha Sharma,2025-11-22,Gulab Jamun 1kg,380
+Anjali Gupta,2025-11-23,Kaju Katli 500g,620
+Sneha Yadav,2025-11-23,Samosa (6),90
+Anjali Bansal,2025-11-23,Kaju Katli 500g,620
+Rohit Sharma,2025-11-23,Namkeen Mix 400g,120
+Rahul Gupta,2025-11-23,Jalebi 500g,160
+Suresh Singh,2025-11-23,Samosa (6),180
+Neha Verma,2025-11-23,Jalebi 500g,320
+Meena Bansal,2025-11-24,Gift Box,950
+Rahul Kapoor,2025-11-24,Namkeen Mix 400g,240
+Aarav Yadav,2025-11-24,Gulab Jamun 1kg,380
+Amit Jain,2025-11-24,Kaju Katli 500g,620
+Rohit Verma,2025-11-24,Samosa (6),180
+Pooja Sharma,2025-11-24,Samosa (6),180
+Amit Bansal,2025-11-24,Gulab Jamun 1kg,380
+Karan Mehta,2025-11-24,Gulab Jamun 1kg,760
+Rahul Verma,2025-11-25,Kaju Katli 500g,620
+Aarav Verma,2025-11-25,Gift Box,950
+Sneha Gupta,2025-11-25,Samosa (6),180
+Pooja Mehta,2025-11-25,Samosa (6),180
+Rohit Bansal,2025-11-25,Namkeen Mix 400g,120
+Meena Yadav,2025-11-25,Samosa (6),90
+Sneha Bansal,2025-11-25,Samosa (6),90
+Kavita Singh,2025-11-26,Kaju Katli 500g,620
+Vikram Sharma,2025-11-26,Jalebi 500g,160
+Vikram Sharma,2025-11-26,Jalebi 500g,320
+Anjali Bansal,2025-11-26,Kaju Katli 500g,620
+Suresh Bansal,2025-11-26,Gulab Jamun 1kg,760
+Aarav Gupta,2025-11-26,Kaju Katli 500g,620
+Aarav Singh,2025-11-26,Kaju Katli 500g,620
+Aarav Singh,2025-11-26,Samosa (6),90
+Suresh Verma,2025-11-26,Kaju Katli 500g,620
+Rohit Yadav,2025-11-26,Jalebi 500g,320
+Amit Malhotra,2025-11-26,Samosa (6),90
+Sneha Yadav,2025-11-27,Gulab Jamun 1kg,760
+Rahul Bansal,2025-11-27,Jalebi 500g,160
+Meena Jain,2025-11-27,Rasgulla 1kg,340
+Rohit Yadav,2025-11-27,Gift Box,950
+Meena Malhotra,2025-11-27,Namkeen Mix 400g,120
+Pooja Gupta,2025-11-27,Gulab Jamun 1kg,380
+Kavita Mehta,2025-11-27,Kaju Katli 500g,620
+Neha Sharma,2025-11-27,Rasgulla 1kg,340
+Kavita Yadav,2025-11-27,Samosa (6),180
+Neha Kapoor,2025-11-27,Gulab Jamun 1kg,380
+Suresh Verma,2025-11-27,Gulab Jamun 1kg,760
+Suresh Verma,2025-11-27,Jalebi 500g,320
+Kavita Bansal,2025-11-28,Samosa (6),180
+Rahul Singh,2025-11-28,Kaju Katli 500g,620
+Rahul Kapoor,2025-11-28,Namkeen Mix 400g,120
+Suresh Verma,2025-11-28,Namkeen Mix 400g,120
+Rohit Sharma,2025-11-28,Gift Box,950
+Pooja Mehta,2025-11-28,Kaju Katli 500g,620
+Pooja Yadav,2025-11-28,Kaju Katli 500g,620
+Suresh Singh,2025-11-28,Gulab Jamun 1kg,380
+Meena Yadav,2025-11-29,Namkeen Mix 400g,240
+Priya Singh,2025-11-29,Gift Box,950
+Amit Singh,2025-11-29,Jalebi 500g,320
+Suresh Jain,2025-11-29,Namkeen Mix 400g,120
+Sneha Jain,2025-11-29,Kaju Katli 500g,620
+Pooja Kapoor,2025-11-29,Jalebi 500g,160
+Kavita Gupta,2025-11-29,Samosa (6),90
+Rahul Sharma,2025-11-29,Rasgulla 1kg,680
+Kavita Singh,2025-11-29,Gulab Jamun 1kg,760
+Vikram Jain,2025-11-29,Samosa (6),90
+Kavita Gupta,2025-11-30,Kaju Katli 500g,620
+Suresh Malhotra,2025-11-30,Jalebi 500g,160
+Aarav Bansal,2025-11-30,Namkeen Mix 400g,120
+Meena Jain,2025-11-30,Namkeen Mix 400g,120
+Vikram Jain,2025-11-30,Namkeen Mix 400g,240
+Sneha Sharma,2025-11-30,Kaju Katli 500g,620
+Pooja Yadav,2025-12-01,Gulab Jamun 1kg,760
+Karan Malhotra,2025-12-01,Rasgulla 1kg,680
+Meena Mehta,2025-12-01,Kaju Katli 500g,620
+Sneha Malhotra,2025-12-01,Samosa (6),90
+Rahul Verma,2025-12-01,Kaju Katli 500g,620
+Kavita Malhotra,2025-12-02,Samosa (6),180
+Rahul Kapoor,2025-12-02,Samosa (6),180
+Aarav Malhotra,2025-12-02,Gulab Jamun 1kg,380
+Kavita Malhotra,2025-12-03,Gulab Jamun 1kg,760
+Suresh Jain,2025-12-03,Samosa (6),180
+Rahul Verma,2025-12-03,Jalebi 500g,160
+Pooja Gupta,2025-12-03,Samosa (6),180
+Neha Gupta,2025-12-03,Samosa (6),180
+Suresh Verma,2025-12-03,Samosa (6),180
+Rohit Bansal,2025-12-04,Kaju Katli 500g,620
+Neha Malhotra,2025-12-04,Gift Box,950
+Kavita Malhotra,2025-12-04,Namkeen Mix 400g,240
+Pooja Sharma,2025-12-04,Samosa (6),180
+Rahul Kapoor,2025-12-04,Gulab Jamun 1kg,760
+Karan Sharma,2025-12-04,Samosa (6),180
+Sneha Mehta,2025-12-04,Samosa (6),90
+Priya Jain,2025-12-05,Namkeen Mix 400g,240
+Anjali Yadav,2025-12-05,Gulab Jamun 1kg,380
+Neha Malhotra,2025-12-05,Samosa (6),180
+Aarav Yadav,2025-12-05,Rasgulla 1kg,340
+Meena Sharma,2025-12-05,Namkeen Mix 400g,120
+Meena Bansal,2025-12-05,Kaju Katli 500g,620
+Neha Sharma,2025-12-06,Gulab Jamun 1kg,380
+Neha Bansal,2025-12-06,Gulab Jamun 1kg,760
+Suresh Verma,2025-12-06,Jalebi 500g,320
+Rahul Sharma,2025-12-06,Namkeen Mix 400g,120
+Priya Mehta,2025-12-06,Kaju Katli 500g,620
+Sneha Sharma,2025-12-06,Gulab Jamun 1kg,760
+Suresh Jain,2025-12-06,Namkeen Mix 400g,120
+Neha Kapoor,2025-12-06,Rasgulla 1kg,680
+Aarav Yadav,2025-12-06,Namkeen Mix 400g,240
+Anjali Bansal,2025-12-07,Kaju Katli 500g,620
+Sneha Yadav,2025-12-07,Kaju Katli 500g,620
+Neha Gupta,2025-12-07,Namkeen Mix 400g,120
+Suresh Yadav,2025-12-07,Gulab Jamun 1kg,380
+Amit Verma,2025-12-07,Gulab Jamun 1kg,380
+Sneha Malhotra,2025-12-07,Kaju Katli 500g,620
+Karan Sharma,2025-12-07,Namkeen Mix 400g,240
+Meena Sharma,2025-12-07,Namkeen Mix 400g,240
+Rohit Mehta,2025-12-07,Jalebi 500g,160
+Aarav Singh,2025-12-07,Gulab Jamun 1kg,760
+Amit Sharma,2025-12-08,Samosa (6),90
+Suresh Verma,2025-12-08,Rasgulla 1kg,680
+Neha Sharma,2025-12-08,Jalebi 500g,160
+Priya Sharma,2025-12-08,Jalebi 500g,320
+Rohit Kapoor,2025-12-08,Jalebi 500g,160
+Anjali Gupta,2025-12-08,Samosa (6),90
+Suresh Mehta,2025-12-09,Gulab Jamun 1kg,380
+Vikram Yadav,2025-12-09,Jalebi 500g,160
+Sneha Jain,2025-12-09,Samosa (6),180
+Aarav Singh,2025-12-09,Jalebi 500g,160
+Suresh Singh,2025-12-10,Namkeen Mix 400g,120
+Meena Yadav,2025-12-10,Gift Box,950
+Suresh Mehta,2025-12-10,Gulab Jamun 1kg,380
+Kavita Gupta,2025-12-10,Namkeen Mix 400g,120
+Aarav Yadav,2025-12-10,Namkeen Mix 400g,240
+Sneha Verma,2025-12-10,Kaju Katli 500g,620
+Priya Kapoor,2025-12-11,Jalebi 500g,320
+Sneha Malhotra,2025-12-11,Kaju Katli 500g,620
+Sneha Mehta,2025-12-11,Kaju Katli 500g,620
+Meena Jain,2025-12-11,Rasgulla 1kg,680
+Amit Jain,2025-12-11,Kaju Katli 500g,620
+Vikram Kapoor,2025-12-11,Samosa (6),90
+Neha Gupta,2025-12-11,Kaju Katli 500g,620
+Pooja Yadav,2025-12-11,Gulab Jamun 1kg,760
+Aarav Malhotra,2025-12-11,Samosa (6),180
+Amit Singh,2025-12-11,Samosa (6),180
+Sneha Verma,2025-12-11,Gift Box,950
+Pooja Kapoor,2025-12-11,Gift Box,950
+Vikram Sharma,2025-12-12,Jalebi 500g,320
+Aarav Malhotra,2025-12-12,Samosa (6),180
+Anjali Bansal,2025-12-12,Kaju Katli 500g,620
+Neha Malhotra,2025-12-12,Gulab Jamun 1kg,380
+Priya Verma,2025-12-13,Kaju Katli 500g,620
+Meena Kapoor,2025-12-13,Gulab Jamun 1kg,760
+Kavita Mehta,2025-12-13,Samosa (6),180
+Pooja Sharma,2025-12-13,Samosa (6),90
+Pooja Mehta,2025-12-13,Rasgulla 1kg,340
+Kavita Gupta,2025-12-13,Jalebi 500g,160
+Meena Gupta,2025-12-13,Kaju Katli 500g,620
+Rohit Mehta,2025-12-13,Gulab Jamun 1kg,760
+Aarav Yadav,2025-12-14,Gulab Jamun 1kg,380
+Rahul Jain,2025-12-14,Gulab Jamun 1kg,760
+Suresh Verma,2025-12-14,Jalebi 500g,320
+Suresh Verma,2025-12-14,Namkeen Mix 400g,240
+Neha Gupta,2025-12-14,Gift Box,950
+Kavita Gupta,2025-12-14,Gift Box,950
+Rohit Bansal,2025-12-14,Gulab Jamun 1kg,760
+Aarav Gupta,2025-12-14,Jalebi 500g,160
+Vikram Yadav,2025-12-14,Samosa (6),180
+Sneha Gupta,2025-12-14,Kaju Katli 500g,620
+Rahul Singh,2025-12-14,Rasgulla 1kg,680
+Karan Bansal,2025-12-14,Namkeen Mix 400g,120
+Rahul Kapoor,2025-12-15,Gift Box,950
+Meena Jain,2025-12-15,Jalebi 500g,320
+Anjali Sharma,2025-12-15,Jalebi 500g,320
+Kavita Mehta,2025-12-15,Samosa (6),90
+Anjali Gupta,2025-12-16,Kaju Katli 500g,620
+Rohit Sharma,2025-12-16,Namkeen Mix 400g,240
+Rahul Verma,2025-12-16,Namkeen Mix 400g,120
+Kavita Bansal,2025-12-16,Jalebi 500g,320
+Meena Mehta,2025-12-16,Samosa (6),180
+Rahul Bansal,2025-12-16,Jalebi 500g,160
+Priya Kapoor,2025-12-16,Gulab Jamun 1kg,380
+Aarav Singh,2025-12-16,Jalebi 500g,320
+Suresh Malhotra,2025-12-16,Kaju Katli 500g,620
+Sneha Gupta,2025-12-17,Gift Box,950
+Pooja Malhotra,2025-12-17,Samosa (6),90
+Suresh Yadav,2025-12-17,Gift Box,950
+Priya Sharma,2025-12-17,Jalebi 500g,320
+Priya Verma,2025-12-17,Gulab Jamun 1kg,760
+Suresh Jain,2025-12-17,Samosa (6),90
+Neha Verma,2025-12-18,Kaju Katli 500g,620
+Amit Jain,2025-12-18,Samosa (6),180
+Karan Kapoor,2025-12-18,Kaju Katli 500g,620
+Rohit Bansal,2025-12-18,Gulab Jamun 1kg,760
+Rohit Jain,2025-12-18,Kaju Katli 500g,620
+Sneha Malhotra,2025-12-18,Jalebi 500g,160
+Suresh Jain,2025-12-18,Gulab Jamun 1kg,760
+Karan Bansal,2025-12-18,Gulab Jamun 1kg,760
+Pooja Malhotra,2025-12-19,Namkeen Mix 400g,120
+Meena Bansal,2025-12-19,Jalebi 500g,160
+Kavita Singh,2025-12-19,Kaju Katli 500g,620
+Karan Singh,2025-12-19,Gulab Jamun 1kg,380
+Vikram Sharma,2025-12-19,Kaju Katli 500g,620
+Sneha Yadav,2025-12-19,Samosa (6),180
+Neha Bansal,2025-12-19,Jalebi 500g,320
+Sneha Malhotra,2025-12-19,Jalebi 500g,160
+Suresh Singh,2025-12-20,Kaju Katli 500g,620
+Suresh Singh,2025-12-20,Kaju Katli 500g,620
+Pooja Malhotra,2025-12-20,Gift Box,950
+Priya Kapoor,2025-12-20,Samosa (6),180
+Rahul Verma,2025-12-20,Samosa (6),180
+Priya Kapoor,2025-12-20,Jalebi 500g,160
+Suresh Jain,2025-12-20,Gift Box,950
+Pooja Mehta,2025-12-20,Kaju Katli 500g,620
+Amit Sharma,2025-12-21,Kaju Katli 500g,620
+Priya Mehta,2025-12-21,Samosa (6),180
+Priya Mehta,2025-12-21,Jalebi 500g,160
+Vikram Jain,2025-12-21,Namkeen Mix 400g,240
+Sneha Bansal,2025-12-21,Samosa (6),180
+Rohit Jain,2025-12-21,Samosa (6),90
+Suresh Mehta,2025-12-21,Kaju Katli 500g,620
+Pooja Mehta,2025-12-21,Kaju Katli 500g,620
+Anjali Sharma,2025-12-21,Kaju Katli 500g,620
+Suresh Malhotra,2025-12-21,Gulab Jamun 1kg,760
+Vikram Sharma,2025-12-21,Jalebi 500g,160
+Pooja Yadav,2025-12-21,Jalebi 500g,160
+Karan Sharma,2025-12-21,Rasgulla 1kg,340
+Suresh Gupta,2025-12-21,Rasgulla 1kg,340
+Meena Malhotra,2025-12-21,Rasgulla 1kg,680
+Rohit Bansal,2025-12-21,Namkeen Mix 400g,240
+Amit Bansal,2025-12-22,Kaju Katli 500g,620
+Anjali Sharma,2025-12-22,Kaju Katli 500g,620
+Sneha Sharma,2025-12-22,Samosa (6),90
+Suresh Jain,2025-12-22,Samosa (6),90
+Neha Verma,2025-12-22,Kaju Katli 500g,620
+Neha Malhotra,2025-12-22,Samosa (6),90
+Neha Gupta,2025-12-23,Samosa (6),90
+Pooja Kapoor,2025-12-23,Samosa (6),180
+Vikram Kapoor,2025-12-23,Samosa (6),180
+Sneha Sharma,2025-12-23,Rasgulla 1kg,340
+Amit Sharma,2025-12-23,Rasgulla 1kg,680
+Meena Yadav,2025-12-24,Namkeen Mix 400g,120
+Meena Mehta,2025-12-24,Jalebi 500g,160
+Karan Yadav,2025-12-24,Jalebi 500g,160
+Aarav Verma,2025-12-24,Gulab Jamun 1kg,760
+Rohit Verma,2025-12-24,Kaju Katli 500g,620
+Suresh Singh,2025-12-24,Jalebi 500g,160
+Sneha Sharma,2025-12-24,Gulab Jamun 1kg,760
+Karan Yadav,2025-12-24,Gulab Jamun 1kg,760
+Neha Verma,2025-12-24,Kaju Katli 500g,620
+Aarav Bansal,2025-12-24,Samosa (6),180
+Aarav Singh,2025-12-25,Kaju Katli 500g,620
+Sneha Gupta,2025-12-25,Gulab Jamun 1kg,760
+Pooja Kapoor,2025-12-25,Samosa (6),180
+Kavita Gupta,2025-12-25,Samosa (6),180
+Suresh Malhotra,2025-12-25,Kaju Katli 500g,620
+Rohit Verma,2025-12-25,Gift Box,950
+Amit Sharma,2025-12-26,Kaju Katli 500g,620
+Suresh Mehta,2025-12-26,Gulab Jamun 1kg,380
+Pooja Gupta,2025-12-26,Namkeen Mix 400g,120
+Rohit Sharma,2025-12-26,Gulab Jamun 1kg,760
+Karan Mehta,2025-12-26,Gulab Jamun 1kg,380
+Kavita Gupta,2025-12-26,Kaju Katli 500g,620
+Neha Gupta,2025-12-26,Namkeen Mix 400g,120
+Neha Sharma,2025-12-26,Gulab Jamun 1kg,380
+Suresh Yadav,2025-12-26,Rasgulla 1kg,340
+Sneha Jain,2025-12-26,Gift Box,950
+Meena Jain,2025-12-26,Jalebi 500g,320
+Meena Mehta,2025-12-26,Samosa (6),90
+Vikram Singh,2025-12-26,Kaju Katli 500g,620
+Rahul Singh,2025-12-27,Gulab Jamun 1kg,760
+Neha Singh,2025-12-27,Kaju Katli 500g,620
+Rohit Sharma,2025-12-27,Gulab Jamun 1kg,760
+Anjali Sharma,2025-12-27,Kaju Katli 500g,620
+Kavita Gupta,2025-12-27,Samosa (6),180
+Rohit Sharma,2025-12-28,Gulab Jamun 1kg,760
+Pooja Gupta,2025-12-28,Jalebi 500g,320
+Neha Kapoor,2025-12-28,Jalebi 500g,320
+Amit Jain,2025-12-28,Jalebi 500g,160
+Vikram Yadav,2025-12-28,Samosa (6),180
+Kavita Singh,2025-12-28,Kaju Katli 500g,620
+Kavita Yadav,2025-12-28,Gulab Jamun 1kg,760
+Suresh Jain,2025-12-28,Rasgulla 1kg,340
+Rahul Singh,2025-12-28,Kaju Katli 500g,620
+Meena Sharma,2025-12-28,Jalebi 500g,160
+Rahul Verma,2025-12-28,Samosa (6),90
+Sneha Bansal,2025-12-29,Gift Box,950
+Sneha Bansal,2025-12-29,Samosa (6),180
+Suresh Yadav,2025-12-29,Rasgulla 1kg,340
+Vikram Yadav,2025-12-29,Namkeen Mix 400g,120
+Aarav Malhotra,2025-12-29,Kaju Katli 500g,620
+Suresh Verma,2025-12-29,Gift Box,950
+Karan Verma,2025-12-29,Samosa (6),90
+Rahul Sharma,2025-12-29,Gift Box,950
+Sneha Malhotra,2025-12-30,Kaju Katli 500g,620
+Kavita Bansal,2025-12-30,Gulab Jamun 1kg,380
+Aarav Singh,2025-12-30,Jalebi 500g,320
+Aarav Malhotra,2025-12-30,Jalebi 500g,160
+Suresh Jain,2025-12-30,Kaju Katli 500g,620
+Sneha Bansal,2025-12-30,Kaju Katli 500g,620
+Priya Bansal,2025-12-30,Rasgulla 1kg,680
+Rahul Singh,2025-12-31,Gift Box,950
+Aarav Singh,2025-12-31,Samosa (6),180
+Kavita Yadav,2025-12-31,Samosa (6),90
+Suresh Gupta,2025-12-31,Gift Box,950
+Pooja Malhotra,2025-12-31,Namkeen Mix 400g,120
+Aarav Verma,2025-12-31,Gulab Jamun 1kg,380
+Meena Gupta,2025-12-31,Kaju Katli 500g,620
+Neha Mehta,2025-12-31,Namkeen Mix 400g,120
+Suresh Yadav,2025-12-31,Samosa (6),90
+Sneha Malhotra,2025-12-31,Samosa (6),180
+Rohit Bansal,2026-01-01,Gulab Jamun 1kg,380
+Aarav Singh,2026-01-01,Samosa (6),90
+Priya Jain,2026-01-01,Namkeen Mix 400g,240
+Rahul Singh,2026-01-01,Gulab Jamun 1kg,380
+Kavita Gupta,2026-01-02,Samosa (6),180
+Aarav Yadav,2026-01-02,Samosa (6),180
+Meena Bansal,2026-01-02,Samosa (6),90
+Sneha Malhotra,2026-01-02,Samosa (6),90
+Vikram Yadav,2026-01-02,Gift Box,950
+Aarav Malhotra,2026-01-02,Gulab Jamun 1kg,760
+Karan Bansal,2026-01-02,Jalebi 500g,320
+Meena Yadav,2026-01-02,Rasgulla 1kg,340
+Meena Jain,2026-01-03,Kaju Katli 500g,620
+Amit Jain,2026-01-03,Namkeen Mix 400g,120
+Pooja Malhotra,2026-01-03,Jalebi 500g,320
+Amit Jain,2026-01-04,Samosa (6),90
+Anjali Kapoor,2026-01-04,Samosa (6),90
+Karan Bansal,2026-01-04,Samosa (6),90
+Aarav Malhotra,2026-01-04,Namkeen Mix 400g,240
+Sneha Jain,2026-01-04,Samosa (6),180
+Rahul Sharma,2026-01-04,Jalebi 500g,160
+Pooja Mehta,2026-01-04,Kaju Katli 500g,620
+Karan Sharma,2026-01-04,Gift Box,950
+Meena Yadav,2026-01-04,Jalebi 500g,320
+Priya Singh,2026-01-05,Namkeen Mix 400g,120
+Sneha Bansal,2026-01-05,Kaju Katli 500g,620
+Priya Jain,2026-01-05,Rasgulla 1kg,680
+Meena Malhotra,2026-01-05,Samosa (6),90
+Meena Yadav,2026-01-05,Samosa (6),90
+Aarav Mehta,2026-01-05,Samosa (6),90
+Rohit Bansal,2026-01-06,Rasgulla 1kg,680
+Meena Yadav,2026-01-06,Rasgulla 1kg,680
+Rohit Malhotra,2026-01-06,Samosa (6),180
+Karan Malhotra,2026-01-06,Gift Box,950
+Vikram Sharma,2026-01-06,Namkeen Mix 400g,240
+Suresh Mehta,2026-01-06,Samosa (6),180
+Suresh Malhotra,2026-01-06,Namkeen Mix 400g,240
+Suresh Malhotra,2026-01-06,Gift Box,950
+Suresh Bansal,2026-01-06,Kaju Katli 500g,620
+Aarav Mehta,2026-01-07,Namkeen Mix 400g,240
+Meena Jain,2026-01-07,Kaju Katli 500g,620
+Aarav Yadav,2026-01-07,Gulab Jamun 1kg,760
+Rohit Verma,2026-01-07,Rasgulla 1kg,340
+Vikram Sharma,2026-01-08,Gulab Jamun 1kg,380
+Neha Verma,2026-01-08,Samosa (6),90
+Suresh Gupta,2026-01-08,Namkeen Mix 400g,120
+Meena Singh,2026-01-08,Gulab Jamun 1kg,760
+Karan Sharma,2026-01-08,Rasgulla 1kg,680
+Neha Singh,2026-01-09,Samosa (6),90
+Aarav Malhotra,2026-01-09,Kaju Katli 500g,620
+Neha Malhotra,2026-01-09,Namkeen Mix 400g,240
+Pooja Gupta,2026-01-10,Gulab Jamun 1kg,380
+Amit Verma,2026-01-10,Rasgulla 1kg,340
+Rohit Bansal,2026-01-10,Rasgulla 1kg,680
+Meena Malhotra,2026-01-10,Kaju Katli 500g,620
+Pooja Mehta,2026-01-10,Samosa (6),180
+Pooja Jain,2026-01-10,Rasgulla 1kg,340
+Meena Jain,2026-01-11,Namkeen Mix 400g,240
+Amit Verma,2026-01-11,Gift Box,950
+Sneha Sharma,2026-01-11,Kaju Katli 500g,620
+Rohit Jain,2026-01-11,Gift Box,950
+Rohit Mehta,2026-01-12,Gulab Jamun 1kg,380
+Meena Yadav,2026-01-12,Samosa (6),180
+Aarav Singh,2026-01-12,Kaju Katli 500g,620
+Rohit Verma,2026-01-12,Samosa (6),90
+Karan Sharma,2026-01-13,Samosa (6),180
+Vikram Sharma,2026-01-13,Kaju Katli 500g,620
+Neha Kapoor,2026-01-13,Gulab Jamun 1kg,760
+Rahul Verma,2026-01-13,Kaju Katli 500g,620
+Kavita Yadav,2026-01-13,Gift Box,950
+Neha Malhotra,2026-01-13,Kaju Katli 500g,620
+Sneha Sharma,2026-01-13,Kaju Katli 500g,620
+Rohit Kapoor,2026-01-13,Samosa (6),180
+Kavita Mehta,2026-01-14,Samosa (6),180
+Rahul Verma,2026-01-14,Jalebi 500g,320
+Suresh Gupta,2026-01-14,Kaju Katli 500g,620
+Suresh Verma,2026-01-14,Jalebi 500g,320
+Rahul Kapoor,2026-01-14,Samosa (6),90
+Pooja Yadav,2026-01-14,Samosa (6),90
+Rahul Jain,2026-01-14,Samosa (6),180
+Kavita Malhotra,2026-01-14,Namkeen Mix 400g,240
+Sneha Malhotra,2026-01-14,Rasgulla 1kg,340
+Sneha Jain,2026-01-15,Kaju Katli 500g,620
+Karan Kapoor,2026-01-15,Kaju Katli 500g,620
+Rahul Verma,2026-01-15,Kaju Katli 500g,620
+Suresh Mehta,2026-01-15,Kaju Katli 500g,620
+Priya Sharma,2026-01-15,Samosa (6),90
+Pooja Gupta,2026-01-15,Jalebi 500g,320
+Neha Gupta,2026-01-15,Rasgulla 1kg,680
+Neha Malhotra,2026-01-15,Gift Box,950
+Rahul Verma,2026-01-15,Samosa (6),180
+Anjali Kapoor,2026-01-16,Kaju Katli 500g,620
+Suresh Mehta,2026-01-16,Samosa (6),180
+Priya Kapoor,2026-01-16,Rasgulla 1kg,340
+Rohit Malhotra,2026-01-16,Jalebi 500g,160
+Pooja Kapoor,2026-01-16,Jalebi 500g,160
+Suresh Yadav,2026-01-16,Kaju Katli 500g,620
+Vikram Bansal,2026-01-16,Kaju Katli 500g,620
+Suresh Bansal,2026-01-16,Kaju Katli 500g,620
+Rohit Bansal,2026-01-16,Rasgulla 1kg,340
+Sneha Mehta,2026-01-16,Jalebi 500g,320
+Sneha Jain,2026-01-16,Samosa (6),180
+Vikram Kapoor,2026-01-16,Rasgulla 1kg,680
+Suresh Jain,2026-01-16,Rasgulla 1kg,680
+Kavita Gupta,2026-01-16,Samosa (6),90
+Aarav Singh,2026-01-17,Samosa (6),90
+Pooja Kapoor,2026-01-17,Gulab Jamun 1kg,760
+Aarav Verma,2026-01-17,Namkeen Mix 400g,120
+Rahul Gupta,2026-01-17,Gulab Jamun 1kg,380
+Sneha Gupta,2026-01-17,Rasgulla 1kg,680
+Sneha Verma,2026-01-17,Kaju Katli 500g,620
+Priya Jain,2026-01-17,Gulab Jamun 1kg,380
+Aarav Jain,2026-01-17,Rasgulla 1kg,680
+Rohit Jain,2026-01-17,Samosa (6),90
+Rohit Malhotra,2026-01-17,Kaju Katli 500g,620
+Meena Jain,2026-01-17,Jalebi 500g,320
+Suresh Jain,2026-01-18,Gulab Jamun 1kg,760
+Karan Sharma,2026-01-18,Gulab Jamun 1kg,380
+Rohit Sharma,2026-01-18,Samosa (6),180
+Aarav Singh,2026-01-18,Kaju Katli 500g,620
+Pooja Kapoor,2026-01-18,Jalebi 500g,160
+Rohit Malhotra,2026-01-18,Kaju Katli 500g,620
+Sneha Gupta,2026-01-18,Samosa (6),90
+Sneha Malhotra,2026-01-18,Jalebi 500g,320
+Meena Yadav,2026-01-18,Samosa (6),180
+Vikram Sharma,2026-01-18,Gulab Jamun 1kg,380
+Anjali Bansal,2026-01-18,Jalebi 500g,320
+Anjali Sharma,2026-01-19,Gulab Jamun 1kg,760
+Karan Bansal,2026-01-19,Rasgulla 1kg,680
+Pooja Yadav,2026-01-19,Samosa (6),90
+Sneha Gupta,2026-01-19,Samosa (6),90
+Anjali Gupta,2026-01-20,Gulab Jamun 1kg,760
+Aarav Malhotra,2026-01-20,Samosa (6),90
+Vikram Kapoor,2026-01-20,Samosa (6),90
+Anjali Singh,2026-01-20,Gulab Jamun 1kg,760
+Priya Sharma,2026-01-20,Rasgulla 1kg,680
+Aarav Yadav,2026-01-20,Gulab Jamun 1kg,760
+Amit Bansal,2026-01-20,Gulab Jamun 1kg,380
+Kavita Singh,2026-01-20,Gulab Jamun 1kg,380
+Karan Yadav,2026-01-21,Samosa (6),180
+Kavita Bansal,2026-01-21,Gulab Jamun 1kg,380
+Aarav Bansal,2026-01-21,Kaju Katli 500g,620
+Sneha Gupta,2026-01-21,Samosa (6),90
+Karan Yadav,2026-01-21,Kaju Katli 500g,620
+Sneha Jain,2026-01-21,Kaju Katli 500g,620
+Pooja Mehta,2026-01-21,Gulab Jamun 1kg,380
+Rahul Mehta,2026-01-21,Gulab Jamun 1kg,380
+Aarav Verma,2026-01-21,Samosa (6),180
+Aarav Gupta,2026-01-22,Jalebi 500g,160
+Kavita Bansal,2026-01-22,Samosa (6),90
+Amit Sharma,2026-01-22,Kaju Katli 500g,620
+Neha Malhotra,2026-01-22,Kaju Katli 500g,620
+Suresh Bansal,2026-01-22,Namkeen Mix 400g,120
+Amit Jain,2026-01-22,Samosa (6),180
+Rahul Gupta,2026-01-22,Samosa (6),90
+Pooja Yadav,2026-01-22,Samosa (6),180
+Meena Sharma,2026-01-23,Rasgulla 1kg,340
+Meena Mehta,2026-01-23,Samosa (6),180
+Rahul Verma,2026-01-23,Rasgulla 1kg,340
+Pooja Malhotra,2026-01-23,Jalebi 500g,160
+Sneha Malhotra,2026-01-23,Kaju Katli 500g,620
+Karan Sharma,2026-01-23,Jalebi 500g,320
+Aarav Bansal,2026-01-23,Jalebi 500g,320
+Suresh Verma,2026-01-23,Jalebi 500g,160
+Amit Singh,2026-01-23,Samosa (6),90
+Amit Jain,2026-01-24,Gift Box,950
+Suresh Mehta,2026-01-24,Samosa (6),180
+Meena Sharma,2026-01-24,Kaju Katli 500g,620
+Rahul Verma,2026-01-24,Gift Box,950
+Meena Yadav,2026-01-24,Kaju Katli 500g,620
+Pooja Sharma,2026-01-24,Rasgulla 1kg,680
+Rahul Verma,2026-01-24,Samosa (6),90
+Meena Kapoor,2026-01-24,Rasgulla 1kg,680
+Pooja Gupta,2026-01-25,Kaju Katli 500g,620
+Aarav Singh,2026-01-25,Kaju Katli 500g,620
+Rohit Bansal,2026-01-25,Rasgulla 1kg,680
+Vikram Singh,2026-01-25,Namkeen Mix 400g,240
+Priya Mehta,2026-01-25,Kaju Katli 500g,620
+Rahul Kapoor,2026-01-26,Gift Box,950
+Amit Sharma,2026-01-26,Kaju Katli 500g,620
+Meena Mehta,2026-01-26,Samosa (6),90
+Sneha Gupta,2026-01-26,Kaju Katli 500g,620
+Aarav Singh,2026-01-26,Gulab Jamun 1kg,760
+Aarav Jain,2026-01-26,Gift Box,950
+Amit Kapoor,2026-01-26,Gift Box,950
+Rahul Verma,2026-01-27,Jalebi 500g,320
+Kavita Malhotra,2026-01-27,Rasgulla 1kg,340
+Priya Kapoor,2026-01-27,Kaju Katli 500g,620
+Rohit Sharma,2026-01-27,Rasgulla 1kg,340
+Sneha Verma,2026-01-28,Jalebi 500g,320
+Vikram Sharma,2026-01-28,Gift Box,950
+Sneha Gupta,2026-01-28,Jalebi 500g,320
+Vikram Sharma,2026-01-28,Kaju Katli 500g,620
+Neha Gupta,2026-01-28,Samosa (6),180
+Aarav Singh,2026-01-28,Gift Box,950
+Aarav Verma,2026-01-28,Jalebi 500g,320
+Meena Yadav,2026-01-28,Samosa (6),90
+Pooja Mehta,2026-01-29,Gulab Jamun 1kg,380
+Neha Sharma,2026-01-29,Kaju Katli 500g,620
+Rahul Jain,2026-01-29,Samosa (6),90
+Meena Sharma,2026-01-29,Samosa (6),180
+Pooja Yadav,2026-01-29,Namkeen Mix 400g,240
+Rohit Sharma,2026-01-29,Gulab Jamun 1kg,760
+Rohit Bansal,2026-01-29,Samosa (6),180
+Pooja Jain,2026-01-29,Samosa (6),90
+Vikram Kapoor,2026-01-29,Kaju Katli 500g,620
+Rahul Jain,2026-01-29,Rasgulla 1kg,340
+Kavita Kapoor,2026-01-30,Kaju Katli 500g,620
+Suresh Yadav,2026-01-30,Kaju Katli 500g,620
+Vikram Yadav,2026-01-30,Gulab Jamun 1kg,380
+Suresh Yadav,2026-01-30,Kaju Katli 500g,620
+Vikram Yadav,2026-01-30,Gulab Jamun 1kg,760
+Vikram Sharma,2026-01-30,Gulab Jamun 1kg,760
+Meena Jain,2026-01-30,Gift Box,950
+Karan Sharma,2026-01-30,Gift Box,950
+Priya Mehta,2026-01-31,Samosa (6),180
+Suresh Bansal,2026-01-31,Jalebi 500g,160
+Rohit Verma,2026-01-31,Rasgulla 1kg,340
+Suresh Bansal,2026-01-31,Gulab Jamun 1kg,380
+Rahul Kapoor,2026-01-31,Namkeen Mix 400g,120
+Sneha Sharma,2026-01-31,Gift Box,950
+Sneha Sharma,2026-02-01,Namkeen Mix 400g,120
+Amit Jain,2026-02-01,Gulab Jamun 1kg,760
+Kavita Bansal,2026-02-01,Jalebi 500g,320
+Priya Sharma,2026-02-01,Rasgulla 1kg,680
+Pooja Jain,2026-02-01,Gulab Jamun 1kg,380
+Meena Yadav,2026-02-02,Samosa (6),90
+Karan Sharma,2026-02-02,Jalebi 500g,320
+Rahul Jain,2026-02-02,Kaju Katli 500g,620
+Sneha Jain,2026-02-02,Gulab Jamun 1kg,380
+Sneha Sharma,2026-02-02,Rasgulla 1kg,340
+Kavita Bansal,2026-02-02,Samosa (6),90
+Meena Jain,2026-02-02,Jalebi 500g,320
+Sneha Bansal,2026-02-02,Kaju Katli 500g,620
+Neha Singh,2026-02-02,Samosa (6),90
+Suresh Malhotra,2026-02-03,Gulab Jamun 1kg,760
+Kavita Mehta,2026-02-03,Gulab Jamun 1kg,760
+Vikram Malhotra,2026-02-03,Jalebi 500g,320
+Meena Bansal,2026-02-03,Kaju Katli 500g,620
+Aarav Mehta,2026-02-03,Gift Box,950
+Priya Jain,2026-02-03,Rasgulla 1kg,680
+Sneha Gupta,2026-02-03,Gift Box,950
+Amit Jain,2026-02-03,Samosa (6),90
+Amit Jain,2026-02-03,Samosa (6),90
+Meena Jain,2026-02-03,Jalebi 500g,160
+Karan Malhotra,2026-02-03,Rasgulla 1kg,680
+Rahul Gupta,2026-02-03,Kaju Katli 500g,620
+Sneha Sharma,2026-02-03,Kaju Katli 500g,620
+Rahul Verma,2026-02-04,Jalebi 500g,160
+Suresh Verma,2026-02-04,Samosa (6),90
+Sneha Bansal,2026-02-04,Kaju Katli 500g,620
+Suresh Jain,2026-02-04,Samosa (6),180
+Meena Jain,2026-02-04,Kaju Katli 500g,620
+Meena Yadav,2026-02-05,Gift Box,950
+Suresh Gupta,2026-02-05,Gulab Jamun 1kg,380
+Suresh Mehta,2026-02-05,Kaju Katli 500g,620
+Vikram Jain,2026-02-05,Kaju Katli 500g,620
+Vikram Singh,2026-02-05,Jalebi 500g,320
+Amit Sharma,2026-02-05,Samosa (6),90
+Sneha Mehta,2026-02-05,Namkeen Mix 400g,120
+Anjali Bansal,2026-02-05,Samosa (6),180
+Rahul Jain,2026-02-06,Namkeen Mix 400g,120
+Meena Mehta,2026-02-06,Jalebi 500g,320
+Priya Verma,2026-02-06,Gulab Jamun 1kg,760
+Meena Bansal,2026-02-06,Jalebi 500g,320
+Kavita Malhotra,2026-02-06,Samosa (6),180
+Suresh Yadav,2026-02-06,Gulab Jamun 1kg,380
+Pooja Jain,2026-02-06,Gulab Jamun 1kg,760
+Kavita Gupta,2026-02-07,Rasgulla 1kg,680
+Kavita Singh,2026-02-07,Gulab Jamun 1kg,380
+Suresh Gupta,2026-02-07,Samosa (6),90
+Rohit Bansal,2026-02-07,Samosa (6),90
+Pooja Mehta,2026-02-07,Gulab Jamun 1kg,380
+Kavita Gupta,2026-02-07,Rasgulla 1kg,340
+Rahul Kapoor,2026-02-07,Kaju Katli 500g,620
+Sneha Jain,2026-02-07,Kaju Katli 500g,620
+Priya Kapoor,2026-02-07,Gulab Jamun 1kg,380
+Aarav Yadav,2026-02-07,Samosa (6),90
+Sneha Gupta,2026-02-07,Kaju Katli 500g,620
+Neha Kapoor,2026-02-08,Rasgulla 1kg,680
+Kavita Gupta,2026-02-08,Gift Box,950
+Anjali Verma,2026-02-08,Gulab Jamun 1kg,760
+Meena Sharma,2026-02-08,Namkeen Mix 400g,240
+Rahul Jain,2026-02-08,Gulab Jamun 1kg,380
+Pooja Gupta,2026-02-08,Jalebi 500g,320
+Vikram Sharma,2026-02-08,Gift Box,950
+Rohit Verma,2026-02-08,Samosa (6),180
+Rahul Kapoor,2026-02-08,Rasgulla 1kg,680
+Neha Singh,2026-02-09,Namkeen Mix 400g,240
+Aarav Bansal,2026-02-09,Gulab Jamun 1kg,380
+Vikram Kapoor,2026-02-09,Kaju Katli 500g,620
+Rohit Sharma,2026-02-09,Kaju Katli 500g,620
+Pooja Kapoor,2026-02-09,Samosa (6),90
+Priya Kapoor,2026-02-09,Kaju Katli 500g,620
+Suresh Verma,2026-02-10,Kaju Katli 500g,620
+Meena Malhotra,2026-02-10,Kaju Katli 500g,620
+Amit Bansal,2026-02-10,Kaju Katli 500g,620
+Neha Verma,2026-02-10,Namkeen Mix 400g,120
+Anjali Verma,2026-02-10,Samosa (6),180
+Amit Mehta,2026-02-10,Jalebi 500g,320
+Kavita Yadav,2026-02-10,Jalebi 500g,320
+Rahul Verma,2026-02-10,Samosa (6),90
+Sneha Bansal,2026-02-10,Samosa (6),90
+Priya Mehta,2026-02-10,Rasgulla 1kg,340
+Aarav Gupta,2026-02-11,Samosa (6),180
+Sneha Mehta,2026-02-11,Rasgulla 1kg,340
+Rahul Sharma,2026-02-11,Rasgulla 1kg,680
+Rohit Verma,2026-02-11,Jalebi 500g,320
+Rohit Bansal,2026-02-11,Samosa (6),180
+Karan Sharma,2026-02-11,Samosa (6),180
+Rahul Sharma,2026-02-11,Samosa (6),180
+Pooja Sharma,2026-02-12,Rasgulla 1kg,680
+Aarav Singh,2026-02-12,Samosa (6),180
+Priya Kapoor,2026-02-12,Gulab Jamun 1kg,760
+Rohit Bansal,2026-02-12,Jalebi 500g,320
+Rahul Kapoor,2026-02-12,Samosa (6),180
+Vikram Mehta,2026-02-12,Rasgulla 1kg,680
+Pooja Kapoor,2026-02-12,Samosa (6),90
+Aarav Singh,2026-02-12,Kaju Katli 500g,620
+Rohit Verma,2026-02-12,Kaju Katli 500g,620
+Rohit Mehta,2026-02-12,Samosa (6),90
+Kavita Kapoor,2026-02-12,Kaju Katli 500g,620
+Vikram Kapoor,2026-02-13,Rasgulla 1kg,340
+Rahul Yadav,2026-02-13,Kaju Katli 500g,620
+Sneha Verma,2026-02-13,Gulab Jamun 1kg,380
+Amit Verma,2026-02-13,Gulab Jamun 1kg,380
+Meena Gupta,2026-02-13,Samosa (6),90
+Rahul Kapoor,2026-02-13,Namkeen Mix 400g,120
+Neha Sharma,2026-02-13,Jalebi 500g,160
+Vikram Gupta,2026-02-13,Gift Box,950
+Priya Yadav,2026-02-13,Samosa (6),180
+Aarav Jain,2026-02-14,Gulab Jamun 1kg,760
+Meena Jain,2026-02-14,Namkeen Mix 400g,240
+Suresh Jain,2026-02-14,Samosa (6),90
+Sneha Sharma,2026-02-14,Namkeen Mix 400g,120
+Pooja Gupta,2026-02-14,Kaju Katli 500g,620
+Rahul Bansal,2026-02-14,Samosa (6),90
+Pooja Kapoor,2026-02-14,Rasgulla 1kg,340
+Rahul Verma,2026-02-14,Jalebi 500g,320
+Sneha Jain,2026-02-15,Gulab Jamun 1kg,760
+Sneha Sharma,2026-02-15,Samosa (6),180
+Sneha Yadav,2026-02-15,Samosa (6),90
+Kavita Mehta,2026-02-15,Rasgulla 1kg,340
+Rohit Mehta,2026-02-15,Gift Box,950
+Rohit Verma,2026-02-15,Gulab Jamun 1kg,760
+Suresh Mehta,2026-02-15,Kaju Katli 500g,620
+Aarav Malhotra,2026-02-15,Kaju Katli 500g,620
+Rahul Verma,2026-02-15,Namkeen Mix 400g,240
+Amit Bansal,2026-02-15,Samosa (6),180
+Suresh Yadav,2026-02-15,Gulab Jamun 1kg,380
+Kavita Singh,2026-02-16,Kaju Katli 500g,620
+Aarav Bansal,2026-02-16,Rasgulla 1kg,680
+Rohit Bansal,2026-02-16,Gift Box,950
+Sneha Malhotra,2026-02-16,Rasgulla 1kg,340
+Rohit Bansal,2026-02-16,Namkeen Mix 400g,120
+Amit Jain,2026-02-16,Samosa (6),180
+Pooja Mehta,2026-02-16,Gulab Jamun 1kg,760
+Rahul Gupta,2026-02-16,Kaju Katli 500g,620
+Aarav Bansal,2026-02-17,Namkeen Mix 400g,240
+Meena Sharma,2026-02-17,Kaju Katli 500g,620
+Meena Sharma,2026-02-17,Rasgulla 1kg,680
+Suresh Singh,2026-02-17,Kaju Katli 500g,620
+Amit Yadav,2026-02-17,Samosa (6),180
+Meena Bansal,2026-02-17,Samosa (6),180
+Kavita Gupta,2026-02-17,Gift Box,950
+Vikram Sharma,2026-02-17,Jalebi 500g,160
+Aarav Verma,2026-02-17,Kaju Katli 500g,620
+Aarav Jain,2026-02-18,Jalebi 500g,320
+Pooja Yadav,2026-02-18,Gift Box,950
+Suresh Verma,2026-02-18,Jalebi 500g,160
+Meena Kapoor,2026-02-19,Jalebi 500g,320
+Priya Singh,2026-02-19,Gift Box,950
+Meena Jain,2026-02-19,Namkeen Mix 400g,240
+Vikram Sharma,2026-02-19,Gulab Jamun 1kg,760
+Pooja Gupta,2026-02-19,Jalebi 500g,320
+Rahul Verma,2026-02-19,Jalebi 500g,160
+Rahul Kapoor,2026-02-19,Rasgulla 1kg,340
+Suresh Jain,2026-02-19,Kaju Katli 500g,620
+Amit Sharma,2026-02-19,Samosa (6),90
+Amit Verma,2026-02-19,Gulab Jamun 1kg,380
+Rahul Kapoor,2026-02-20,Namkeen Mix 400g,120
+Suresh Bansal,2026-02-20,Gift Box,950
+Vikram Malhotra,2026-02-20,Gift Box,950
+Rohit Mehta,2026-02-20,Samosa (6),90
+Karan Sharma,2026-02-20,Namkeen Mix 400g,120
+Rohit Bansal,2026-02-20,Kaju Katli 500g,620
+Karan Kapoor,2026-02-20,Samosa (6),90
+Suresh Yadav,2026-02-20,Samosa (6),180
+Priya Jain,2026-02-21,Rasgulla 1kg,680
+Suresh Verma,2026-02-21,Samosa (6),180
+Pooja Mehta,2026-02-21,Kaju Katli 500g,620
+Rahul Verma,2026-02-21,Jalebi 500g,320
+Rahul Kapoor,2026-02-21,Kaju Katli 500g,620
+Rohit Jain,2026-02-21,Kaju Katli 500g,620
+Pooja Malhotra,2026-02-21,Samosa (6),180
+Pooja Kapoor,2026-02-21,Samosa (6),90
+Amit Verma,2026-02-21,Samosa (6),90
+Kavita Gupta,2026-02-21,Gulab Jamun 1kg,380
+Aarav Singh,2026-02-21,Jalebi 500g,160
+Suresh Yadav,2026-02-22,Kaju Katli 500g,620
+Vikram Kapoor,2026-02-22,Samosa (6),90
+Rahul Verma,2026-02-22,Namkeen Mix 400g,240
+Meena Jain,2026-02-22,Samosa (6),180
+Rahul Kapoor,2026-02-22,Kaju Katli 500g,620
+Rohit Kapoor,2026-02-23,Samosa (6),180
+Amit Jain,2026-02-23,Kaju Katli 500g,620
+Sneha Mehta,2026-02-23,Samosa (6),180
+Pooja Jain,2026-02-23,Samosa (6),90
+Vikram Sharma,2026-02-23,Gift Box,950
+Pooja Mehta,2026-02-23,Samosa (6),180
+Karan Sharma,2026-02-23,Kaju Katli 500g,620
+Kavita Malhotra,2026-02-23,Kaju Katli 500g,620
+Sneha Bansal,2026-02-23,Kaju Katli 500g,620
+Karan Yadav,2026-02-24,Gulab Jamun 1kg,760
+Meena Yadav,2026-02-24,Namkeen Mix 400g,240
+Rahul Kapoor,2026-02-24,Samosa (6),90
+Vikram Sharma,2026-02-24,Namkeen Mix 400g,120
+Amit Malhotra,2026-02-24,Samosa (6),90
+Vikram Sharma,2026-02-24,Samosa (6),180
+Sneha Sharma,2026-02-24,Namkeen Mix 400g,240
+Kavita Kapoor,2026-02-24,Rasgulla 1kg,680
+Rahul Gupta,2026-02-24,Kaju Katli 500g,620
+Anjali Yadav,2026-02-25,Gulab Jamun 1kg,760
+Amit Verma,2026-02-25,Kaju Katli 500g,620
+Meena Gupta,2026-02-25,Jalebi 500g,320
+Aarav Sharma,2026-02-26,Gulab Jamun 1kg,380
+Kavita Gupta,2026-02-26,Samosa (6),180
+Pooja Malhotra,2026-02-26,Samosa (6),180
+Rohit Sharma,2026-02-26,Kaju Katli 500g,620
+Sneha Singh,2026-02-26,Jalebi 500g,320
+Neha Sharma,2026-02-27,Gulab Jamun 1kg,760
+Karan Yadav,2026-02-27,Gulab Jamun 1kg,380
+Aarav Verma,2026-02-27,Kaju Katli 500g,620
+Neha Mehta,2026-02-27,Gift Box,950
+Suresh Malhotra,2026-02-27,Namkeen Mix 400g,240
+Aarav Yadav,2026-02-27,Samosa (6),180
+Pooja Kapoor,2026-02-27,Gift Box,950
+Rohit Bansal,2026-02-27,Gulab Jamun 1kg,760
+Meena Kapoor,2026-02-27,Samosa (6),180
+Pooja Mehta,2026-02-28,Jalebi 500g,320
+Karan Sharma,2026-02-28,Gift Box,950
+Neha Sharma,2026-02-28,Kaju Katli 500g,620
+Vikram Yadav,2026-02-28,Gulab Jamun 1kg,760
+Anjali Verma,2026-02-28,Samosa (6),90
+Meena Yadav,2026-02-28,Jalebi 500g,160
+Kavita Bansal,2026-03-01,Samosa (6),90
+Karan Sharma,2026-03-01,Rasgulla 1kg,680
+Sneha Malhotra,2026-03-01,Gulab Jamun 1kg,380
+Karan Yadav,2026-03-01,Samosa (6),180
+Amit Jain,2026-03-01,Gift Box,950
+Sneha Sharma,2026-03-01,Kaju Katli 500g,620
+Sneha Mehta,2026-03-01,Samosa (6),180
+Rohit Verma,2026-03-01,Kaju Katli 500g,620
+Sneha Verma,2026-03-01,Jalebi 500g,160
+Priya Jain,2026-03-02,Jalebi 500g,320
+Meena Yadav,2026-03-02,Kaju Katli 500g,620
+Suresh Yadav,2026-03-02,Rasgulla 1kg,680
+Kavita Malhotra,2026-03-02,Gift Box,950
+Meena Mehta,2026-03-03,Kaju Katli 500g,620
+Priya Sharma,2026-03-03,Jalebi 500g,160
+Pooja Kapoor,2026-03-03,Kaju Katli 500g,620
+Vikram Sharma,2026-03-03,Kaju Katli 500g,620
+Vikram Yadav,2026-03-03,Gulab Jamun 1kg,760
+Suresh Mehta,2026-03-03,Samosa (6),90
+Rahul Malhotra,2026-03-03,Jalebi 500g,160
+Pooja Sharma,2026-03-04,Rasgulla 1kg,340
+Sneha Sharma,2026-03-04,Samosa (6),180
+Meena Sharma,2026-03-04,Namkeen Mix 400g,240
+Rohit Sharma,2026-03-04,Kaju Katli 500g,620
+Rahul Verma,2026-03-04,Samosa (6),180
+Rohit Bansal,2026-03-04,Namkeen Mix 400g,120
+Suresh Mehta,2026-03-04,Kaju Katli 500g,620
+Pooja Malhotra,2026-03-04,Namkeen Mix 400g,120
+Meena Mehta,2026-03-04,Samosa (6),90
+Meena Mehta,2026-03-04,Gulab Jamun 1kg,760
+Pooja Malhotra,2026-03-04,Kaju Katli 500g,620
+Amit Yadav,2026-03-05,Gulab Jamun 1kg,380
+Aarav Singh,2026-03-05,Jalebi 500g,160
+Rahul Verma,2026-03-05,Samosa (6),180
+Suresh Yadav,2026-03-05,Namkeen Mix 400g,240
+Rohit Verma,2026-03-05,Kaju Katli 500g,620
+Vikram Sharma,2026-03-05,Jalebi 500g,160
+Sneha Jain,2026-03-05,Kaju Katli 500g,620
+Amit Mehta,2026-03-05,Samosa (6),180
+Amit Verma,2026-03-06,Samosa (6),90
+Anjali Jain,2026-03-06,Kaju Katli 500g,620
+Karan Kapoor,2026-03-06,Kaju Katli 500g,620
+Anjali Singh,2026-03-06,Jalebi 500g,320
+Rohit Bansal,2026-03-06,Gulab Jamun 1kg,760
+Kavita Singh,2026-03-06,Jalebi 500g,160
+Aarav Malhotra,2026-03-06,Kaju Katli 500g,620
+Kavita Gupta,2026-03-06,Samosa (6),90
+Suresh Bansal,2026-03-07,Jalebi 500g,160
+Suresh Verma,2026-03-07,Kaju Katli 500g,620
+Suresh Gupta,2026-03-07,Samosa (6),90
+Sneha Mehta,2026-03-07,Gift Box,950
+Rohit Sharma,2026-03-07,Kaju Katli 500g,620
+Anjali Sharma,2026-03-07,Rasgulla 1kg,680
+Amit Gupta,2026-03-07,Samosa (6),180
+Meena Kapoor,2026-03-07,Samosa (6),90
+Rohit Verma,2026-03-07,Gulab Jamun 1kg,380
+Karan Sharma,2026-03-07,Namkeen Mix 400g,240
+Rohit Bansal,2026-03-07,Gulab Jamun 1kg,760
+Pooja Kapoor,2026-03-07,Jalebi 500g,320
+Meena Kapoor,2026-03-07,Namkeen Mix 400g,240
+Meena Mehta,2026-03-07,Rasgulla 1kg,340
+Aarav Verma,2026-03-08,Samosa (6),180
+Priya Singh,2026-03-08,Gulab Jamun 1kg,380
+Karan Malhotra,2026-03-08,Gulab Jamun 1kg,380
+Aarav Verma,2026-03-08,Rasgulla 1kg,680
+Aarav Yadav,2026-03-08,Gulab Jamun 1kg,760
+Priya Singh,2026-03-08,Samosa (6),180
+Vikram Sharma,2026-03-08,Rasgulla 1kg,340
+Rahul Kapoor,2026-03-08,Jalebi 500g,320
+Priya Yadav,2026-03-08,Samosa (6),180
+Kavita Singh,2026-03-09,Jalebi 500g,320
+Amit Sharma,2026-03-09,Gulab Jamun 1kg,760
+Rohit Bansal,2026-03-09,Namkeen Mix 400g,240
+Pooja Kapoor,2026-03-09,Kaju Katli 500g,620
+Rohit Malhotra,2026-03-09,Kaju Katli 500g,620
+Meena Yadav,2026-03-09,Jalebi 500g,160
+Amit Mehta,2026-03-09,Jalebi 500g,320
+Vikram Malhotra,2026-03-09,Samosa (6),180
+Neha Bansal,2026-03-10,Gift Box,950
+Aarav Mehta,2026-03-10,Gift Box,950
+Neha Sharma,2026-03-10,Jalebi 500g,320
+Pooja Gupta,2026-03-10,Kaju Katli 500g,620
+Suresh Mehta,2026-03-11,Gulab Jamun 1kg,760
+Suresh Bansal,2026-03-11,Jalebi 500g,320
+Aarav Malhotra,2026-03-11,Kaju Katli 500g,620
+Rohit Malhotra,2026-03-11,Gift Box,950
+Aarav Jain,2026-03-11,Samosa (6),180
+Kavita Mehta,2026-03-11,Kaju Katli 500g,620
+Aarav Mehta,2026-03-11,Kaju Katli 500g,620
+Vikram Sharma,2026-03-11,Jalebi 500g,160
+Rahul Mehta,2026-03-11,Namkeen Mix 400g,240
+Aarav Yadav,2026-03-11,Jalebi 500g,160
+Suresh Yadav,2026-03-11,Kaju Katli 500g,620
+Karan Bansal,2026-03-12,Samosa (6),180
+Kavita Yadav,2026-03-12,Gulab Jamun 1kg,380
+Vikram Kapoor,2026-03-12,Samosa (6),180
+Karan Sharma,2026-03-12,Jalebi 500g,160
+Vikram Sharma,2026-03-12,Rasgulla 1kg,340
+Aarav Mehta,2026-03-12,Namkeen Mix 400g,120
+Amit Jain,2026-03-12,Samosa (6),90
+Priya Singh,2026-03-12,Kaju Katli 500g,620
+Sneha Bansal,2026-03-12,Namkeen Mix 400g,240
+Neha Mehta,2026-03-12,Samosa (6),180
+Meena Yadav,2026-03-12,Samosa (6),180
+Sneha Sharma,2026-03-13,Jalebi 500g,320
+Kavita Yadav,2026-03-13,Samosa (6),180
+Meena Malhotra,2026-03-13,Namkeen Mix 400g,240
+Vikram Jain,2026-03-13,Samosa (6),90
+Anjali Yadav,2026-03-13,Samosa (6),90
+Priya Singh,2026-03-14,Gulab Jamun 1kg,760
+Pooja Malhotra,2026-03-14,Samosa (6),90
+Meena Jain,2026-03-15,Samosa (6),90
+Vikram Jain,2026-03-15,Kaju Katli 500g,620
+Vikram Yadav,2026-03-15,Gulab Jamun 1kg,380
+Rohit Bansal,2026-03-15,Gulab Jamun 1kg,380
+Suresh Gupta,2026-03-15,Samosa (6),180
+Aarav Jain,2026-03-15,Rasgulla 1kg,680
+Vikram Kapoor,2026-03-16,Gift Box,950
+Priya Mehta,2026-03-16,Kaju Katli 500g,620
+Vikram Jain,2026-03-16,Kaju Katli 500g,620
+Rahul Bansal,2026-03-16,Kaju Katli 500g,620
+Kavita Gupta,2026-03-16,Samosa (6),90
+Anjali Verma,2026-03-16,Rasgulla 1kg,340
+Pooja Sharma,2026-03-16,Namkeen Mix 400g,240
+Rahul Singh,2026-03-17,Gulab Jamun 1kg,760
+Sneha Mehta,2026-03-17,Gulab Jamun 1kg,760
+Anjali Gupta,2026-03-17,Namkeen Mix 400g,120
+Aarav Jain,2026-03-17,Kaju Katli 500g,620
+Amit Bansal,2026-03-17,Kaju Katli 500g,620
+Meena Malhotra,2026-03-17,Jalebi 500g,160
+Kavita Yadav,2026-03-18,Gulab Jamun 1kg,380
+Kavita Kapoor,2026-03-18,Rasgulla 1kg,340
+Karan Kapoor,2026-03-18,Kaju Katli 500g,620
+Aarav Yadav,2026-03-18,Samosa (6),180
+Amit Sharma,2026-03-18,Kaju Katli 500g,620
+Pooja Malhotra,2026-03-19,Gulab Jamun 1kg,380
+Priya Mehta,2026-03-19,Gulab Jamun 1kg,760
+Neha Bansal,2026-03-19,Namkeen Mix 400g,120
+Suresh Jain,2026-03-19,Kaju Katli 500g,620
+Meena Malhotra,2026-03-19,Jalebi 500g,320
+Sneha Sharma,2026-03-19,Gift Box,950
+Vikram Sharma,2026-03-19,Gift Box,950
+Suresh Malhotra,2026-03-19,Gift Box,950
+Amit Kapoor,2026-03-19,Jalebi 500g,160
+Rohit Bansal,2026-03-20,Samosa (6),90
+Kavita Gupta,2026-03-20,Gulab Jamun 1kg,380
+Rohit Sharma,2026-03-20,Gift Box,950
+Pooja Verma,2026-03-20,Namkeen Mix 400g,240
+Meena Yadav,2026-03-20,Samosa (6),90
+Amit Kapoor,2026-03-20,Kaju Katli 500g,620
+Vikram Sharma,2026-03-20,Rasgulla 1kg,680
+Vikram Malhotra,2026-03-21,Kaju Katli 500g,620
+Rahul Singh,2026-03-21,Kaju Katli 500g,620
+Suresh Bansal,2026-03-21,Samosa (6),90
+Anjali Bansal,2026-03-21,Samosa (6),180
+Aarav Bansal,2026-03-21,Samosa (6),90
+Sneha Malhotra,2026-03-21,Samosa (6),180
+Meena Gupta,2026-03-22,Kaju Katli 500g,620
+Meena Jain,2026-03-22,Namkeen Mix 400g,240
+Anjali Gupta,2026-03-22,Namkeen Mix 400g,240
+Meena Sharma,2026-03-22,Samosa (6),90
+Sneha Sharma,2026-03-22,Samosa (6),90
+Rohit Bansal,2026-03-23,Kaju Katli 500g,620
+Vikram Sharma,2026-03-23,Rasgulla 1kg,680
+Kavita Mehta,2026-03-23,Samosa (6),90
+Kavita Singh,2026-03-23,Samosa (6),180
+Suresh Verma,2026-03-23,Gulab Jamun 1kg,380
+Priya Singh,2026-03-24,Kaju Katli 500g,620
+Aarav Singh,2026-03-24,Kaju Katli 500g,620
+Amit Malhotra,2026-03-24,Samosa (6),90
+Priya Singh,2026-03-24,Kaju Katli 500g,620
+Karan Sharma,2026-03-24,Gift Box,950
+Priya Kapoor,2026-03-24,Samosa (6),90
+Rahul Singh,2026-03-24,Samosa (6),180
+Anjali Gupta,2026-03-24,Gulab Jamun 1kg,380
+Rahul Kapoor,2026-03-25,Samosa (6),180
+Aarav Malhotra,2026-03-25,Gulab Jamun 1kg,760
+Vikram Jain,2026-03-25,Kaju Katli 500g,620
+Sneha Yadav,2026-03-25,Rasgulla 1kg,340
+Rahul Jain,2026-03-25,Gulab Jamun 1kg,380
+Priya Sharma,2026-03-25,Jalebi 500g,320
+Suresh Yadav,2026-03-25,Samosa (6),180
+Meena Yadav,2026-03-26,Namkeen Mix 400g,240
+Priya Mehta,2026-03-26,Samosa (6),90
+Pooja Gupta,2026-03-26,Gulab Jamun 1kg,380
+Kavita Yadav,2026-03-27,Kaju Katli 500g,620
+Suresh Jain,2026-03-27,Jalebi 500g,160
+Anjali Kapoor,2026-03-27,Samosa (6),90
+Sneha Malhotra,2026-03-27,Rasgulla 1kg,680
+Neha Gupta,2026-03-27,Jalebi 500g,160
+Neha Verma,2026-03-27,Namkeen Mix 400g,120
+Priya Sharma,2026-03-27,Samosa (6),90
+Sneha Malhotra,2026-03-27,Jalebi 500g,320
+Rohit Verma,2026-03-28,Kaju Katli 500g,620
+Pooja Malhotra,2026-03-28,Namkeen Mix 400g,120
+Suresh Malhotra,2026-03-28,Kaju Katli 500g,620
+Neha Malhotra,2026-03-28,Samosa (6),90
+Aarav Bansal,2026-03-28,Namkeen Mix 400g,120
+Anjali Gupta,2026-03-28,Gift Box,950
+Anjali Bansal,2026-03-28,Gift Box,950
+Neha Verma,2026-03-28,Samosa (6),180
+Vikram Yadav,2026-03-28,Samosa (6),90
+Sneha Bansal,2026-03-28,Jalebi 500g,320
+Aarav Kapoor,2026-03-28,Gift Box,950
+Rahul Kapoor,2026-03-28,Samosa (6),90
+Amit Kapoor,2026-03-28,Kaju Katli 500g,620
+Priya Yadav,2026-03-29,Samosa (6),180
+Rohit Jain,2026-03-29,Samosa (6),90
+Anjali Verma,2026-03-29,Samosa (6),90
+Kavita Gupta,2026-03-29,Kaju Katli 500g,620
+Sneha Sharma,2026-03-29,Jalebi 500g,320
+Aarav Singh,2026-03-29,Gift Box,950
+Meena Mehta,2026-03-29,Samosa (6),180
+Meena Yadav,2026-03-29,Gift Box,950
+Meena Kapoor,2026-03-29,Rasgulla 1kg,680
+Rahul Bansal,2026-03-30,Kaju Katli 500g,620
+Aarav Yadav,2026-03-30,Gulab Jamun 1kg,760
+Rohit Sharma,2026-03-30,Kaju Katli 500g,620
+Suresh Verma,2026-03-30,Jalebi 500g,320
+Rahul Verma,2026-03-31,Rasgulla 1kg,340
+Meena Malhotra,2026-03-31,Kaju Katli 500g,620
+Suresh Mehta,2026-03-31,Gulab Jamun 1kg,760
+Sneha Bansal,2026-04-01,Namkeen Mix 400g,120
+Rahul Yadav,2026-04-01,Jalebi 500g,160
+Aarav Mehta,2026-04-01,Samosa (6),90
+Sneha Sharma,2026-04-01,Samosa (6),180
+Pooja Malhotra,2026-04-01,Samosa (6),180
+Kavita Verma,2026-04-02,Jalebi 500g,160
+Priya Jain,2026-04-02,Gulab Jamun 1kg,380
+Meena Jain,2026-04-02,Kaju Katli 500g,620
+Kavita Singh,2026-04-02,Rasgulla 1kg,340
+Rohit Verma,2026-04-03,Namkeen Mix 400g,240
+Karan Sharma,2026-04-03,Rasgulla 1kg,340
+Suresh Singh,2026-04-03,Kaju Katli 500g,620
+Vikram Singh,2026-04-03,Namkeen Mix 400g,240
+Meena Kapoor,2026-04-03,Namkeen Mix 400g,240
+Amit Mehta,2026-04-03,Namkeen Mix 400g,240
+Rohit Bansal,2026-04-03,Gift Box,950
+Vikram Sharma,2026-04-03,Rasgulla 1kg,340
+Priya Mehta,2026-04-04,Jalebi 500g,160
+Rahul Singh,2026-04-04,Gift Box,950
+Meena Mehta,2026-04-04,Jalebi 500g,320
+Vikram Kapoor,2026-04-04,Kaju Katli 500g,620
+Vikram Kapoor,2026-04-04,Kaju Katli 500g,620
+Suresh Bansal,2026-04-04,Jalebi 500g,160
+Priya Sharma,2026-04-04,Kaju Katli 500g,620
+Vikram Malhotra,2026-04-04,Samosa (6),180
+Vikram Mehta,2026-04-04,Jalebi 500g,320
+Aarav Verma,2026-04-05,Samosa (6),90
+Aarav Verma,2026-04-05,Namkeen Mix 400g,120
+Rahul Mehta,2026-04-05,Gulab Jamun 1kg,380
+Rahul Verma,2026-04-05,Jalebi 500g,160
+Vikram Kapoor,2026-04-05,Gulab Jamun 1kg,760
+Karan Kapoor,2026-04-05,Samosa (6),180
+Neha Verma,2026-04-05,Gulab Jamun 1kg,380
+Pooja Malhotra,2026-04-06,Kaju Katli 500g,620
+Vikram Sharma,2026-04-06,Samosa (6),90
+Rohit Sharma,2026-04-06,Jalebi 500g,160
+Karan Bansal,2026-04-06,Samosa (6),180
+Amit Jain,2026-04-06,Jalebi 500g,160
+Meena Malhotra,2026-04-06,Samosa (6),90
+Pooja Sharma,2026-04-07,Kaju Katli 500g,620
+Rohit Jain,2026-04-07,Gulab Jamun 1kg,760
+Meena Sharma,2026-04-07,Samosa (6),180
+Vikram Yadav,2026-04-07,Samosa (6),90
+Amit Jain,2026-04-07,Kaju Katli 500g,620
+Suresh Singh,2026-04-07,Samosa (6),90
+Rohit Bansal,2026-04-08,Gulab Jamun 1kg,380
+Suresh Jain,2026-04-08,Gift Box,950
+Rahul Verma,2026-04-08,Samosa (6),90
+Meena Kapoor,2026-04-08,Gift Box,950
+Priya Singh,2026-04-08,Jalebi 500g,160
+Meena Malhotra,2026-04-08,Jalebi 500g,320
+Rahul Jain,2026-04-08,Namkeen Mix 400g,120
+Neha Bansal,2026-04-08,Kaju Katli 500g,620
+Sneha Mehta,2026-04-08,Gulab Jamun 1kg,380
+Pooja Gupta,2026-04-09,Gulab Jamun 1kg,760
+Amit Sharma,2026-04-09,Gift Box,950
+Aarav Mehta,2026-04-09,Rasgulla 1kg,340
+Meena Gupta,2026-04-09,Samosa (6),180
+Sneha Sharma,2026-04-09,Samosa (6),90
+Sneha Malhotra,2026-04-09,Gift Box,950
+Karan Yadav,2026-04-10,Namkeen Mix 400g,120
+Rohit Bansal,2026-04-10,Gift Box,950
+Vikram Sharma,2026-04-10,Gulab Jamun 1kg,760
+Rahul Verma,2026-04-10,Jalebi 500g,160
+Meena Jain,2026-04-10,Kaju Katli 500g,620
+Suresh Yadav,2026-04-10,Gulab Jamun 1kg,760
+Karan Sharma,2026-04-10,Samosa (6),180
+Priya Sharma,2026-04-10,Samosa (6),180
+Neha Malhotra,2026-04-10,Jalebi 500g,160
+Pooja Yadav,2026-04-10,Kaju Katli 500g,620
+Pooja Sharma,2026-04-11,Samosa (6),90
+Pooja Gupta,2026-04-11,Samosa (6),90
+Kavita Malhotra,2026-04-11,Namkeen Mix 400g,120
+Neha Sharma,2026-04-11,Gift Box,950
+Amit Bansal,2026-04-11,Gift Box,950
+Anjali Bansal,2026-04-11,Namkeen Mix 400g,120
+Meena Jain,2026-04-11,Jalebi 500g,160
+Aarav Singh,2026-04-12,Kaju Katli 500g,620
+Anjali Verma,2026-04-12,Samosa (6),180
+Neha Kapoor,2026-04-12,Samosa (6),90
+Meena Jain,2026-04-12,Gulab Jamun 1kg,760
+Neha Verma,2026-04-13,Gift Box,950
+Karan Yadav,2026-04-13,Samosa (6),90
+Amit Singh,2026-04-13,Jalebi 500g,160
+Amit Bansal,2026-04-13,Rasgulla 1kg,680
+Priya Verma,2026-04-13,Jalebi 500g,320
+Amit Verma,2026-04-13,Namkeen Mix 400g,240
+Sneha Kapoor,2026-04-14,Gift Box,950
+Suresh Singh,2026-04-14,Kaju Katli 500g,620
+Karan Verma,2026-04-14,Samosa (6),90
+Karan Yadav,2026-04-14,Rasgulla 1kg,340
+Vikram Jain,2026-04-14,Kaju Katli 500g,620
+Karan Mehta,2026-04-14,Samosa (6),180
+Neha Kapoor,2026-04-14,Kaju Katli 500g,620
+Suresh Bansal,2026-04-15,Kaju Katli 500g,620
+Neha Malhotra,2026-04-16,Gift Box,950
+Suresh Jain,2026-04-16,Jalebi 500g,320
+Rahul Kapoor,2026-04-16,Samosa (6),180
+Priya Mehta,2026-04-17,Kaju Katli 500g,620
+Neha Sharma,2026-04-17,Kaju Katli 500g,620
+Meena Kapoor,2026-04-17,Samosa (6),90
+Priya Singh,2026-04-17,Rasgulla 1kg,340
+Pooja Sharma,2026-04-17,Samosa (6),180
+Pooja Yadav,2026-04-18,Jalebi 500g,160
+Meena Jain,2026-04-18,Rasgulla 1kg,340
+Amit Verma,2026-04-18,Jalebi 500g,320
+Suresh Malhotra,2026-04-18,Samosa (6),180
+Meena Yadav,2026-04-18,Gulab Jamun 1kg,380
+Rahul Verma,2026-04-18,Jalebi 500g,320
+Suresh Yadav,2026-04-18,Gulab Jamun 1kg,380
+Rahul Sharma,2026-04-18,Jalebi 500g,160
+Rohit Bansal,2026-04-18,Kaju Katli 500g,620
+Pooja Gupta,2026-04-18,Rasgulla 1kg,340
+Rahul Singh,2026-04-18,Kaju Katli 500g,620
+Sneha Sharma,2026-04-18,Kaju Katli 500g,620
+Rohit Malhotra,2026-04-19,Kaju Katli 500g,620
+Priya Jain,2026-04-19,Gulab Jamun 1kg,380
+Meena Jain,2026-04-19,Gulab Jamun 1kg,380
+Karan Sharma,2026-04-19,Kaju Katli 500g,620
+Priya Jain,2026-04-19,Gulab Jamun 1kg,760
+Rahul Kapoor,2026-04-19,Rasgulla 1kg,680
+Kavita Mehta,2026-04-19,Samosa (6),90
+Amit Bansal,2026-04-19,Kaju Katli 500g,620
+Priya Mehta,2026-04-19,Jalebi 500g,160
+Neha Verma,2026-04-20,Kaju Katli 500g,620
+Anjali Gupta,2026-04-20,Samosa (6),180
+Karan Yadav,2026-04-20,Samosa (6),180
+Kavita Yadav,2026-04-20,Samosa (6),180
+Vikram Kapoor,2026-04-20,Samosa (6),180
+Pooja Kapoor,2026-04-20,Rasgulla 1kg,680
+Pooja Kapoor,2026-04-20,Kaju Katli 500g,620
+Neha Sharma,2026-04-20,Namkeen Mix 400g,240
+Kavita Mehta,2026-04-21,Samosa (6),90
+Rohit Bansal,2026-04-21,Samosa (6),180
+Rohit Sharma,2026-04-21,Samosa (6),90
+Meena Kapoor,2026-04-21,Kaju Katli 500g,620
+Rahul Jain,2026-04-21,Kaju Katli 500g,620
+Suresh Malhotra,2026-04-21,Rasgulla 1kg,340
+Suresh Yadav,2026-04-22,Namkeen Mix 400g,240
+Rohit Jain,2026-04-22,Gulab Jamun 1kg,760
+Rohit Sharma,2026-04-22,Gulab Jamun 1kg,760
+Suresh Bansal,2026-04-23,Jalebi 500g,320
+Kavita Gupta,2026-04-23,Gulab Jamun 1kg,760
+Aarav Singh,2026-04-23,Namkeen Mix 400g,120
+Anjali Gupta,2026-04-23,Samosa (6),180
+Sneha Verma,2026-04-23,Kaju Katli 500g,620
+Neha Gupta,2026-04-23,Gift Box,950
+Kavita Kapoor,2026-04-23,Samosa (6),180
+Rahul Mehta,2026-04-24,Samosa (6),180
+Meena Singh,2026-04-24,Gift Box,950
+Rahul Verma,2026-04-24,Gift Box,950
+Meena Mehta,2026-04-24,Samosa (6),90
+Vikram Mehta,2026-04-24,Samosa (6),180
+Rohit Sharma,2026-04-24,Namkeen Mix 400g,240
+Anjali Verma,2026-04-24,Samosa (6),90
+Anjali Bansal,2026-04-25,Rasgulla 1kg,340
+Sneha Malhotra,2026-04-25,Kaju Katli 500g,620
+Sneha Malhotra,2026-04-25,Samosa (6),90
+Rahul Kapoor,2026-04-25,Samosa (6),90
+Sneha Verma,2026-04-25,Kaju Katli 500g,620
+Priya Mehta,2026-04-25,Kaju Katli 500g,620
+Sneha Bansal,2026-04-26,Kaju Katli 500g,620
+Amit Jain,2026-04-26,Samosa (6),90
+Suresh Malhotra,2026-04-26,Jalebi 500g,160
+Vikram Jain,2026-04-26,Samosa (6),180
+Rohit Bansal,2026-04-26,Kaju Katli 500g,620
+Vikram Sharma,2026-04-26,Samosa (6),180
+Meena Sharma,2026-04-26,Kaju Katli 500g,620
+Meena Mehta,2026-04-26,Samosa (6),90
+Rohit Sharma,2026-04-27,Rasgulla 1kg,680
+Pooja Jain,2026-04-27,Gulab Jamun 1kg,380
+Amit Verma,2026-04-27,Jalebi 500g,320
+Neha Gupta,2026-04-27,Samosa (6),180
+Neha Sharma,2026-04-27,Kaju Katli 500g,620
+Amit Jain,2026-04-28,Samosa (6),90
+Kavita Mehta,2026-04-28,Gulab Jamun 1kg,380
+Sneha Verma,2026-04-28,Jalebi 500g,160
+Priya Mehta,2026-04-29,Samosa (6),90
+Kavita Gupta,2026-04-29,Namkeen Mix 400g,240
+Rohit Jain,2026-04-29,Kaju Katli 500g,620
+Rohit Mehta,2026-04-30,Samosa (6),90
+Anjali Yadav,2026-04-30,Samosa (6),90
+Amit Mehta,2026-04-30,Jalebi 500g,320
+Aarav Verma,2026-04-30,Gulab Jamun 1kg,380
+Rohit Sharma,2026-04-30,Kaju Katli 500g,620
+Karan Sharma,2026-05-01,Gulab Jamun 1kg,760
+Pooja Jain,2026-05-01,Jalebi 500g,320
+Rohit Bansal,2026-05-01,Samosa (6),90
+Sneha Bansal,2026-05-01,Gulab Jamun 1kg,380
+Amit Verma,2026-05-01,Gift Box,950
+Sneha Yadav,2026-05-01,Kaju Katli 500g,620
+Suresh Verma,2026-05-01,Rasgulla 1kg,680
+Sneha Verma,2026-05-01,Jalebi 500g,320
+Aarav Kapoor,2026-05-01,Kaju Katli 500g,620
+Rahul Bansal,2026-05-02,Kaju Katli 500g,620
+Kavita Kapoor,2026-05-02,Namkeen Mix 400g,240
+Anjali Yadav,2026-05-02,Rasgulla 1kg,340
+Pooja Malhotra,2026-05-03,Gift Box,950
+Vikram Sharma,2026-05-03,Samosa (6),180
+Meena Gupta,2026-05-03,Jalebi 500g,160
+Rahul Malhotra,2026-05-03,Gulab Jamun 1kg,760
+Suresh Mehta,2026-05-03,Jalebi 500g,160
+Karan Sharma,2026-05-03,Gulab Jamun 1kg,380
+Rohit Sharma,2026-05-03,Jalebi 500g,320
+Aarav Verma,2026-05-03,Kaju Katli 500g,620
+Aarav Verma,2026-05-03,Samosa (6),90
+Sneha Verma,2026-05-03,Gulab Jamun 1kg,380
+Suresh Mehta,2026-05-03,Namkeen Mix 400g,120
+Suresh Yadav,2026-05-04,Rasgulla 1kg,340
+Meena Kapoor,2026-05-04,Gulab Jamun 1kg,760
+Rahul Jain,2026-05-04,Jalebi 500g,320
+Sneha Sharma,2026-05-05,Gulab Jamun 1kg,760
+Meena Mehta,2026-05-05,Kaju Katli 500g,620
+Amit Yadav,2026-05-05,Rasgulla 1kg,340
+Neha Sharma,2026-05-05,Kaju Katli 500g,620
+Suresh Bansal,2026-05-06,Kaju Katli 500g,620
+Amit Malhotra,2026-05-06,Gulab Jamun 1kg,380
+Anjali Verma,2026-05-06,Namkeen Mix 400g,240
+Sneha Sharma,2026-05-06,Samosa (6),90
+Priya Mehta,2026-05-06,Rasgulla 1kg,340
+Amit Sharma,2026-05-06,Namkeen Mix 400g,240
+Amit Verma,2026-05-06,Samosa (6),180
+Suresh Jain,2026-05-06,Jalebi 500g,320
+Meena Jain,2026-05-06,Rasgulla 1kg,340
+Anjali Singh,2026-05-06,Namkeen Mix 400g,120
+Aarav Singh,2026-05-07,Gift Box,950
+Anjali Gupta,2026-05-07,Rasgulla 1kg,340
+Anjali Jain,2026-05-07,Samosa (6),180
+Vikram Sharma,2026-05-07,Gulab Jamun 1kg,380
+Vikram Malhotra,2026-05-07,Samosa (6),90
+Rahul Kapoor,2026-05-07,Gift Box,950
+Sneha Sharma,2026-05-07,Gift Box,950
+Priya Mehta,2026-05-07,Samosa (6),90
+Kavita Mehta,2026-05-07,Samosa (6),180
+Pooja Kapoor,2026-05-08,Kaju Katli 500g,620
+Aarav Singh,2026-05-08,Gift Box,950
+Rohit Bansal,2026-05-08,Samosa (6),90
+Sneha Sharma,2026-05-08,Gift Box,950
+Meena Jain,2026-05-08,Jalebi 500g,160
+Amit Yadav,2026-05-08,Namkeen Mix 400g,240
+Priya Sharma,2026-05-08,Kaju Katli 500g,620
+Karan Sharma,2026-05-08,Jalebi 500g,160
+Kavita Gupta,2026-05-08,Gulab Jamun 1kg,380
+Priya Jain,2026-05-08,Kaju Katli 500g,620
+Priya Sharma,2026-05-09,Jalebi 500g,320
+Priya Sharma,2026-05-09,Gulab Jamun 1kg,380
+Aarav Bansal,2026-05-09,Gulab Jamun 1kg,760
+Rohit Sharma,2026-05-09,Samosa (6),90
+Suresh Verma,2026-05-09,Jalebi 500g,320
+Suresh Verma,2026-05-09,Namkeen Mix 400g,120
+Karan Kapoor,2026-05-09,Jalebi 500g,320
+Rahul Jain,2026-05-09,Jalebi 500g,320
+Rahul Verma,2026-05-09,Samosa (6),90
+Aarav Mehta,2026-05-10,Namkeen Mix 400g,120
+Meena Jain,2026-05-10,Jalebi 500g,160
+Karan Bansal,2026-05-10,Jalebi 500g,320
+Vikram Yadav,2026-05-10,Kaju Katli 500g,620
+Suresh Jain,2026-05-10,Jalebi 500g,160
+Rohit Sharma,2026-05-10,Namkeen Mix 400g,240
+Meena Malhotra,2026-05-10,Kaju Katli 500g,620
+Aarav Singh,2026-05-10,Gift Box,950
+Rohit Sharma,2026-05-10,Kaju Katli 500g,620
+Vikram Sharma,2026-05-11,Kaju Katli 500g,620
+Karan Sharma,2026-05-11,Namkeen Mix 400g,240
+Pooja Malhotra,2026-05-11,Kaju Katli 500g,620
+Vikram Sharma,2026-05-11,Gift Box,950
+Rahul Sharma,2026-05-11,Samosa (6),90
+Kavita Bansal,2026-05-11,Rasgulla 1kg,680
+Suresh Gupta,2026-05-11,Kaju Katli 500g,620
+Meena Sharma,2026-05-12,Kaju Katli 500g,620
+Sneha Verma,2026-05-12,Gulab Jamun 1kg,760
+Priya Bansal,2026-05-12,Gulab Jamun 1kg,380
+Rohit Bansal,2026-05-12,Samosa (6),90
+Priya Singh,2026-05-12,Gulab Jamun 1kg,380
+Anjali Jain,2026-05-12,Samosa (6),180
+Aarav Mehta,2026-05-13,Gulab Jamun 1kg,760
+Suresh Bansal,2026-05-13,Samosa (6),90
+Meena Jain,2026-05-13,Namkeen Mix 400g,240
+Vikram Malhotra,2026-05-13,Gulab Jamun 1kg,380
+Rahul Malhotra,2026-05-13,Rasgulla 1kg,680
+Sneha Malhotra,2026-05-14,Kaju Katli 500g,620
+Aarav Singh,2026-05-14,Rasgulla 1kg,340
+Sneha Malhotra,2026-05-14,Jalebi 500g,320
+Meena Jain,2026-05-14,Namkeen Mix 400g,120
+Rohit Kapoor,2026-05-15,Samosa (6),180
+Kavita Gupta,2026-05-15,Samosa (6),180
+Suresh Verma,2026-05-15,Gift Box,950
+Suresh Yadav,2026-05-15,Gift Box,950
+Amit Jain,2026-05-15,Kaju Katli 500g,620
+Sneha Sharma,2026-05-15,Gulab Jamun 1kg,760
+Anjali Jain,2026-05-16,Jalebi 500g,160
+Priya Mehta,2026-05-16,Jalebi 500g,320
+Karan Sharma,2026-05-16,Jalebi 500g,160
+Karan Bansal,2026-05-16,Jalebi 500g,160
+Amit Jain,2026-05-16,Kaju Katli 500g,620
+Anjali Bansal,2026-05-16,Namkeen Mix 400g,120
+Pooja Sharma,2026-05-16,Samosa (6),180
+Suresh Jain,2026-05-16,Jalebi 500g,160
+Neha Kapoor,2026-05-16,Kaju Katli 500g,620
+Meena Kapoor,2026-05-17,Rasgulla 1kg,680
+Vikram Jain,2026-05-17,Kaju Katli 500g,620
+Amit Kapoor,2026-05-17,Gulab Jamun 1kg,380
+Rahul Verma,2026-05-17,Samosa (6),180
+Meena Yadav,2026-05-17,Kaju Katli 500g,620
+Rahul Verma,2026-05-17,Rasgulla 1kg,680
+Rohit Sharma,2026-05-17,Gift Box,950
+Amit Jain,2026-05-18,Gulab Jamun 1kg,380
+Neha Kapoor,2026-05-18,Samosa (6),90
+Vikram Sharma,2026-05-18,Rasgulla 1kg,340
+Rohit Sharma,2026-05-18,Samosa (6),180
+Meena Mehta,2026-05-18,Kaju Katli 500g,620
+Vikram Yadav,2026-05-18,Samosa (6),180
+Neha Malhotra,2026-05-19,Namkeen Mix 400g,240
+Karan Yadav,2026-05-20,Rasgulla 1kg,680
+Rohit Bansal,2026-05-20,Kaju Katli 500g,620
+Rohit Bansal,2026-05-20,Gulab Jamun 1kg,760
+Rahul Jain,2026-05-20,Namkeen Mix 400g,240
+Priya Mehta,2026-05-20,Kaju Katli 500g,620
+Meena Yadav,2026-05-20,Samosa (6),90
+Priya Mehta,2026-05-20,Samosa (6),180
+Meena Singh,2026-05-20,Samosa (6),90
+Priya Jain,2026-05-20,Rasgulla 1kg,340
+Amit Bansal,2026-05-20,Gift Box,950
+Sneha Mehta,2026-05-21,Rasgulla 1kg,340
+Anjali Bansal,2026-05-21,Samosa (6),180
+Priya Mehta,2026-05-21,Samosa (6),180
+Kavita Verma,2026-05-22,Jalebi 500g,320
+Sneha Sharma,2026-05-22,Samosa (6),90
+Rahul Verma,2026-05-22,Namkeen Mix 400g,240
+Suresh Jain,2026-05-22,Samosa (6),180
+Suresh Bansal,2026-05-23,Samosa (6),180
+Suresh Bansal,2026-05-23,Kaju Katli 500g,620
+Karan Yadav,2026-05-23,Kaju Katli 500g,620
+Karan Verma,2026-05-23,Gulab Jamun 1kg,380
+Rohit Sharma,2026-05-23,Kaju Katli 500g,620
+Priya Jain,2026-05-23,Samosa (6),180
+Amit Verma,2026-05-23,Gulab Jamun 1kg,380
+Meena Sharma,2026-05-23,Kaju Katli 500g,620
+Priya Mehta,2026-05-23,Gulab Jamun 1kg,380
+Vikram Gupta,2026-05-23,Samosa (6),180
+Kavita Gupta,2026-05-23,Kaju Katli 500g,620
+Rahul Kapoor,2026-05-24,Samosa (6),90
+Neha Malhotra,2026-05-24,Jalebi 500g,160
+Sneha Sharma,2026-05-24,Samosa (6),180
+Priya Singh,2026-05-24,Samosa (6),90
+Kavita Verma,2026-05-24,Jalebi 500g,160
+Suresh Jain,2026-05-24,Samosa (6),180
+Meena Jain,2026-05-25,Namkeen Mix 400g,120
+Aarav Singh,2026-05-25,Jalebi 500g,320
+Pooja Verma,2026-05-25,Namkeen Mix 400g,240
+Rohit Sharma,2026-05-25,Jalebi 500g,160
+Aarav Verma,2026-05-25,Gift Box,950
+Vikram Sharma,2026-05-25,Gift Box,950
+Rahul Yadav,2026-05-25,Namkeen Mix 400g,240
+Priya Mehta,2026-05-26,Namkeen Mix 400g,120
+Sneha Sharma,2026-05-26,Samosa (6),90
+Karan Sharma,2026-05-26,Samosa (6),90
+Neha Malhotra,2026-05-26,Jalebi 500g,160
+Neha Kapoor,2026-05-26,Jalebi 500g,320
+Sneha Malhotra,2026-05-26,Gift Box,950
+Meena Yadav,2026-05-26,Kaju Katli 500g,620
+Rohit Bansal,2026-05-26,Samosa (6),180
+Kavita Yadav,2026-05-27,Rasgulla 1kg,340
+Amit Jain,2026-05-27,Jalebi 500g,320
+Karan Yadav,2026-05-27,Gift Box,950
+Amit Mehta,2026-05-27,Gulab Jamun 1kg,760
+Amit Verma,2026-05-27,Samosa (6),180
+Amit Mehta,2026-05-27,Namkeen Mix 400g,240
+Vikram Sharma,2026-05-28,Gulab Jamun 1kg,380
+Rohit Jain,2026-05-29,Samosa (6),180
+Sneha Malhotra,2026-05-29,Samosa (6),180
+Priya Kapoor,2026-05-29,Gulab Jamun 1kg,760
+Karan Kapoor,2026-05-29,Kaju Katli 500g,620
+Vikram Sharma,2026-05-29,Gulab Jamun 1kg,760
+Vikram Yadav,2026-05-29,Kaju Katli 500g,620
+Rahul Kapoor,2026-05-30,Gulab Jamun 1kg,380
+Anjali Sharma,2026-05-30,Samosa (6),180
+Rahul Verma,2026-05-30,Kaju Katli 500g,620
+Rahul Kapoor,2026-05-30,Kaju Katli 500g,620
+Sneha Verma,2026-05-30,Kaju Katli 500g,620
+Amit Malhotra,2026-05-31,Kaju Katli 500g,620
+Suresh Jain,2026-05-31,Samosa (6),180
+Aarav Bansal,2026-05-31,Kaju Katli 500g,620
+Rahul Verma,2026-05-31,Jalebi 500g,160
+Rahul Gupta,2026-05-31,Kaju Katli 500g,620
+Suresh Gupta,2026-05-31,Namkeen Mix 400g,240
+Meena Kapoor,2026-06-01,Samosa (6),90
+Meena Sharma,2026-06-01,Samosa (6),180
+Neha Verma,2026-06-01,Gulab Jamun 1kg,380
+Rahul Kapoor,2026-06-01,Kaju Katli 500g,620
+Meena Yadav,2026-06-02,Kaju Katli 500g,620
+Rahul Kapoor,2026-06-02,Kaju Katli 500g,620
+Suresh Yadav,2026-06-02,Jalebi 500g,160
+Meena Kapoor,2026-06-02,Kaju Katli 500g,620
+Rohit Jain,2026-06-02,Samosa (6),180
+Amit Sharma,2026-06-03,Rasgulla 1kg,340
+Meena Yadav,2026-06-03,Kaju Katli 500g,620
+Priya Jain,2026-06-03,Samosa (6),90
+Priya Bansal,2026-06-03,Rasgulla 1kg,680
+Rohit Jain,2026-06-03,Namkeen Mix 400g,240
+Pooja Malhotra,2026-06-03,Gulab Jamun 1kg,380
+Rahul Verma,2026-06-03,Gulab Jamun 1kg,760
+Pooja Singh,2026-06-03,Namkeen Mix 400g,120
+Karan Sharma,2026-06-04,Namkeen Mix 400g,120
+Priya Yadav,2026-06-04,Kaju Katli 500g,620
+Sneha Malhotra,2026-06-04,Kaju Katli 500g,620
+Vikram Jain,2026-06-04,Samosa (6),180
+Suresh Singh,2026-06-04,Rasgulla 1kg,680
+Sneha Malhotra,2026-06-04,Rasgulla 1kg,340
+Meena Mehta,2026-06-04,Samosa (6),180
+Rahul Verma,2026-06-04,Kaju Katli 500g,620
+Rohit Mehta,2026-06-04,Rasgulla 1kg,680
+Priya Singh,2026-06-04,Gift Box,950
+Meena Sharma,2026-06-04,Kaju Katli 500g,620
+Karan Sharma,2026-06-05,Samosa (6),90
+Aarav Sharma,2026-06-05,Samosa (6),180
+Amit Sharma,2026-06-05,Jalebi 500g,160
+Amit Jain,2026-06-05,Samosa (6),180
+Rahul Kapoor,2026-06-05,Kaju Katli 500g,620
+Karan Sharma,2026-06-05,Kaju Katli 500g,620
+Meena Yadav,2026-06-06,Kaju Katli 500g,620
+Neha Sharma,2026-06-06,Kaju Katli 500g,620
+Aarav Bansal,2026-06-06,Gift Box,950
+Sneha Malhotra,2026-06-06,Jalebi 500g,160
+Rohit Mehta,2026-06-06,Gulab Jamun 1kg,760
+Suresh Singh,2026-06-06,Rasgulla 1kg,680
+Anjali Yadav,2026-06-06,Kaju Katli 500g,620
+Suresh Yadav,2026-06-07,Rasgulla 1kg,340
+Amit Gupta,2026-06-07,Gulab Jamun 1kg,380
+Sneha Malhotra,2026-06-07,Jalebi 500g,160
+Kavita Gupta,2026-06-08,Samosa (6),180
+Rohit Malhotra,2026-06-08,Kaju Katli 500g,620
+Sneha Verma,2026-06-08,Kaju Katli 500g,620
+Kavita Bansal,2026-06-08,Gulab Jamun 1kg,760
+Anjali Bansal,2026-06-08,Samosa (6),180
+Rahul Singh,2026-06-08,Samosa (6),180
+Karan Malhotra,2026-06-09,Samosa (6),90
+Suresh Mehta,2026-06-09,Jalebi 500g,160
+Pooja Singh,2026-06-09,Samosa (6),90
+Anjali Gupta,2026-06-09,Kaju Katli 500g,620
+Priya Bansal,2026-06-09,Kaju Katli 500g,620
+Vikram Yadav,2026-06-09,Samosa (6),90
+Priya Mehta,2026-06-09,Samosa (6),90
+Vikram Malhotra,2026-06-09,Kaju Katli 500g,620
+Aarav Bansal,2026-06-10,Namkeen Mix 400g,120
+Rahul Singh,2026-06-10,Samosa (6),180
+Aarav Kapoor,2026-06-10,Samosa (6),90
+Amit Kapoor,2026-06-10,Samosa (6),90
+Aarav Singh,2026-06-11,Samosa (6),180
+Meena Jain,2026-06-11,Jalebi 500g,160
+Rahul Verma,2026-06-11,Jalebi 500g,160
+Sneha Bansal,2026-06-11,Namkeen Mix 400g,240
+Meena Jain,2026-06-11,Kaju Katli 500g,620
+Meena Gupta,2026-06-11,Samosa (6),180
+Meena Mehta,2026-06-12,Rasgulla 1kg,680
+Sneha Sharma,2026-06-12,Gulab Jamun 1kg,380
+Karan Yadav,2026-06-12,Samosa (6),180
+Meena Yadav,2026-06-12,Gift Box,950
+Pooja Gupta,2026-06-12,Jalebi 500g,160
+Aarav Bansal,2026-06-12,Samosa (6),180
+Aarav Kapoor,2026-06-12,Samosa (6),180
+Rohit Sharma,2026-06-12,Samosa (6),180
+Rahul Singh,2026-06-12,Samosa (6),180
+Aarav Verma,2026-06-13,Namkeen Mix 400g,120
+Rohit Malhotra,2026-06-13,Gift Box,950
+Anjali Yadav,2026-06-13,Kaju Katli 500g,620
+Kavita Verma,2026-06-13,Rasgulla 1kg,680
+Anjali Gupta,2026-06-13,Samosa (6),180
+Suresh Singh,2026-06-13,Jalebi 500g,320
+Neha Sharma,2026-06-13,Samosa (6),180
+Suresh Yadav,2026-06-13,Samosa (6),180
+Rohit Jain,2026-06-14,Gift Box,950
+Meena Yadav,2026-06-14,Gulab Jamun 1kg,380
+Meena Yadav,2026-06-14,Samosa (6),90
+Meena Yadav,2026-06-14,Rasgulla 1kg,340
+Suresh Gupta,2026-06-14,Samosa (6),90
+Rahul Verma,2026-06-14,Samosa (6),90
+Rahul Verma,2026-06-14,Samosa (6),90
+Neha Kapoor,2026-06-15,Samosa (6),180
+Meena Malhotra,2026-06-15,Kaju Katli 500g,620
+Meena Yadav,2026-06-15,Samosa (6),90
+Sneha Malhotra,2026-06-15,Jalebi 500g,160
+Sneha Malhotra,2026-06-16,Kaju Katli 500g,620
+Sneha Singh,2026-06-16,Samosa (6),180
+Rahul Verma,2026-06-16,Samosa (6),180
+Aarav Singh,2026-06-16,Kaju Katli 500g,620
+Kavita Mehta,2026-06-16,Samosa (6),90
+Kavita Gupta,2026-06-16,Gulab Jamun 1kg,380
+Karan Sharma,2026-06-16,Jalebi 500g,320
+Sneha Malhotra,2026-06-16,Samosa (6),180
+Rahul Kapoor,2026-06-17,Kaju Katli 500g,620
+Anjali Kapoor,2026-06-17,Namkeen Mix 400g,240
+Pooja Malhotra,2026-06-17,Jalebi 500g,320
+Amit Jain,2026-06-17,Gulab Jamun 1kg,760
+Meena Mehta,2026-06-17,Jalebi 500g,320
+Pooja Malhotra,2026-06-18,Rasgulla 1kg,340
+Meena Gupta,2026-06-18,Rasgulla 1kg,680
+Meena Singh,2026-06-18,Gift Box,950
+Neha Verma,2026-06-18,Rasgulla 1kg,680
+Suresh Jain,2026-06-19,Namkeen Mix 400g,240
+Vikram Jain,2026-06-19,Samosa (6),180
+Aarav Singh,2026-06-19,Gulab Jamun 1kg,760
+Priya Yadav,2026-06-19,Gulab Jamun 1kg,760
+Kavita Gupta,2026-06-19,Kaju Katli 500g,620
+Neha Kapoor,2026-06-20,Jalebi 500g,160
+Rohit Sharma,2026-06-20,Samosa (6),180
+Rahul Malhotra,2026-06-20,Gulab Jamun 1kg,380
+Meena Mehta,2026-06-20,Kaju Katli 500g,620
+Amit Jain,2026-06-20,Kaju Katli 500g,620
+Suresh Verma,2026-06-20,Rasgulla 1kg,680
+Suresh Malhotra,2026-06-21,Gift Box,950
+Pooja Malhotra,2026-06-21,Kaju Katli 500g,620
+Rohit Sharma,2026-06-21,Jalebi 500g,320
+Rahul Singh,2026-06-22,Gulab Jamun 1kg,380
+Amit Malhotra,2026-06-22,Samosa (6),180
+Neha Mehta,2026-06-22,Gift Box,950
+Amit Kapoor,2026-06-22,Gulab Jamun 1kg,760
+Sneha Bansal,2026-06-22,Rasgulla 1kg,680
+Vikram Sharma,2026-06-22,Samosa (6),180
+Amit Jain,2026-06-22,Gift Box,950
+Rohit Sharma,2026-06-22,Gulab Jamun 1kg,760
+Amit Jain,2026-06-23,Rasgulla 1kg,340
+Rohit Sharma,2026-06-23,Gulab Jamun 1kg,760
+Rohit Sharma,2026-06-23,Samosa (6),180
+Aarav Verma,2026-06-23,Samosa (6),90
+Neha Verma,2026-06-23,Samosa (6),180
+Aarav Singh,2026-06-23,Kaju Katli 500g,620
+Sneha Sharma,2026-06-24,Namkeen Mix 400g,240
+Kavita Gupta,2026-06-24,Samosa (6),90
+Kavita Mehta,2026-06-24,Namkeen Mix 400g,120
+Sneha Bansal,2026-06-24,Samosa (6),180
+Meena Jain,2026-06-24,Gift Box,950
+Rohit Yadav,2026-06-25,Kaju Katli 500g,620
+Aarav Verma,2026-06-26,Samosa (6),180
+Anjali Jain,2026-06-26,Gift Box,950
+Pooja Malhotra,2026-06-26,Kaju Katli 500g,620
+Karan Bansal,2026-06-26,Gulab Jamun 1kg,760
+Aarav Bansal,2026-06-26,Samosa (6),90
+Pooja Malhotra,2026-06-26,Rasgulla 1kg,340
+Neha Malhotra,2026-06-26,Samosa (6),90
+Rohit Sharma,2026-06-26,Kaju Katli 500g,620
+Karan Kapoor,2026-06-27,Rasgulla 1kg,680
+Meena Yadav,2026-06-27,Rasgulla 1kg,680
+Karan Malhotra,2026-06-27,Rasgulla 1kg,680
+Kavita Gupta,2026-06-27,Gulab Jamun 1kg,760
+Aarav Singh,2026-06-27,Samosa (6),90
+Aarav Verma,2026-06-27,Kaju Katli 500g,620
+Rohit Jain,2026-06-27,Namkeen Mix 400g,120
+Pooja Verma,2026-06-27,Gulab Jamun 1kg,380
+Anjali Singh,2026-06-27,Gift Box,950
+Sneha Sharma,2026-06-29,Samosa (6),90
+Karan Singh,2026-06-29,Jalebi 500g,160
+Meena Yadav,2026-06-29,Rasgulla 1kg,680
+Pooja Malhotra,2026-06-29,Samosa (6),90
+Sneha Malhotra,2026-06-29,Rasgulla 1kg,340
+Vikram Sharma,2026-06-30,Samosa (6),180
+Priya Jain,2026-06-30,Gift Box,950
+Meena Yadav,2026-06-30,Jalebi 500g,320
+Meena Jain,2026-06-30,Samosa (6),180
+Aarav Singh,2026-06-30,Gulab Jamun 1kg,760
+Karan Singh,2026-06-30,Kaju Katli 500g,620
+Pooja Sharma,2026-07-01,Gulab Jamun 1kg,760
+Rahul Kapoor,2026-07-01,Kaju Katli 500g,620
+Vikram Bansal,2026-07-02,Kaju Katli 500g,620
+Aarav Kapoor,2026-07-02,Kaju Katli 500g,620
+Rahul Sharma,2026-07-02,Jalebi 500g,160
+Rohit Jain,2026-07-02,Kaju Katli 500g,620
+Sneha Sharma,2026-07-02,Samosa (6),90
+Anjali Gupta,2026-07-02,Jalebi 500g,160
+Aarav Verma,2026-07-02,Samosa (6),180
+Sneha Verma,2026-07-02,Kaju Katli 500g,620
+Kavita Mehta,2026-07-03,Jalebi 500g,160
+Kavita Yadav,2026-07-03,Kaju Katli 500g,620
+Amit Jain,2026-07-03,Gulab Jamun 1kg,380
+Anjali Gupta,2026-07-04,Jalebi 500g,160
+Rahul Kapoor,2026-07-04,Samosa (6),180
+Meena Jain,2026-07-04,Gift Box,950
+Karan Sharma,2026-07-04,Kaju Katli 500g,620
+Amit Sharma,2026-07-04,Rasgulla 1kg,340
+Rohit Malhotra,2026-07-05,Jalebi 500g,320
+Amit Kapoor,2026-07-05,Gift Box,950
+Anjali Gupta,2026-07-05,Samosa (6),180
+Meena Gupta,2026-07-05,Samosa (6),90
+Neha Malhotra,2026-07-05,Samosa (6),180
+Suresh Mehta,2026-07-06,Gift Box,950
+Vikram Jain,2026-07-06,Samosa (6),90
+Suresh Gupta,2026-07-06,Namkeen Mix 400g,240
+Vikram Singh,2026-07-06,Gulab Jamun 1kg,760
+Neha Sharma,2026-07-06,Rasgulla 1kg,340
+Kavita Yadav,2026-07-06,Gulab Jamun 1kg,760
+Karan Bansal,2026-07-07,Samosa (6),180
+Meena Malhotra,2026-07-07,Gulab Jamun 1kg,760
+Amit Jain,2026-07-07,Gulab Jamun 1kg,380
+Suresh Jain,2026-07-07,Gulab Jamun 1kg,380
+Pooja Yadav,2026-07-07,Kaju Katli 500g,620
+Pooja Yadav,2026-07-07,Samosa (6),180
+Suresh Verma,2026-07-07,Gulab Jamun 1kg,380
+Sneha Malhotra,2026-07-07,Gulab Jamun 1kg,760
+Rahul Verma,2026-07-07,Rasgulla 1kg,340
+Rohit Bansal,2026-07-08,Namkeen Mix 400g,240
+Vikram Sharma,2026-07-08,Rasgulla 1kg,340
+Sneha Sharma,2026-07-08,Gulab Jamun 1kg,380
+Amit Mehta,2026-07-08,Jalebi 500g,160
+Pooja Malhotra,2026-07-08,Jalebi 500g,160
+Aarav Verma,2026-07-09,Gift Box,950
+Rahul Bansal,2026-07-09,Jalebi 500g,320
+Pooja Yadav,2026-07-09,Samosa (6),180
+Sneha Malhotra,2026-07-09,Gift Box,950
+Suresh Malhotra,2026-07-09,Gulab Jamun 1kg,380
+Amit Verma,2026-07-09,Samosa (6),90
+Rohit Sharma,2026-07-09,Gulab Jamun 1kg,380
+Meena Jain,2026-07-09,Samosa (6),90
+Amit Verma,2026-07-09,Gulab Jamun 1kg,380
+Meena Malhotra,2026-07-09,Samosa (6),180
+Meena Yadav,2026-07-10,Gulab Jamun 1kg,380
+Amit Jain,2026-07-10,Kaju Katli 500g,620
+Aarav Singh,2026-07-10,Kaju Katli 500g,620
+Pooja Sharma,2026-07-10,Kaju Katli 500g,620
+Priya Kapoor,2026-07-10,Gulab Jamun 1kg,760
+Suresh Malhotra,2026-07-11,Samosa (6),90
+Neha Singh,2026-07-11,Samosa (6),90
+Vikram Gupta,2026-07-11,Samosa (6),180
+Sneha Verma,2026-07-12,Rasgulla 1kg,680
+Anjali Gupta,2026-07-12,Samosa (6),180
+Pooja Sharma,2026-07-12,Gift Box,950
+Meena Gupta,2026-07-12,Samosa (6),90
+Rahul Kapoor,2026-07-13,Gulab Jamun 1kg,760
+Rahul Kapoor,2026-07-13,Namkeen Mix 400g,240
+Kavita Gupta,2026-07-13,Rasgulla 1kg,680
+Aarav Sharma,2026-07-13,Jalebi 500g,160
+Karan Yadav,2026-07-13,Samosa (6),90
+Suresh Jain,2026-07-14,Namkeen Mix 400g,240
+Neha Verma,2026-07-14,Namkeen Mix 400g,120
+Priya Mehta,2026-07-14,Jalebi 500g,160
+Suresh Yadav,2026-07-14,Kaju Katli 500g,620
+Priya Mehta,2026-07-14,Samosa (6),90
+Meena Jain,2026-07-14,Samosa (6),90
+Suresh Verma,2026-07-15,Kaju Katli 500g,620
+Sneha Bansal,2026-07-15,Samosa (6),180
+Meena Jain,2026-07-15,Samosa (6),90
+Karan Sharma,2026-07-15,Samosa (6),180
+Kavita Gupta,2026-07-15,Jalebi 500g,160
+Neha Kapoor,2026-07-16,Gulab Jamun 1kg,760
+Suresh Yadav,2026-07-16,Samosa (6),90
+Rohit Sharma,2026-07-16,Samosa (6),90
+Amit Verma,2026-07-16,Kaju Katli 500g,620
+Aarav Sharma,2026-07-16,Gulab Jamun 1kg,380
+Kavita Gupta,2026-07-17,Kaju Katli 500g,620
+Vikram Bansal,2026-07-17,Samosa (6),180
+Meena Malhotra,2026-07-17,Samosa (6),90
+Neha Gupta,2026-07-17,Gulab Jamun 1kg,380
+Karan Sharma,2026-07-17,Jalebi 500g,320
+Pooja Kapoor,2026-07-17,Samosa (6),180
+Meena Malhotra,2026-07-17,Gift Box,950
+Aarav Sharma,2026-07-18,Rasgulla 1kg,680
+Neha Malhotra,2026-07-18,Gulab Jamun 1kg,380
+Pooja Sharma,2026-07-18,Kaju Katli 500g,620
+Pooja Malhotra,2026-07-18,Jalebi 500g,160
+Suresh Yadav,2026-07-18,Gulab Jamun 1kg,380
+Suresh Singh,2026-07-18,Kaju Katli 500g,620
+Suresh Verma,2026-07-18,Samosa (6),90
+Kavita Gupta,2026-07-18,Samosa (6),90
+Neha Verma,2026-07-18,Gulab Jamun 1kg,380
+Karan Kapoor,2026-07-19,Jalebi 500g,320
+Priya Jain,2026-07-19,Kaju Katli 500g,620
+Neha Sharma,2026-07-19,Jalebi 500g,320
+Pooja Gupta,2026-07-19,Kaju Katli 500g,620
+Suresh Jain,2026-07-19,Gulab Jamun 1kg,380
+Sneha Yadav,2026-07-19,Samosa (6),90
+Suresh Verma,2026-07-20,Gulab Jamun 1kg,380
+Amit Kapoor,2026-07-20,Gulab Jamun 1kg,380
+Pooja Gupta,2026-07-20,Kaju Katli 500g,620
+Amit Jain,2026-07-20,Jalebi 500g,160
+Meena Gupta,2026-07-20,Jalebi 500g,160
+Rohit Sharma,2026-07-21,Gulab Jamun 1kg,380
+Rohit Bansal,2026-07-21,Kaju Katli 500g,620
+Vikram Singh,2026-07-21,Samosa (6),180
+Vikram Sharma,2026-07-21,Kaju Katli 500g,620
+Karan Kapoor,2026-07-21,Namkeen Mix 400g,120
+Aarav Verma,2026-07-21,Gift Box,950
+Karan Singh,2026-07-21,Namkeen Mix 400g,240
+Meena Jain,2026-07-21,Kaju Katli 500g,620
+Meena Jain,2026-07-22,Gift Box,950
+Suresh Verma,2026-07-22,Rasgulla 1kg,680
+Rohit Bansal,2026-07-22,Samosa (6),180
+Kavita Yadav,2026-07-22,Namkeen Mix 400g,120
+Priya Mehta,2026-07-22,Jalebi 500g,320
+Sneha Kapoor,2026-07-23,Samosa (6),90
+Priya Verma,2026-07-23,Samosa (6),180
+Rahul Kapoor,2026-07-23,Kaju Katli 500g,620
+Neha Malhotra,2026-07-23,Rasgulla 1kg,680
+Kavita Gupta,2026-07-23,Kaju Katli 500g,620
+Suresh Jain,2026-07-24,Kaju Katli 500g,620
+Rohit Sharma,2026-07-24,Samosa (6),180
+Karan Bansal,2026-07-24,Kaju Katli 500g,620
+Suresh Verma,2026-07-24,Jalebi 500g,320
+Neha Sharma,2026-07-24,Gulab Jamun 1kg,380
+Rohit Sharma,2026-07-24,Samosa (6),90
+Karan Bansal,2026-07-25,Kaju Katli 500g,620
+Neha Verma,2026-07-25,Gift Box,950
+Meena Mehta,2026-07-25,Samosa (6),180
+Meena Sharma,2026-07-25,Kaju Katli 500g,620
+Meena Singh,2026-07-25,Gulab Jamun 1kg,760
+Meena Singh,2026-07-26,Jalebi 500g,160
+Meena Sharma,2026-07-26,Jalebi 500g,320
+Rahul Kapoor,2026-07-26,Rasgulla 1kg,680
+Rohit Bansal,2026-07-26,Jalebi 500g,320
+Rohit Sharma,2026-07-26,Kaju Katli 500g,620
+Priya Kapoor,2026-07-26,Samosa (6),90
+Suresh Jain,2026-07-26,Rasgulla 1kg,680
+Neha Mehta,2026-07-27,Samosa (6),90
+Rohit Mehta,2026-07-27,Gulab Jamun 1kg,760
+Pooja Gupta,2026-07-27,Samosa (6),90
+Pooja Gupta,2026-07-27,Gulab Jamun 1kg,760
+Suresh Gupta,2026-07-27,Kaju Katli 500g,620
+Meena Yadav,2026-07-27,Gulab Jamun 1kg,380
+Pooja Malhotra,2026-07-28,Samosa (6),90
+Pooja Kapoor,2026-07-28,Samosa (6),180
+Kavita Gupta,2026-07-28,Samosa (6),180
+Suresh Malhotra,2026-07-28,Namkeen Mix 400g,240
+Meena Yadav,2026-07-28,Jalebi 500g,160
+Neha Gupta,2026-07-28,Gift Box,950
+Neha Gupta,2026-07-28,Rasgulla 1kg,340
+Karan Kapoor,2026-07-28,Gift Box,950
+Priya Mehta,2026-07-29,Samosa (6),180
+Rohit Jain,2026-07-29,Jalebi 500g,320
+Sneha Singh,2026-07-29,Samosa (6),180
+Meena Mehta,2026-07-29,Kaju Katli 500g,620
+Meena Mehta,2026-07-29,Rasgulla 1kg,680
+Suresh Jain,2026-07-30,Samosa (6),90
+Suresh Yadav,2026-07-30,Jalebi 500g,320
+Sneha Sharma,2026-07-30,Rasgulla 1kg,340
+Rahul Sharma,2026-07-30,Rasgulla 1kg,340
+Rohit Sharma,2026-07-30,Gulab Jamun 1kg,380
+Aarav Bansal,2026-07-31,Jalebi 500g,160
+Karan Singh,2026-07-31,Gulab Jamun 1kg,760
+Neha Verma,2026-07-31,Samosa (6),180
+Priya Jain,2026-07-31,Samosa (6),90
+Rohit Sharma,2026-08-01,Rasgulla 1kg,680
+Amit Gupta,2026-08-01,Gulab Jamun 1kg,380
+Suresh Singh,2026-08-01,Namkeen Mix 400g,120
+Suresh Mehta,2026-08-01,Kaju Katli 500g,620
+Pooja Kapoor,2026-08-01,Gift Box,950
+Suresh Yadav,2026-08-01,Kaju Katli 500g,620
+Meena Sharma,2026-08-02,Samosa (6),90
+Amit Mehta,2026-08-02,Gift Box,950
+Neha Kapoor,2026-08-02,Rasgulla 1kg,340
+Vikram Jain,2026-08-02,Namkeen Mix 400g,120
+Meena Jain,2026-08-02,Kaju Katli 500g,620
+Priya Mehta,2026-08-02,Gift Box,950
+Vikram Sharma,2026-08-02,Rasgulla 1kg,340
+Sneha Kapoor,2026-08-02,Namkeen Mix 400g,120
+Rahul Kapoor,2026-08-03,Gift Box,950
+Rahul Kapoor,2026-08-03,Samosa (6),180
+Suresh Yadav,2026-08-03,Gift Box,950
+Amit Verma,2026-08-03,Gulab Jamun 1kg,760
+Meena Jain,2026-08-04,Kaju Katli 500g,620
+Aarav Verma,2026-08-04,Samosa (6),180
+Karan Bansal,2026-08-04,Samosa (6),180
+Suresh Verma,2026-08-05,Jalebi 500g,160
+Priya Mehta,2026-08-05,Namkeen Mix 400g,240
+Sneha Sharma,2026-08-05,Rasgulla 1kg,340
+Neha Sharma,2026-08-05,Gulab Jamun 1kg,380
+Meena Malhotra,2026-08-05,Kaju Katli 500g,620
+Kavita Bansal,2026-08-06,Kaju Katli 500g,620
+Kavita Bansal,2026-08-06,Gulab Jamun 1kg,380
+Amit Mehta,2026-08-06,Gulab Jamun 1kg,760
+Sneha Singh,2026-08-06,Jalebi 500g,320
+Rohit Malhotra,2026-08-06,Gift Box,950
+Rohit Jain,2026-08-06,Samosa (6),90
+Karan Bansal,2026-08-07,Kaju Katli 500g,620
+Sneha Verma,2026-08-07,Gulab Jamun 1kg,760
+Meena Mehta,2026-08-07,Gulab Jamun 1kg,760
+Rahul Verma,2026-08-07,Kaju Katli 500g,620
+Anjali Bansal,2026-08-07,Kaju Katli 500g,620
+Meena Malhotra,2026-08-07,Rasgulla 1kg,680
+Pooja Sharma,2026-08-08,Jalebi 500g,320
+Suresh Jain,2026-08-08,Kaju Katli 500g,620
+Suresh Jain,2026-08-08,Samosa (6),180
+Amit Verma,2026-08-08,Jalebi 500g,160
+Kavita Gupta,2026-08-08,Gulab Jamun 1kg,760
+Sneha Malhotra,2026-08-08,Gulab Jamun 1kg,380
+Vikram Jain,2026-08-08,Samosa (6),90
+Anjali Gupta,2026-08-09,Kaju Katli 500g,620
+Rahul Verma,2026-08-09,Namkeen Mix 400g,240
+Aarav Singh,2026-08-09,Kaju Katli 500g,620
+Pooja Gupta,2026-08-09,Kaju Katli 500g,620
+Aarav Singh,2026-08-09,Rasgulla 1kg,680
+Sneha Yadav,2026-08-09,Gift Box,950
+Priya Kapoor,2026-08-10,Rasgulla 1kg,340
+Rahul Verma,2026-08-10,Samosa (6),180
+Suresh Yadav,2026-08-10,Rasgulla 1kg,340
+Suresh Verma,2026-08-11,Samosa (6),180
+Aarav Verma,2026-08-11,Namkeen Mix 400g,240
+Vikram Gupta,2026-08-11,Gulab Jamun 1kg,380
+Neha Kapoor,2026-08-11,Gift Box,950
+Anjali Gupta,2026-08-11,Jalebi 500g,160
+Amit Jain,2026-08-11,Gulab Jamun 1kg,380
+Suresh Yadav,2026-08-11,Gulab Jamun 1kg,380
+Rohit Jain,2026-08-12,Kaju Katli 500g,620
+Meena Sharma,2026-08-12,Kaju Katli 500g,620
+Neha Verma,2026-08-12,Namkeen Mix 400g,240
+Meena Yadav,2026-08-13,Samosa (6),90
+Suresh Jain,2026-08-13,Rasgulla 1kg,680
+Sneha Malhotra,2026-08-13,Samosa (6),90
+Kavita Bansal,2026-08-13,Kaju Katli 500g,620
+Sneha Bansal,2026-08-13,Jalebi 500g,160
+Amit Mehta,2026-08-13,Jalebi 500g,160
+Karan Sharma,2026-08-15,Jalebi 500g,160
+Pooja Malhotra,2026-08-15,Samosa (6),90
+Meena Malhotra,2026-08-15,Samosa (6),90
+Sneha Sharma,2026-08-16,Gulab Jamun 1kg,380
+Karan Yadav,2026-08-16,Jalebi 500g,320
+Aarav Verma,2026-08-16,Kaju Katli 500g,620
+Sneha Bansal,2026-08-16,Gulab Jamun 1kg,380
+Amit Sharma,2026-08-16,Kaju Katli 500g,620
+Sneha Verma,2026-08-17,Gulab Jamun 1kg,380
+Amit Kapoor,2026-08-17,Samosa (6),90
+Priya Kapoor,2026-08-17,Rasgulla 1kg,340
+Meena Sharma,2026-08-17,Namkeen Mix 400g,240
+Rahul Kapoor,2026-08-18,Samosa (6),180
+Sneha Malhotra,2026-08-19,Gift Box,950
+Amit Sharma,2026-08-19,Gift Box,950
+Meena Mehta,2026-08-19,Samosa (6),180
+Neha Gupta,2026-08-20,Kaju Katli 500g,620
+Sneha Yadav,2026-08-20,Kaju Katli 500g,620
+Kavita Mehta,2026-08-20,Gulab Jamun 1kg,380
+Rohit Bansal,2026-08-20,Kaju Katli 500g,620
+Pooja Gupta,2026-08-20,Kaju Katli 500g,620
+Kavita Yadav,2026-08-21,Namkeen Mix 400g,120
+Sneha Malhotra,2026-08-21,Rasgulla 1kg,680
+Karan Malhotra,2026-08-21,Kaju Katli 500g,620
+Priya Mehta,2026-08-21,Kaju Katli 500g,620
+Suresh Mehta,2026-08-21,Namkeen Mix 400g,120
+Amit Mehta,2026-08-22,Jalebi 500g,160
+Neha Malhotra,2026-08-22,Samosa (6),90
+Suresh Yadav,2026-08-22,Namkeen Mix 400g,120
+Meena Mehta,2026-08-22,Kaju Katli 500g,620
+Amit Kapoor,2026-08-22,Jalebi 500g,320
+Rohit Gupta,2026-08-22,Kaju Katli 500g,620
+Pooja Malhotra,2026-08-22,Gulab Jamun 1kg,760
+Rohit Sharma,2026-08-22,Rasgulla 1kg,340
+Kavita Gupta,2026-08-23,Kaju Katli 500g,620
+Priya Sharma,2026-08-23,Gulab Jamun 1kg,760
+Priya Singh,2026-08-23,Gulab Jamun 1kg,380
+Priya Malhotra,2026-08-23,Samosa (6),90
+Amit Mehta,2026-08-23,Gulab Jamun 1kg,760
+Anjali Bansal,2026-08-23,Kaju Katli 500g,620
+Amit Mehta,2026-08-23,Jalebi 500g,160
+Karan Bansal,2026-08-24,Samosa (6),180
+Neha Jain,2026-08-24,Jalebi 500g,320
+Kavita Kapoor,2026-08-24,Kaju Katli 500g,620
+Rohit Gupta,2026-08-24,Namkeen Mix 400g,120
+Karan Gupta,2026-08-24,Rasgulla 1kg,680
+Rahul Verma,2026-08-25,Gulab Jamun 1kg,760
+Amit Jain,2026-08-25,Gift Box,950
+Rohit Bansal,2026-08-25,Jalebi 500g,160
+Rohit Malhotra,2026-08-25,Namkeen Mix 400g,240
+Aarav Verma,2026-08-25,Samosa (6),90
+Rohit Bansal,2026-08-25,Samosa (6),90
+Karan Yadav,2026-08-25,Jalebi 500g,320
+Amit Kapoor,2026-08-25,Jalebi 500g,160
+Anjali Mehta,2026-08-26,Kaju Katli 500g,620
+Rohit Jain,2026-08-26,Gulab Jamun 1kg,380
+Priya Singh,2026-08-26,Gulab Jamun 1kg,380
+Kavita Mehta,2026-08-26,Gift Box,950
+Suresh Yadav,2026-08-27,Samosa (6),90
+Sneha Bansal,2026-08-27,Rasgulla 1kg,340
+Sneha Bansal,2026-08-27,Gift Box,950
+Meena Malhotra,2026-08-27,Namkeen Mix 400g,240
+Priya Kapoor,2026-08-27,Kaju Katli 500g,620
+Anjali Malhotra,2026-08-27,Samosa (6),90
+Neha Jain,2026-08-27,Kaju Katli 500g,620
+Sneha Sharma,2026-08-28,Gulab Jamun 1kg,380
+Pooja Bansal,2026-08-28,Samosa (6),90
+Meena Mehta,2026-08-28,Rasgulla 1kg,680
+Rohit Singh,2026-08-28,Jalebi 500g,320
+Rohit Bansal,2026-08-28,Gulab Jamun 1kg,380
+Priya Singh,2026-08-28,Gulab Jamun 1kg,380
+Meena Jain,2026-08-28,Samosa (6),90
+Rohit Jain,2026-08-28,Kaju Katli 500g,620
+Sneha Verma,2026-08-28,Jalebi 500g,160
+Neha Yadav,2026-08-28,Rasgulla 1kg,340
+Neha Gupta,2026-08-28,Gulab Jamun 1kg,760
+Amit Mehta,2026-08-28,Samosa (6),90
+Pooja Yadav,2026-08-29,Samosa (6),180
+Suresh Bansal,2026-08-29,Gulab Jamun 1kg,760
+Rohit Sharma,2026-08-29,Samosa (6),90
+Rohit Sharma,2026-08-29,Jalebi 500g,160
+Suresh Verma,2026-08-29,Jalebi 500g,160
+Kavita Gupta,2026-08-29,Samosa (6),90
+Suresh Yadav,2026-08-29,Gulab Jamun 1kg,380
+Karan Kapoor,2026-08-29,Namkeen Mix 400g,240
+Karan Sharma,2026-08-30,Namkeen Mix 400g,120
+Meena Gupta,2026-08-30,Kaju Katli 500g,620
+Rahul Singh,2026-08-30,Rasgulla 1kg,680
+Meena Mehta,2026-08-30,Samosa (6),180
+Pooja Yadav,2026-08-30,Samosa (6),180
+Sneha Yadav,2026-08-30,Gulab Jamun 1kg,380
+Aarav Singh,2026-08-30,Rasgulla 1kg,340
+Pooja Malhotra,2026-08-30,Samosa (6),90
+Rohit Singh,2026-08-31,Samosa (6),90
+Amit Jain,2026-08-31,Kaju Katli 500g,620
+Meena Malhotra,2026-09-01,Gulab Jamun 1kg,380
+Rohit Jain,2026-09-01,Jalebi 500g,320
+Sneha Malhotra,2026-09-01,Jalebi 500g,320
+Rohit Bansal,2026-09-01,Samosa (6),180
+Neha Verma,2026-09-01,Kaju Katli 500g,620
+Suresh Sharma,2026-09-01,Rasgulla 1kg,340
+Meena Verma,2026-09-02,Gulab Jamun 1kg,760
+Suresh Verma,2026-09-02,Samosa (6),180
+Suresh Jain,2026-09-02,Samosa (6),180
+Anjali Gupta,2026-09-02,Namkeen Mix 400g,120
+Suresh Singh,2026-09-02,Jalebi 500g,320
+Rahul Singh,2026-09-02,Gift Box,950
+Amit Mehta,2026-09-02,Rasgulla 1kg,680
+Karan Gupta,2026-09-02,Kaju Katli 500g,620
+Kavita Gupta,2026-09-02,Samosa (6),90
+Neha Gupta,2026-09-02,Kaju Katli 500g,620
+Aarav Singh,2026-09-02,Gift Box,950
+Suresh Kapoor,2026-09-02,Jalebi 500g,320
+Kavita Gupta,2026-09-02,Jalebi 500g,320
+Karan Sharma,2026-09-03,Jalebi 500g,320
+Aarav Bansal,2026-09-03,Rasgulla 1kg,340
+Suresh Yadav,2026-09-03,Samosa (6),180
+Kavita Gupta,2026-09-03,Gulab Jamun 1kg,380
+Suresh Gupta,2026-09-04,Samosa (6),180
+Pooja Gupta,2026-09-04,Jalebi 500g,160
+Aarav Singh,2026-09-05,Namkeen Mix 400g,120
+Neha Sharma,2026-09-05,Jalebi 500g,160
+Aarav Verma,2026-09-05,Gift Box,950
+Meena Mehta,2026-09-05,Namkeen Mix 400g,120
+Sneha Sharma,2026-09-05,Gulab Jamun 1kg,760
+Amit Mehta,2026-09-05,Gulab Jamun 1kg,380
+Rohit Bansal,2026-09-05,Kaju Katli 500g,620
+Priya Singh,2026-09-05,Gulab Jamun 1kg,760
+Meena Jain,2026-09-05,Samosa (6),180
+Sneha Verma,2026-09-05,Samosa (6),180
+Anjali Gupta,2026-09-05,Samosa (6),180
+Neha Bansal,2026-09-06,Kaju Katli 500g,620
+Kavita Yadav,2026-09-06,Jalebi 500g,320
+Kavita Yadav,2026-09-06,Gulab Jamun 1kg,380
+Amit Mehta,2026-09-06,Namkeen Mix 400g,120
+Karan Bansal,2026-09-06,Rasgulla 1kg,340
+Neha Malhotra,2026-09-06,Samosa (6),90
+Meena Malhotra,2026-09-06,Rasgulla 1kg,680
+Sneha Malhotra,2026-09-07,Gift Box,950
+Suresh Yadav,2026-09-07,Rasgulla 1kg,680
+Suresh Gupta,2026-09-07,Samosa (6),90
+Aarav Singh,2026-09-07,Samosa (6),90
+Amit Jain,2026-09-07,Namkeen Mix 400g,240
+Meena Yadav,2026-09-07,Kaju Katli 500g,620
+Meena Yadav,2026-09-07,Kaju Katli 500g,620
+Pooja Malhotra,2026-09-07,Gift Box,950
+Aarav Singh,2026-09-07,Namkeen Mix 400g,240
+Vikram Verma,2026-09-08,Kaju Katli 500g,620
+Anjali Malhotra,2026-09-08,Namkeen Mix 400g,120
+Rahul Kapoor,2026-09-08,Samosa (6),90
+Neha Yadav,2026-09-08,Kaju Katli 500g,620
+Meena Jain,2026-09-08,Namkeen Mix 400g,240
+Aarav Singh,2026-09-08,Rasgulla 1kg,340
+Meena Jain,2026-09-09,Jalebi 500g,160
+Neha Malhotra,2026-09-09,Namkeen Mix 400g,120
+Meena Jain,2026-09-09,Gulab Jamun 1kg,380
+Meena Yadav,2026-09-09,Gulab Jamun 1kg,380
+Karan Yadav,2026-09-09,Rasgulla 1kg,340
+Amit Sharma,2026-09-09,Gulab Jamun 1kg,380
+Aarav Singh,2026-09-09,Samosa (6),180
+Rahul Singh,2026-09-09,Gift Box,950
+Suresh Verma,2026-09-09,Kaju Katli 500g,620
+Neha Verma,2026-09-09,Rasgulla 1kg,680
+Neha Malhotra,2026-09-10,Gulab Jamun 1kg,760
+Rohit Jain,2026-09-10,Jalebi 500g,320
+Rahul Sharma,2026-09-10,Samosa (6),90
+Kavita Bansal,2026-09-10,Gulab Jamun 1kg,380
+Sneha Yadav,2026-09-11,Jalebi 500g,320
+Suresh Jain,2026-09-11,Jalebi 500g,320
+Suresh Malhotra,2026-09-11,Samosa (6),90
+Sneha Malhotra,2026-09-11,Gulab Jamun 1kg,760
+Rohit Jain,2026-09-11,Kaju Katli 500g,620
+Meena Yadav,2026-09-11,Kaju Katli 500g,620
+Priya Kapoor,2026-09-11,Jalebi 500g,160
+Suresh Yadav,2026-09-11,Gulab Jamun 1kg,380
+Karan Jain,2026-09-11,Samosa (6),90
+Rahul Verma,2026-09-12,Samosa (6),180
+Meena Jain,2026-09-12,Kaju Katli 500g,620
+Suresh Kapoor,2026-09-12,Kaju Katli 500g,620
+Aarav Singh,2026-09-12,Gulab Jamun 1kg,760
+Suresh Singh,2026-09-12,Jalebi 500g,160
+Amit Sharma,2026-09-12,Samosa (6),90
+Vikram Singh,2026-09-12,Samosa (6),180
+Rahul Verma,2026-09-12,Rasgulla 1kg,680
+Neha Malhotra,2026-09-12,Namkeen Mix 400g,120
+Rohit Bansal,2026-09-13,Kaju Katli 500g,620
+Sneha Malhotra,2026-09-13,Samosa (6),180
+Rahul Verma,2026-09-13,Samosa (6),90
+Kavita Sharma,2026-09-13,Namkeen Mix 400g,120
+Meena Yadav,2026-09-13,Jalebi 500g,320
+Neha Kapoor,2026-09-13,Rasgulla 1kg,340
+Meena Sharma,2026-09-13,Kaju Katli 500g,620
+Priya Jain,2026-09-13,Jalebi 500g,160
+Meena Mehta,2026-09-13,Samosa (6),90
+Priya Mehta,2026-09-14,Rasgulla 1kg,340
+Amit Jain,2026-09-14,Jalebi 500g,160
+Suresh Malhotra,2026-09-14,Gift Box,950
+Karan Yadav,2026-09-14,Jalebi 500g,320
+Vikram Malhotra,2026-09-14,Rasgulla 1kg,340
+Anjali Malhotra,2026-09-14,Jalebi 500g,320
+Suresh Kapoor,2026-09-15,Samosa (6),180
+Priya Gupta,2026-09-15,Samosa (6),90
+Karan Yadav,2026-09-15,Gulab Jamun 1kg,760
+Aarav Bansal,2026-09-15,Rasgulla 1kg,340
+Meena Mehta,2026-09-15,Jalebi 500g,320
+Sneha Sharma,2026-09-15,Samosa (6),180
+Suresh Malhotra,2026-09-16,Samosa (6),180
+Aarav Verma,2026-09-16,Samosa (6),90
+Pooja Kapoor,2026-09-16,Kaju Katli 500g,620
+Suresh Jain,2026-09-16,Kaju Katli 500g,620
+Meena Malhotra,2026-09-17,Gift Box,950
+Amit Mehta,2026-09-17,Jalebi 500g,320
+Priya Gupta,2026-09-17,Samosa (6),90
+Karan Jain,2026-09-17,Jalebi 500g,160
+Rahul Kapoor,2026-09-17,Kaju Katli 500g,620
+Karan Gupta,2026-09-17,Rasgulla 1kg,680
+Meena Yadav,2026-09-17,Samosa (6),90
+Sneha Sharma,2026-09-18,Samosa (6),180
+Rohit Sharma,2026-09-19,Samosa (6),180
+Suresh Verma,2026-09-19,Samosa (6),90
+Pooja Bansal,2026-09-19,Kaju Katli 500g,620
+Suresh Yadav,2026-09-20,Gulab Jamun 1kg,380
+Aarav Singh,2026-09-20,Jalebi 500g,160
+Kavita Jain,2026-09-20,Jalebi 500g,320
+Rahul Kapoor,2026-09-20,Samosa (6),90
+Rahul Kapoor,2026-09-20,Jalebi 500g,320
+Kavita Gupta,2026-09-20,Rasgulla 1kg,340
+Rahul Verma,2026-09-20,Jalebi 500g,160
+Kavita Jain,2026-09-20,Jalebi 500g,160
+Neha Verma,2026-09-21,Rasgulla 1kg,340
+Meena Verma,2026-09-21,Gulab Jamun 1kg,760
+Priya Mehta,2026-09-22,Jalebi 500g,320
+Kavita Bansal,2026-09-22,Jalebi 500g,160
+Meena Yadav,2026-09-22,Gift Box,950
+Meena Yadav,2026-09-22,Samosa (6),90
+Suresh Yadav,2026-09-22,Gulab Jamun 1kg,760
+Pooja Bansal,2026-09-22,Kaju Katli 500g,620
+Vikram Malhotra,2026-09-23,Kaju Katli 500g,620
+Rahul Verma,2026-09-23,Jalebi 500g,160
+Priya Singh,2026-09-23,Samosa (6),180
+Vikram Sharma,2026-09-23,Kaju Katli 500g,620
+Neha Jain,2026-09-23,Gulab Jamun 1kg,760
+Meena Jain,2026-09-23,Namkeen Mix 400g,240
+Priya Mehta,2026-09-24,Gulab Jamun 1kg,380
+Suresh Verma,2026-09-24,Rasgulla 1kg,340
+Aarav Verma,2026-09-24,Gulab Jamun 1kg,760
+Kavita Gupta,2026-09-24,Samosa (6),180
+Vikram Sharma,2026-09-24,Jalebi 500g,160
+Meena Jain,2026-09-25,Namkeen Mix 400g,240
+Kavita Gupta,2026-09-25,Samosa (6),180
+Aarav Verma,2026-09-25,Samosa (6),180
+Suresh Verma,2026-09-25,Jalebi 500g,320
+Pooja Yadav,2026-09-25,Gift Box,950
+Suresh Sharma,2026-09-26,Gulab Jamun 1kg,760
+Meena Mehta,2026-09-26,Jalebi 500g,160
+Aarav Verma,2026-09-26,Jalebi 500g,160
+Suresh Sharma,2026-09-27,Rasgulla 1kg,680
+Meena Mehta,2026-09-27,Samosa (6),180
+Neha Yadav,2026-09-28,Gift Box,950
+Kavita Gupta,2026-09-28,Gift Box,950
+Rohit Bansal,2026-09-29,Kaju Katli 500g,620
+Aarav Verma,2026-09-29,Namkeen Mix 400g,240
+Suresh Jain,2026-09-30,Jalebi 500g,160
+Kavita Gupta,2026-09-30,Gulab Jamun 1kg,760
+Rahul Verma,2026-09-30,Jalebi 500g,320
+Kavita Gupta,2026-09-30,Namkeen Mix 400g,120

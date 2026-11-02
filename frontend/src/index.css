@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --slate: 16 19 26;
+  --paper: 255 255 255;
+  --field: 242 243 239;
+  --rule:  216 218 210;
+  --ink:   47 125 110;
+  --clay:  168 67 47;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  background: rgb(var(--field));
+  color: rgb(var(--slate));
+  font-family: Archivo, system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numerals are the subject matter here — set them in the mono face with
+   tabular figures so columns of data align down the page. */
+.num {
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Native select needs its own arrow once appearance is stripped. */
+.sel {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%2310131a' d='M0 0h10L5 6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 1px;
+}
+
+/* The one piece of motion in the interface: leaderboard bars resolving. */
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.bar-grow { transform-origin: left; animation: grow .45s cubic-bezier(.2,.7,.3,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-grow { animation: none; }
+}
+
+::selection { background: rgb(var(--ink)); color: #fff; }
