@@ -183,6 +183,11 @@ class ChatMessage(BaseModel):
     content: str
 
 
+class SimulateRequest(BaseModel):
+    """The levers of the What-if screen; only the ones switched on are sent."""
+    levers: dict[str, Any] = {}
+
+
 class ChatRequest(BaseModel):
     message: str
     history: list[ChatMessage] = []

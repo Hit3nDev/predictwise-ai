@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { rankRows, getLevers, scoreFile, downloadScored, detail } from "../api";
+import { formatValue } from "../format";
 import { Button, Readout, Tag } from "./ui";
 import { Icon } from "./icons";
+import { Outcome } from "./Simulator";
 
 /* Rich answers: charts, stat strips, customer groups, unusual rows, batch
    scoring. Plain SVG/CSS like the rest of the app, with Indian number
@@ -10,16 +12,7 @@ import { Icon } from "./icons";
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const pretty = (s) => String(s).replace(/[_\s]+/g, " ").trim();
 
-export function formatValue(v, unit) {
-  if (v == null || Number.isNaN(v)) return "–";
-  const a = Math.abs(v);
-  const sign = v < 0 ? "−" : "";
-  const pre = unit === "money" ? "₹" : "";
-  if (a >= 1e7) return `${sign}${pre}${(a / 1e7).toFixed(2)} Cr`;
-  if (a >= 1e5) return `${sign}${pre}${(a / 1e5).toFixed(2)} L`;
-  if (a >= 1000) return `${sign}${pre}${Math.round(a).toLocaleString("en-IN")}`;
-  return `${sign}${pre}${a >= 10 ? a.toFixed(1).replace(/\.0$/, "") : a.toFixed(2).replace(/0$/, "").replace(/\.$/, "")}`;
-}
+export { formatValue };
 
 /* ---------------------------------------------------------------- charts */
 
@@ -386,10 +379,16 @@ export function CardBlock({ block: b }) {
   );
 }
 
-export function Blocks({ blocks, workLabel = "How I worked this out", downloadLabel = "Download as CSV", msgLabels, verifyText }) {
+/** A rehearsed decision inside the chat: the same ranges as the What-if screen, with a way there. */
+function SimulationBlock({ block, lang }) {
+  return <Outcome res={block} lang={lang} compact onOpen={() => window.dispatchEvent(new CustomEvent("pw:view", { detail: "simulate" }))} />;
+}
+
+export function Blocks({ blocks, workLabel = "How I worked this out", downloadLabel = "Download as CSV", msgLabels, verifyText, lang = "en" }) {
   if (!blocks?.length) return null;
   return blocks.map((b, i) => {
     if (b.type === "card") return <CardBlock key={i} block={b} />;
+    if (b.type === "simulation") return <SimulationBlock key={i} block={b} lang={lang} />;
     if (b.type === "table") return <TableBlock key={i} block={b} downloadLabel={downloadLabel} />;
     if (b.type === "verified") return <Verified key={i} block={b} text={verifyText ? verifyText(b) : `${b.matched} of ${b.checked} figures traced to your data`} />;
     if (b.type === "messages") return <Messages key={i} messages={b.messages} labels={msgLabels} />;

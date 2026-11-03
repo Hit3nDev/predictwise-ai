@@ -11,6 +11,7 @@ import { Icon, LogoMark, ThinkingMark } from "./icons";
 import { Switch, Tag } from "./ui";
 import Dashboard from "./Dashboard";
 import Lookup from "./Lookup";
+import Simulator from "./Simulator";
 
 /* Simple Mode is a conversation over one file. The start screen takes a file or a sample.
    The chat screen is a reading column with a "dossier" rail beside it that holds the file,
@@ -23,7 +24,7 @@ const TICKER = [
   "Which customers should I win back?", "What should I do this week?", "Which rows look unusual?",
 ];
 
-const SAMPLE_ICONS = { kirana_sales: "store", customers: "users", sweet_shop: "cake", provision_store: "basket" };
+const SAMPLE_ICONS = { sharma_store: "store", udhaar_khata: "book", kirana_sales: "chart", customers: "users", sweet_shop: "cake", provision_store: "basket" };
 
 const HIGHLIGHTS = [
   { title: "Answers, not dashboards", body: "Profit, udhaar, stock and customers, in plain words." },
@@ -268,7 +269,7 @@ function AssistantContent({ msg, onPredict, predicting, lang }) {
         <p key={i} className={i > 0 ? "mt-2" : ""}>{line}</p>
       ))}
       <Blocks
-        blocks={msg.blocks} workLabel={t(lang, "work")} downloadLabel={t(lang, "downloadTable")}
+        blocks={msg.blocks} workLabel={t(lang, "work")} downloadLabel={t(lang, "downloadTable")} lang={lang}
         verifyText={(b) => {
           const key = { all: "vAll", partly: "vPart", none: "vNone", nocalc: "vNoCalc" }[b.status];
           return t(lang, key).replace("{n}", b.checked).replace("{m}", b.matched).replace("{list}", b.unmatched.join(", "));
@@ -422,6 +423,12 @@ function buildLibrary(roles, toolkit, llmOk) {
       has("profit") && "Which products give me the most profit?",
       has("profit") && "What is my overall profit margin?",
     ] },
+    has("simulate") && { title: "What if", items: [
+      "What if I close on Sundays?",
+      "What if I raise all prices by 5%?",
+      has("udhaar") && "What if I stop giving udhaar?",
+      has("rfm") && "What if I message the customers who went quiet?",
+    ] },
     { title: "Messages", items: [
       has("udhaar") && "Write a WhatsApp reminder message for my udhaar customers",
       has("stock") && "Write a WhatsApp order message to my supplier",
@@ -509,6 +516,13 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // A block inside an answer (a rehearsed decision) can open the matching screen.
+  useEffect(() => {
+    const onView = (e) => { if (typeof e.detail === "string") setView(e.detail); };
+    window.addEventListener("pw:view", onView);
+    return () => window.removeEventListener("pw:view", onView);
+  }, []);
+
   const speech = LANGS.find((l) => l.id === lang)?.speech ?? "en-IN";
   const setLang = (l) => {
     setLangState(l);
@@ -555,10 +569,12 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
 
   useEffect(() => () => { stopSpeaking?.(); recRef.current?.stop?.(); }, []);
 
+  // Blanks are filled and repeated rows dropped; amounts are never altered (a ₹15,000 wedding
+  // order is flagged as unusual, not quietly clipped), so every tool sees the shop's real numbers.
   const finishUpload = async (d) => {
     await cleanDataset(d.id, {
       drop_duplicates: true, numeric_strategy: "median",
-      categorical_strategy: "mode", outlier_method: "iqr_clip",
+      categorical_strategy: "mode", outlier_method: "none",
     }).catch(() => {});
     setDataset({ ...d, is_cleaned: true });
     refresh();
@@ -817,12 +833,14 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
           </button>
         </div>
 
-        {/* Three ways in: the conversation, the shop at a glance, one name at a glance. */}
-        <div className="flex items-center gap-1 border-b border-line px-3 sm:px-6" role="tablist">
-          {[["chat", "send"], ["dashboard", "grid"], ["lookup", "search"]].map(([v, icon]) => (
+        {/* Four ways in: the conversation, the shop at a glance, one name at a glance, a decision rehearsed. */}
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-line px-3 sm:px-6" role="tablist">
+          {[["chat", "send"], ["dashboard", "grid"], ["lookup", "search"], ["simulate", "flask"]]
+            .filter(([v]) => v !== "simulate" || toolkit == null || toolkit.simulate?.available)
+            .map(([v, icon]) => (
             <button
               key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
-              className={`relative inline-flex items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium ${view === v ? "text-ink" : "text-mute hover:text-ink"}`}
+              className={`relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[13px] font-medium ${view === v ? "text-ink" : "text-mute hover:text-ink"}`}
             >
               <Icon name={icon} size={13} /> {t(lang, v)}
               {view === v && <span className="absolute inset-x-3 -bottom-px h-[2px] bg-lime" />}
@@ -838,6 +856,11 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
         {view === "lookup" && (
           <div className="min-h-0 flex-1 overflow-y-auto">
             <Lookup dataset={dataset} lang={lang} onAsk={send} />
+          </div>
+        )}
+        {view === "simulate" && (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Simulator dataset={dataset} lang={lang} />
           </div>
         )}
 

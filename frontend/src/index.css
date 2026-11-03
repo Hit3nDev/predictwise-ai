@@ -137,6 +137,9 @@ button, a, input, select, textarea, summary {
   box-shadow: 0 0 0 3px rgb(var(--cobalt) / .22);
 }
 .bare:focus, .bare:focus-visible { box-shadow: none; border-color: transparent; outline: none; }
+
+/* The levers of the What-if screen. */
+input[type="range"].range { accent-color: rgb(var(--cobalt)); height: 4px; width: 100%; cursor: pointer; }
 :focus-visible { outline: 2px solid rgb(var(--cobalt)); outline-offset: 2px; }
 
 /* Native select needs its own arrow once appearance is stripped. */

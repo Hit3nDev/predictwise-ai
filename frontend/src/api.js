@@ -119,4 +119,6 @@ export const shopTool = (id, tool) => api.get(`/datasets/${id}/shop/${tool}`).th
 export const getCustomers = (id) => api.get(`/datasets/${id}/customers`).then((r) => r.data);
 export const getStockPlan = (id) => api.get(`/datasets/${id}/stock-plan`).then((r) => r.data);
 export const lookupName = (id, q = "") => api.get(`/datasets/${id}/lookup`, { params: { q } }).then((r) => r.data);
+export const simulateOptions = (id) => api.get(`/datasets/${id}/simulate`).then((r) => r.data);
+export const runSimulation = (id, levers) => api.post(`/datasets/${id}/simulate`, { levers }).then((r) => r.data);
 export const compareFiles = (id, otherId) => api.get(`/datasets/${id}/compare/${otherId}`).then((r) => r.data);

@@ -444,6 +444,35 @@ frontend/src/
     "Shop toolkit" panel that only offers what the uploaded file can support.
   - Tests: 60 passing. Known limit: table column headings stay in English.
 
+- **Day 20: rehearse a decision, and a file built for the demonstration.**
+  - **What if (`simulate.py`, `/datasets/{id}/simulate`, the fourth tab in Simple mode).** The next 30 days
+    are replayed 2,000 times from the shop's own last 12 weeks, each day re-drawn from past days of the same
+    weekday, so weekday patterns and ordinary variation survive; a festival week inside the period is taken
+    from last year's same week, scaled to the current level. Six levers: close one day a week (with the share
+    of customers who come another day), change prices for all products or one (with a stated customer
+    sensitivity), run an offer, stop stocking a product (losing a share of what its buyers bought with it),
+    stop giving udhaar (credit becomes cash, a share is lost), message the customers who went quiet (a share
+    return). Every lever is applied to the same 2,000 futures, so the *change* has a tight range even though
+    the totals spread; each lever is also run alone so the shopkeeper sees which one matters. Sales, profit
+    and cash in hand as 10th/50th/90th percentiles, a fan chart of sales adding up day by day, the
+    assumptions written out and editable. "What if I close on Sundays?" in the chat gives the same answer
+    inline, in English or Hinglish. Nothing here is guessed by a language model.
+  - **Two files built for the demonstration**, first in the sample list. *Sharma General Store* (39,621 bill
+    lines over 16 months: times of day, customers with phones and areas, cost prices, udhaar, last Diwali
+    inside the file and this one three days after it ends) lights up every tool, with patterns planted on
+    purpose: a busiest and a quietest day, rush hours, a wedding order and a typo for the anomaly finder,
+    a product that stopped selling, one fading for winter, one rising, a cost rise squeezing a margin, items
+    bought together, udhaar households, regulars gone quiet, new customers. *Udhaar khata* (606 customers)
+    is the credit ledger as a table a model can learn from, with blanks, repeats and two absurd amounts for
+    the Clean stage, and an area with a real repayment gap so the fairness audit has something to find.
+    `DEMO.md` walks through both.
+  - Simple mode's automatic clean no longer clips numbers to the interquartile range: a ₹15,000 wedding
+    order is flagged as unusual, not quietly cut down, so every tool sees the shop's real amounts.
+  - Big files: the KMeans grouping and the isolation forest learn from a 12,000-row sample and then label
+    every row, and their results are memoised per file, so the first briefing on 40,000 rows takes a few
+    seconds instead of ten and the dashboard reuses it.
+  - Tests: 116 passing (`tests/test_simulate.py`, `tests/test_samples.py` added).
+
 - **Day 19: a real key, a dark theme, and a steadier assistant.**
   - **First live run of the Groq path** (every earlier day was built without a key). It exposed three things,
     all fixed: Groq had retired the `llama` models the app tried first, so every question burnt two failed

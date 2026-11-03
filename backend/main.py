@@ -40,6 +40,7 @@ import llm_chat
 import llm_provider
 import llm_resolver
 import lookup
+import simulate
 import query_engine
 import lang
 import actions
@@ -817,6 +818,10 @@ def model_report(
 
 SAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples")
 SAMPLES = {
+    "sharma_store": ("Sharma General Store: 16 months of bills", "sharma_store.csv",
+                     "Everything at once: profit, udhaar, festivals, busy hours, what-if decisions, WhatsApp"),
+    "udhaar_khata": ("Udhaar khata: who repays on time", "udhaar_khata.csv",
+                     "Train a model on the credit ledger, explain each prediction, audit it by area"),
     "kirana_sales": ("Kirana store: a year of daily sales", "kirana_sales.csv", "Sales over time, best sellers, unusual bulk orders"),
     "customers": ("Customers: who buys and who doesn't", "customers.csv", "Predict purchases, find customer groups"),
     "sweet_shop": ("Sweet shop: customers and their orders", "sweet_shop.csv", "Best and lapsing customers, who to call first"),
@@ -886,6 +891,22 @@ def dataset_lookup(dataset_id: int, q: str = "", db: Session = Depends(get_db)):
     return lookup.find(df, q)
 
 
+@app.get("/datasets/{dataset_id}/simulate")
+def dataset_simulate_options(dataset_id: int, db: Session = Depends(get_db)):
+    """What the What-if screen needs before the first run: products, weekdays, defaults, supported levers."""
+    d = _get_dataset_or_404(dataset_id, db)
+    _, df = _frames(d)
+    return simulate.options(df)
+
+
+@app.post("/datasets/{dataset_id}/simulate")
+def dataset_simulate(dataset_id: int, req: schemas.SimulateRequest, db: Session = Depends(get_db)):
+    """Rehearse a decision: the next 30 days as they are and with the chosen changes, over 2,000 replays."""
+    d = _get_dataset_or_404(dataset_id, db)
+    _, df = _frames(d)
+    return simulate.run(df, req.levers)
+
+
 @app.get("/datasets/{dataset_id}/forecast")
 def dataset_forecast(dataset_id: int, service: float = Query(0.95, ge=0.5, le=0.99), db: Session = Depends(get_db)):
     """Next week's demand per product, sized for a chosen service level, with the replay that justifies it."""
@@ -902,7 +923,7 @@ def shop_toolkit(dataset_id: int, db: Session = Depends(get_db)):
     out = {}
     for name, fn in (("profit", shop_service.profit), ("udhaar", shop_service.udhaar), ("slow", shop_service.slow_movers),
                      ("festival", shop_service.festivals), ("bundles", shop_service.bundles), ("peak", shop_service.peak),
-                     ("stock", advanced.stock_plan), ("rfm", advanced.rfm)):
+                     ("stock", advanced.stock_plan), ("rfm", advanced.rfm), ("simulate", simulate.options)):
         try:
             r = fn(df)
             out[name] = {"available": bool(r["available"]), "reason": r.get("reason", "")}
@@ -1359,6 +1380,14 @@ def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, questio
     if card:
         block = {"type": "card", **{k: v for k, v in card.items() if k != "narrative"}}
         return schemas.ChatResponse(narrative=card["narrative"], kind="card", source="analytics", blocks=[block])
+
+    # "What if I close on Sundays?": the decision rehearsed over 2,000 replays of the shop's own weeks.
+    sim = simulate.from_question(df, question)
+    if sim is not None:
+        if not sim.get("available"):
+            return schemas.ChatResponse(narrative=[sim["reason"]], kind="text", source="analytics")
+        block = {"type": "simulation", **{k: v for k, v in sim.items() if k != "narrative"}}
+        return schemas.ChatResponse(narrative=sim["narrative"], kind="simulation", source="analytics", blocks=[block])
 
     intent = analytics.detect_intent(question)
     if intent is None and RANK_RE.search(question):

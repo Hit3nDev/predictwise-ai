@@ -22,6 +22,7 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import IsolationForest
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
+from threadpoolctl import threadpool_limits
 
 # ---------------------------------------------------------------------------
 # Formatting
@@ -178,7 +179,7 @@ def pick_outcome(df: pd.DataFrame) -> str | None:
     """A yes/no column such as purchased or churned, if the data has one."""
     for c in df.columns:
         s = df[c].dropna()
-        if s.nunique() == 2 and any(w in c.lower() for w in ("purchase", "churn", "buy", "bought", "repeat", "convert", "default", "renew", "return")):
+        if s.nunique() == 2 and any(w in c.lower() for w in ("purchase", "churn", "buy", "bought", "repeat", "convert", "default", "renew", "return", "repa", "paid")):
             return c
     return None
 
@@ -433,7 +434,44 @@ def _describe(col: str, high: bool) -> str:
     return f"{'higher' if high else 'lower'} {pretty(col)}"
 
 
+SAMPLE_ROWS = 12000          # KMeans and the isolation forest learn from this many rows on big files
+
+
+def _fingerprint(df: pd.DataFrame):
+    """A cheap identity for a frame, so the heavy engines are not re-run for the same file."""
+    try:
+        nums = df.select_dtypes(include=[np.number])
+        total = float(np.nansum(nums.to_numpy(dtype=float))) if nums.shape[1] else 0.0
+        edges = int(pd.util.hash_pandas_object(pd.concat([df.head(40), df.tail(40)]), index=False).sum())
+        return (len(df), tuple(map(str, df.columns)), total, edges)
+    except Exception:
+        return None
+
+
+def _memo(fn):
+    cache = {}
+
+    def wrapped(df, *args, **kwargs):
+        key = _fingerprint(df)
+        if key is None:
+            return fn(df, *args, **kwargs)
+        key = (fn.__name__, key, args, tuple(sorted(kwargs.items())))
+        if key not in cache:
+            if len(cache) >= 24:
+                cache.pop(next(iter(cache)))
+            cache[key] = fn(df, *args, **kwargs)
+        return cache[key]
+
+    wrapped.__name__ = fn.__name__
+    wrapped.__doc__ = fn.__doc__
+    return wrapped
+
+
+@_memo
 def segments(df: pd.DataFrame, max_k: int = 5) -> dict:
+    full_n = len(df)
+    if full_n > SAMPLE_ROWS:
+        df = df.sample(SAMPLE_ROWS, random_state=42)
     nums = numeric_cols(df)[:6]
     outcome = pick_outcome(df)
     if outcome in nums:
@@ -457,14 +495,15 @@ def segments(df: pd.DataFrame, max_k: int = 5) -> dict:
     M = pd.concat(parts, axis=1).values
 
     best, best_s = None, -1.0
-    for k in range(2, min(max_k, len(df) // 10) + 1):
-        km = KMeans(n_clusters=k, n_init=10, random_state=42).fit(M)
-        # Silhouette compares every row with every other row (n squared). On a
-        # 21k-row file that took over a minute, so score a fixed random sample;
-        # small files are still scored on every row.
-        s = silhouette_score(M, km.labels_, sample_size=min(len(M), 3000), random_state=42)
-        if s > best_s:
-            best, best_s = km, s
+    with threadpool_limits(limits=4):            # a dozen threads on a few thousand rows only adds overhead
+        for k in range(2, min(max_k, len(df) // 10) + 1):
+            km = KMeans(n_clusters=k, n_init=4, random_state=42).fit(M)
+            # Silhouette compares every row with every other row (n squared). On a
+            # 21k-row file that took over a minute, so score a fixed random sample;
+            # small files are still scored on every row.
+            s = silhouette_score(M, km.labels_, sample_size=min(len(M), 2000), random_state=42)
+            if s > best_s:
+                best, best_s = km, s
     if best is None:
         return {"available": False, "reason": "Couldn't find clear groups."}
 
@@ -489,7 +528,7 @@ def segments(df: pd.DataFrame, max_k: int = 5) -> dict:
         used.add(name)
         seg = {
             "name": name,
-            "size": int(mask.sum()),
+            "size": int(round(float(mask.mean()) * full_n)),
             "share": float(mask.mean()),
             "averages": [{"column": c, "value": float(X.loc[mask, c].mean()), "display": fmt(c, float(X.loc[mask, c].mean()))} for c in nums[:4]],
         }
@@ -550,6 +589,7 @@ def _baselines(df: pd.DataFrame, X: pd.DataFrame):
     return base, used
 
 
+@_memo
 def anomalies(df: pd.DataFrame, top: int = 8) -> dict:
     nums = numeric_cols(df)
     if len(nums) < 1 or len(df) < 30:
@@ -564,8 +604,11 @@ def anomalies(df: pd.DataFrame, top: int = 8) -> dict:
     scale = (mad * 1.4826).fillna(resid.std().replace(0, 1)).fillna(1)
     Z = resid / scale
 
-    iso = IsolationForest(n_estimators=200, contamination=min(0.05, max(0.01, 5 / len(df))), random_state=42).fit(Z)
-    score = -iso.score_samples(Z)
+    # The forest learns what "normal" looks like from a sample on big files, then every row is scored.
+    fit_on = Z.sample(SAMPLE_ROWS, random_state=42) if len(Z) > SAMPLE_ROWS else Z
+    with threadpool_limits(limits=4):
+        iso = IsolationForest(n_estimators=100, contamination=min(0.05, max(0.01, 5 / len(df))), random_state=42).fit(fit_on)
+        score = -iso.score_samples(Z)
     flagged = np.argsort(-score)[:top]
     flagged = [i for i in flagged if iso.predict(Z.iloc[[i]])[0] == -1]
 

@@ -119,6 +119,218 @@ def make_provision_store():
     print(len(out), "lines,", out.bill_no.nunique(), "bills")
 
 
+# ---- Sharma General Store: the demonstration file ---------------------------
+# One file that every tool can read: bills with a time of day, a known customer with a phone
+# and an area, the product with its category, quantity, selling and cost price, the amount and
+# how it was paid. Sixteen months, so last year's Diwali is in the file and this year's is in
+# the next fortnight. Patterns are planted on purpose so each screen has something to say.
+
+FIRST = ["Ramesh", "Sunita", "Anil", "Geeta", "Mohan", "Pushpa", "Rakesh", "Seema", "Vijay", "Kiran", "Ashok", "Lata",
+         "Naresh", "Rekha", "Sanjay", "Usha", "Dinesh", "Madhu", "Pawan", "Asha", "Suresh", "Kavita", "Rajesh", "Meena",
+         "Deepak", "Nisha", "Manoj", "Savita", "Arjun", "Priya", "Gopal", "Sarla", "Harish", "Babita", "Mukesh", "Shobha",
+         "Vinod", "Anita", "Prakash", "Hemlata"]
+LAST = ["Sharma", "Gupta", "Verma", "Yadav", "Singh", "Saini", "Jain", "Agarwal", "Meena", "Chauhan", "Rathore", "Joshi"]
+AREAS = ["Malviya Nagar", "Raja Park", "Jawahar Nagar", "Tilak Nagar", "Adarsh Nagar"]
+
+
+def make_sharma_store():
+    rng = np.random.default_rng(2026)
+    items = {  # name: (category, selling price, cost price, base weight)
+        "Atta 10kg": ("Staples", 420, 385, 7), "Basmati Rice 5kg": ("Staples", 520, 470, 4),
+        "Toor Dal 1kg": ("Staples", 150, 132, 6), "Sugar 1kg": ("Staples", 46, 42, 9),
+        "Cooking Oil 1L": ("Staples", 160, 146, 7), "Ghee 500ml": ("Staples", 320, 285, 3),
+        "Milk 1L": ("Dairy", 66, 62, 18), "Butter 100g": ("Dairy", 58, 51, 5), "Bread": ("Bakery", 40, 34, 10),
+        "Biscuits": ("Snacks", 20, 16, 12), "Maggi": ("Snacks", 14, 11.5, 11), "Chips": ("Snacks", 20, 16, 8),
+        "Tea 500g": ("Beverages", 260, 225, 7), "Cold Drink 2L": ("Beverages", 95, 82, 5),
+        "Instant Coffee 50g": ("Beverages", 180, 150, 1.2), "Soap (4 pack)": ("Household", 130, 108, 5),
+        "Detergent 1kg": ("Household", 120, 100, 4), "Candles": ("Household", 30, 22, 2),
+        "Dry Fruits 250g": ("Festival", 380, 310, 1.5), "Diyas (12 pack)": ("Festival", 80, 45, 0.0),
+    }
+    names = list(items)
+    J = {n: i for i, n in enumerate(names)}
+    base_w = np.array([items[n][3] for n in names], float)
+    pairs = {"Tea 500g": ("Sugar 1kg", .6), "Bread": ("Butter 100g", .65), "Maggi": ("Chips", .45),
+             "Atta 10kg": ("Ghee 500ml", .3), "Soap (4 pack)": ("Detergent 1kg", .5), "Dry Fruits 250g": ("Ghee 500ml", .4)}
+    area_pref = {  # what each neighbourhood buys more of
+        "Malviya Nagar": {"Dry Fruits 250g": 1.6, "Instant Coffee 50g": 1.8, "Butter 100g": 1.3, "Atta 10kg": 0.7},
+        "Raja Park": {"Atta 10kg": 2.8, "Ghee 500ml": 1.4, "Toor Dal 1kg": 1.3},
+        "Jawahar Nagar": {"Milk 1L": 1.2, "Maggi": 1.3, "Biscuits": 1.2},
+        "Tilak Nagar": {"Tea 500g": 1.4, "Sugar 1kg": 1.3},
+        "Adarsh Nagar": {"Basmati Rice 5kg": 1.5, "Cold Drink 2L": 1.2},
+    }
+
+    start, end = pd.Timestamp("2025-07-01"), pd.Timestamp("2026-11-03")
+    diwali25, holi26, rakhi26, dussehra26, karva26 = (pd.Timestamp(x) for x in ("2025-10-20", "2026-03-04", "2026-08-28", "2026-10-20", "2026-10-29"))
+
+    # customers: a type decides how often they come and how big the basket is
+    pool = [f"{f} {l}" for f in FIRST for l in LAST]
+    custs = [pool[i] for i in rng.choice(len(pool), 84, replace=False)]
+    types = (["daily"] * 14 + ["regular"] * 40 + ["occasional"] * 18 + ["gone"] * 8 + ["new"] * 4)
+    rng.shuffle(types)
+    info = {}
+    for c, kind in zip(custs, types):
+        area = AREAS[int(rng.choice(5, p=[.27, .24, .19, .17, .13]))]
+        weight = {"daily": 3.0, "regular": 1.2, "occasional": 0.4, "gone": 1.2, "new": 0.9}[kind] * float(rng.lognormal(0, 0.25))
+        favs = list(rng.choice(names[:18], 3, replace=False))
+        phone = f"+91 {int(rng.integers(70000, 99999))} {int(rng.integers(10000, 99999))}"
+        first_day = start if kind != "new" else end - pd.Timedelta(days=int(rng.integers(6, 24)))
+        last_day = end if kind != "gone" else end - pd.Timedelta(days=int(rng.integers(50, 160)))
+        info[c] = dict(kind=kind, area=area, weight=weight, favs=favs, phone=phone, first=first_day, last=last_day, credit_from=None)
+    # udhaar: a dozen households buy on credit; two of them have also stopped coming
+    gone = [c for c in custs if info[c]["kind"] == "gone"]
+    others = [c for c in custs if info[c]["kind"] in ("daily", "regular")]
+    for c in list(rng.choice(gone, 2, replace=False)) + list(rng.choice(others, 10, replace=False)):
+        info[c]["credit_from"] = end - pd.Timedelta(days=int(rng.integers(70, 230)))
+    info[others[0]]["credit_from"] = end - pd.Timedelta(days=320)          # one old, chronic balance
+    for c in rng.choice(others, 3, replace=False):
+        info[c]["phone"] = None                                             # no number on file
+    cust_names = np.array(custs)
+    cust_w = np.array([info[c]["weight"] for c in custs])
+
+    hour_w = {7: .5, 8: 1.3, 9: 1.9, 10: 1.1, 11: .8, 12: .6, 13: .4, 14: .3, 15: .4, 16: .6, 17: 1.0, 18: 1.3, 19: 1.8, 20: 1.2, 21: .6}
+    # prices move a few times in sixteen months (MRP revisions); cost moves with them, except cooking oil
+    days = pd.date_range(start, end)
+    price_of = {}
+    for nm, (_, price, cost, _) in items.items():
+        p, c = np.full(len(days), float(price)), np.full(len(days), float(cost))
+        for k in sorted(rng.choice(np.arange(40, len(days) - 20), int(rng.integers(1, 4)), replace=False)):
+            f = 1 + float(rng.uniform(0.02, 0.06))
+            p[k:], c[k:] = np.round(p[k:] * f), np.round(c[k:] * f, 1)
+        if nm == "Cooking Oil 1L":
+            k = int((pd.Timestamp("2026-09-10") - start).days)
+            p[:], c[:] = 160.0, 146.0
+            p[k:], c[k:] = 170.0, 160.0
+        price_of[nm] = (p, c)
+    hours = np.array(list(hour_w)); hp = np.array(list(hour_w.values())); hp = hp / hp.sum()
+    basket_p = {"daily": [.45, .3, .15, .07, .03, 0], "regular": [.18, .27, .25, .16, .09, .05],
+                "occasional": [.08, .2, .27, .22, .14, .09], "gone": [.18, .27, .25, .16, .09, .05], "new": [.2, .3, .25, .15, .07, .03]}
+
+    def day_factor(day):
+        f = [0.9, 0.78, 0.9, 0.95, 1.05, 1.22, 1.42][day.dayofweek]
+        if day.day <= 5: f *= 1.2
+        elif day.day >= 26: f *= 0.9
+        gap = (diwali25 - day).days
+        if 0 <= gap <= 7: f *= [1.9, 1.9, 1.6, 1.6, 1.6, 1.3, 1.3, 1.3][gap]
+        elif -4 <= gap < 0: f *= 0.75
+        if 0 <= (holi26 - day).days <= 3: f *= 1.25 if day != holi26 else 0.6
+        if 0 <= (rakhi26 - day).days <= 2: f *= 1.15
+        if 0 <= (dussehra26 - day).days <= 9: f *= 1.08
+        if day == dussehra26: f *= 1.2
+        if 0 <= (karva26 - day).days <= 1: f *= 1.15
+        if day >= pd.Timestamp("2026-10-31"): f *= 1.15 + 0.05 * (day - pd.Timestamp("2026-10-31")).days
+        return f * float(rng.lognormal(0, 0.08))
+
+    def product_factor(day):
+        w = base_w.copy()
+        m, progress = day.month, (day - start).days / (end - start).days
+        gap = (diwali25 - day).days
+        if 0 <= gap <= 10:                                            # last Diwali
+            w[J["Diyas (12 pack)"]] = 9.0; w[J["Dry Fruits 250g"]] *= 8; w[J["Ghee 500ml"]] *= 3.5
+            w[J["Sugar 1kg"]] *= 1.8; w[J["Atta 10kg"]] *= 1.4; w[J["Basmati Rice 5kg"]] *= 1.3
+        if day >= pd.Timestamp("2026-10-28"):                          # the run-up to this one
+            k = (day - pd.Timestamp("2026-10-28")).days
+            w[J["Diyas (12 pack)"]] = 1.5 + 1.0 * k; w[J["Dry Fruits 250g"]] *= 2 + 0.6 * k; w[J["Ghee 500ml"]] *= 1.5 + 0.2 * k
+        if 0 <= (rakhi26 - day).days <= 2: w[J["Dry Fruits 250g"]] *= 2.5; w[J["Ghee 500ml"]] *= 1.6
+        if m in (11, 12, 1, 2): w[J["Dry Fruits 250g"]] *= 1.5; w[J["Tea 500g"]] *= 1.25
+        w[J["Cold Drink 2L"]] *= {4: 1.9, 5: 1.9, 6: 1.9, 7: 1.4, 8: 1.4, 9: 1.4, 10: 0.6, 3: 0.9}.get(m, 0.45)
+        w[J["Instant Coffee 50g"]] *= 1 + 2.0 * progress
+        if day >= pd.Timestamp("2026-10-15"): w[J["Instant Coffee 50g"]] *= 1.6
+        if day >= pd.Timestamp("2026-10-20"): w[J["Tea 500g"]] *= 1.15
+        if day >= pd.Timestamp("2026-09-01"): w[J["Candles"]] = 0.0            # stopped selling
+        if day.dayofweek >= 5: w[J["Chips"]] *= 1.3; w[J["Cold Drink 2L"]] *= 1.3
+        return w
+
+    rows, bill = [], 10000
+    for i, day in enumerate(pd.date_range(start, end)):
+        growth = 1 + 0.012 * (i / 30.4)
+        n_bills = int(rng.poisson(24 * growth * day_factor(day)))
+        pw = product_factor(day)
+        ok = np.array([info[c]["first"] <= day <= info[c]["last"] for c in custs])
+        cw = cust_w * ok
+        cw = cw / cw.sum()
+        p_upi = 0.42 + 0.18 * (i / 490)
+        for _ in range(n_bills):
+            c = str(rng.choice(cust_names, p=cw))
+            ci = info[c]
+            bill += 1
+            k = int(rng.choice(6, p=basket_p[ci["kind"]])) + 1
+            w = pw.copy()
+            for nm, mult in area_pref[ci["area"]].items():
+                w[J[nm]] *= mult
+            for nm in ci["favs"]:
+                w[J[nm]] *= 3
+            chosen = list(rng.choice(names, size=k, replace=False, p=w / w.sum()))
+            if ci["kind"] == "daily" and "Milk 1L" not in chosen and rng.random() < 0.8:
+                chosen[0] = "Milk 1L"
+            for a, (b, p) in pairs.items():
+                if a in chosen and b not in chosen and rng.random() < p:
+                    chosen.append(b)
+            if ci["credit_from"] is not None and day >= ci["credit_from"] and rng.random() < 0.45:
+                pay = "Udhaar"
+            else:
+                pay = "UPI" if rng.random() < p_upi else "Cash"
+            hr = int(rng.choice(hours, p=hp)) if ci["kind"] != "daily" or rng.random() < 0.4 else int(rng.choice([7, 8, 9, 18, 19]))
+            stamp = f"{day:%Y-%m-%d} {hr:02d}:{int(rng.integers(0, 60)):02d}"
+            for nm in dict.fromkeys(chosen):
+                cat = items[nm][0]
+                price, cost = float(price_of[nm][0][i]), float(price_of[nm][1][i])
+                if price < 50: q = int(rng.integers(1, 5))
+                elif price < 150: q = int(rng.integers(1, 3))
+                else: q = 2 if rng.random() < 0.1 else 1
+                if nm in ("Dry Fruits 250g", "Diyas (12 pack)") and (0 <= (diwali25 - day).days <= 10 or day >= pd.Timestamp("2026-10-28")):
+                    q = int(rng.integers(1, 5))
+                rows.append([f"B{bill}", stamp, c, ci["phone"], nm, cat, q, price, cost, round(price * q, 2), pay, ci["area"]])
+
+    cols = ["bill_no", "date", "customer", "phone", "item", "category", "quantity", "selling_price", "cost_price", "amount", "payment", "area"]
+    out = pd.DataFrame(rows, columns=cols)
+    # realistic blemishes: a wedding order, one typo, a few blanks, a few repeated lines
+    wedding = next(c for c in custs if info[c]["kind"] == "regular" and info[c]["phone"])
+    k = int((pd.Timestamp("2026-10-24") - start).days)
+    for nm, q in (("Dry Fruits 250g", 40), ("Ghee 500ml", 12), ("Basmati Rice 5kg", 10), ("Sugar 1kg", 15)):
+        price, cost = float(price_of[nm][0][k]), float(price_of[nm][1][k])
+        out.loc[len(out)] = [f"B{bill + 1}", "2026-10-24 11:20", wedding, info[wedding]["phone"], nm, items[nm][0], q, price, cost, price * q, "UPI", info[wedding]["area"]]
+    typo = out[(out["item"] == "Maggi") & (out["date"] >= "2026-09-01")].index[5]
+    out.loc[typo, ["quantity", "amount"]] = [100, 1400]
+    out.loc[out.sample(30, random_state=3).index, "area"] = np.nan
+    out = pd.concat([out, out.sample(8, random_state=4)], ignore_index=True)
+    out = out.sort_values(["date", "bill_no"], kind="stable").reset_index(drop=True)
+    out.to_csv("samples/sharma_store.csv", index=False)
+    print(len(out), "lines,", out.bill_no.nunique(), "bills,", out.customer.nunique(), "customers,", f"{out.amount.sum():,.0f} rupees")
+
+
+def make_udhaar_khata(n=600):
+    """The credit ledger as a table a model can learn from: who repaid on time, and what was known about them."""
+    rng = np.random.default_rng(77)
+    area = rng.choice(AREAS, n, p=[.27, .24, .19, .17, .13])
+    gender = rng.choice(["Female", "Male"], n, p=[.46, .54])
+    age = rng.integers(21, 71, n)
+    months = rng.integers(1, 61, n)
+    visits = np.clip(rng.normal(8, 4, n), 1, 24).round(0)
+    avg_bill = np.clip(rng.lognormal(np.log(320), 0.45, n), 60, 2500).round(0)
+    udhaar = np.clip(rng.lognormal(np.log(1800), 0.6, n), 150, 15000).round(-1)
+    previous = rng.poisson(months / 8, n)
+    late = np.minimum(rng.poisson(0.6, n), previous)
+    days_since = np.clip(rng.exponential(12, n), 0, 150).round(0)
+    area_effect = pd.Series(area).map({"Malviya Nagar": 0.2, "Raja Park": 0.1, "Jawahar Nagar": 0.0, "Tilak Nagar": -0.6, "Adarsh Nagar": -0.1}).to_numpy()
+    logit = (0.4 + 0.09 * visits + 0.025 * months - 0.00028 * udhaar + 0.0008 * avg_bill
+             - 0.75 * late + 0.08 * previous - 0.02 * days_since + area_effect + rng.normal(0, 0.9, n))
+    repaid = (rng.random(n) < 1 / (1 + np.exp(-logit))).astype(int)
+    df = pd.DataFrame({
+        "customer_id": np.arange(1, n + 1), "area": area, "gender": gender, "age": age,
+        "months_as_customer": months, "visits_per_month": visits.astype(int), "avg_bill": avg_bill,
+        "udhaar_amount": udhaar, "previous_udhaar": previous, "late_before": late,
+        "days_since_last_visit": days_since.astype(int), "repaid_on_time": repaid,
+    })
+    df.loc[df.sample(18, random_state=1).index, "age"] = np.nan
+    df.loc[df.sample(12, random_state=2).index, "avg_bill"] = np.nan
+    df.loc[df.sample(2, random_state=5).index, "udhaar_amount"] = 90000
+    df = pd.concat([df, df.sample(6, random_state=6)], ignore_index=True)
+    df.to_csv("samples/udhaar_khata.csv", index=False)
+    print(len(df), "customers in the khata,", f"{df.repaid_on_time.mean():.0%} repaid on time")
+
+
 if __name__ == "__main__":
     make_sweet_shop()
     make_provision_store()
+    make_sharma_store()
+    make_udhaar_khata()
