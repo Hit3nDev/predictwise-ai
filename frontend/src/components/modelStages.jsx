@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Panel, Button, Field, Select, Readout, Empty, Notice } from "./ui";
+import { Panel, Button, Field, Select, Input, Readout, Empty } from "./ui";
 import { ImportanceBars } from "./Charts";
 import Leaderboard from "./Leaderboard";
 import { TrustNote, Track, Contributions, WhatIf, FairnessPanel, MonitorPanel, ReportLinks } from "./trust";
@@ -23,15 +23,13 @@ export function ModelStage({ dataset, result, onTrain, busy }) {
   }, [dataset]);
 
   return (
-    <div className="space-y-px">
+    <div className="space-y-5">
       <Panel title="Train models" note="cross-validated selection">
         <div className="grid items-end gap-4 md:grid-cols-[2fr_auto]">
           <Field label="Column to predict">
             <Select value={target} onChange={(e) => setTarget(e.target.value)}>
               {dataset?.columns?.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c}>{c}</option>
               ))}
             </Select>
           </Field>
@@ -39,7 +37,7 @@ export function ModelStage({ dataset, result, onTrain, busy }) {
             {busy ? "Training…" : "Train models"}
           </Button>
         </div>
-        <p className="mt-3 text-[12px] text-slate/50">
+        <p className="mt-3 text-[12.5px] text-mute">
           Several algorithms are trained and compared. The one with the best
           cross-validated score is kept and scored again on data it never saw.
         </p>
@@ -49,17 +47,17 @@ export function ModelStage({ dataset, result, onTrain, busy }) {
         <>
           <Panel title="Selected model" note={`predicting ${result.target}`}>
             <div className="mb-5 flex flex-wrap items-baseline gap-3">
-              <span className="text-[22px] tracking-tight">{result.best_algorithm}</span>
-              <span className="num text-[12px] text-slate/50">{result.task}</span>
+              <span className="display text-[30px] leading-none" style={{ fontVariationSettings: '"SOFT" 30, "WONK" 0' }}>{result.best_algorithm}</span>
+              <span className="eyebrow">{result.task}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
               {Object.entries(result.best_metrics).map(([k, v]) => (
                 <Readout
                   key={k}
                   value={typeof v === "number" ? v.toFixed(3) : v}
                   label={`${METRIC_LABELS[k] ?? k} · held out`}
-                  tone={k === result.primary_metric ? "ink" : "plain"}
+                  tone={k === result.primary_metric ? "good" : "plain"}
                 />
               ))}
               <Readout value={result.n_train} label="rows trained on" />
@@ -67,19 +65,17 @@ export function ModelStage({ dataset, result, onTrain, busy }) {
             </div>
 
             {result.dropped_columns?.length > 0 && (
-              <p className="mt-5 text-[12px] text-slate/55">
-                Ignored as identifiers: {result.dropped_columns.join(", ")}
+              <p className="mt-5 text-[12.5px] text-mute">
+                Ignored as identifiers: <span className="num">{result.dropped_columns.join(", ")}</span>
               </p>
             )}
           </Panel>
 
-          <div className="border border-rule bg-paper">
-            <Leaderboard result={result} />
-          </div>
+          <Leaderboard result={result} />
 
           <Panel title="What drives the prediction" note="permutation importance">
             <ImportanceBars items={result.feature_importance} />
-            <p className="mt-4 text-[12px] text-slate/50">
+            <p className="mt-4 text-[12.5px] text-mute">
               Each feature is shuffled in turn; the drop in score is how much the
               model relied on it.
             </p>
@@ -120,16 +116,16 @@ export function PredictStage({ result, onPredict, busy, output }) {
   };
 
   return (
-    <div className="space-y-px">
+    <div className="space-y-5">
       <Panel title="Predict" note={`${result.best_algorithm} · ${result.target}`}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {result.features.map((f) => (
             <Field key={f} label={f}>
-              <input
+              <Input
                 value={values[f] ?? ""}
                 onChange={(e) => setValues((v) => ({ ...v, [f]: e.target.value }))}
                 placeholder="—"
-                className="num w-full border border-rule bg-paper px-3 py-2 text-[13px]"
+                className="num"
               />
             </Field>
           ))}
@@ -139,7 +135,7 @@ export function PredictStage({ result, onPredict, busy, output }) {
             {busy ? "Predicting…" : "Predict"}
           </Button>
         </div>
-        <p className="mt-3 text-[12px] text-slate/50">
+        <p className="mt-3 text-[12.5px] text-mute">
           Blank fields are filled in with the values the model was trained on.
         </p>
       </Panel>
@@ -148,19 +144,17 @@ export function PredictStage({ result, onPredict, busy, output }) {
         <Panel title="Result">
           {output.results.map((r, i) => (
             <div key={i}>
-              <div className="flex items-baseline gap-4">
-                <span className="num text-[32px] leading-none text-ink">
+              <div className="flex flex-wrap items-baseline gap-4">
+                <span className="num text-[40px] leading-none text-cobalt">
                   {typeof r.prediction === "number"
-                    ? Number(r.prediction).toLocaleString(undefined, {
-                        maximumFractionDigits: 2,
-                      })
+                    ? Number(r.prediction).toLocaleString(undefined, { maximumFractionDigits: 2 })
                     : String(r.prediction)}
                 </span>
-                <span className="text-[13px] text-slate/55">predicted {output.target}</span>
+                <span className="eyebrow">predicted {output.target}</span>
               </div>
 
               {r.confidence != null && (
-                <p className="num mt-2 text-[12px] text-slate/60">
+                <p className="num mt-3 text-[12.5px] text-mute">
                   confidence {(r.confidence * 100).toFixed(1)}%
                 </p>
               )}
@@ -169,16 +163,16 @@ export function PredictStage({ result, onPredict, busy, output }) {
               <Track range={r.range} reliability={r.reliability} />
 
               {r.probabilities && (
-                <div className="mt-5 space-y-1.5">
+                <div className="mt-5 space-y-2">
                   {Object.entries(r.probabilities)
                     .sort((a, b) => b[1] - a[1])
                     .map(([cls, p]) => (
                       <div key={cls} className="flex items-center gap-3">
                         <span className="num w-24 truncate text-[12px]">{cls}</span>
-                        <div className="h-3 flex-1 bg-field">
-                          <div className="h-3 bg-ink/70" style={{ width: `${p * 100}%` }} />
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-bone">
+                          <div className="bar-grow h-2 rounded-full bg-cobalt" style={{ width: `${p * 100}%` }} />
                         </div>
-                        <span className="num w-14 text-right text-[12px] text-slate/60">
+                        <span className="num w-14 text-right text-[12px] text-mute">
                           {(p * 100).toFixed(1)}%
                         </span>
                       </div>
@@ -186,13 +180,13 @@ export function PredictStage({ result, onPredict, busy, output }) {
                 </div>
               )}
               {r.explanation && (
-                <div className="mt-6 border-t border-rule pt-4">
-                  <p className="mb-1 text-[12px] text-slate/50">Why this prediction · contribution of each input</p>
+                <div className="mt-6 border-t border-line pt-4">
+                  <p className="eyebrow mb-1">Why this prediction · contribution of each input</p>
                   <Contributions explanation={r.explanation} />
                 </div>
               )}
-              <div className="mt-6 border-t border-rule pt-4">
-                <p className="text-[12px] text-slate/50">What-if</p>
+              <div className="mt-6 border-t border-line pt-4">
+                <p className="eyebrow">What-if</p>
                 <WhatIf modelId={output.model_id} row={r.row} features={result.features} />
               </div>
             </div>
@@ -215,10 +209,10 @@ export function AuditStage({ result, predictionCount }) {
   }
   const id = result.best_model_id;
   return (
-    <div className="space-y-px">
+    <div className="space-y-5">
       <Panel title="Fairness audit" note="held-out rows only">
         <FairnessPanel modelId={id} />
-        <p className="mt-4 text-[12px] text-slate/50">
+        <p className="mt-4 text-[12.5px] text-mute">
           Uses the same held-back rows the leaderboard score came from, so the audit
           measures behaviour on data the model never trained on. Groups under 5 people are excluded.
         </p>
@@ -228,7 +222,7 @@ export function AuditStage({ result, predictionCount }) {
       </Panel>
       <Panel title="Reports">
         <ReportLinks modelId={id} />
-        <p className="mt-3 text-[12px] text-slate/50">
+        <p className="mt-3 text-[12.5px] text-mute">
           Opens a print-ready page. Use Print, then Save as PDF.
         </p>
       </Panel>

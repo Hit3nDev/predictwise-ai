@@ -79,6 +79,12 @@ SYSTEM_PROMPT = """You are a data analyst answering questions about one uploaded
 no data-analysis background -- a small business owner in India, not an analyst. Use the run_query tool to
 compute real numbers from the data; never guess or make up a figure.
 
+Rules for the queries:
+- Text values must match the dataset exactly as listed below (for example 'Tea 500g', not 'tea'). When unsure,
+  filter with df['col'].str.contains('tea', case=False, na=False).
+- Dates are stored as text: wrap them with pd.to_datetime(df['col']) before using .dt (Monday is 0, Sunday is 6).
+- Prefer one expression that returns the final number or a small table; query again only for another figure.
+
 Rules for the final answer:
 - 1-3 short sentences in simple everyday words, no jargon (no "R-squared", "standard deviation", "p-value"), no code.
 - Never ask the person a question back. If the request is vague, pick the most sensible reading, compute it,
@@ -103,7 +109,17 @@ def clean_answer(text: str) -> str:
 
     text = _AMOUNT.sub(rupee, text)
     text = _MD.sub("", text)
-    return re.sub(r"[ \t]+", " ", text).strip()
+    text = re.sub(r"[ \t]+", " ", text).strip()
+    # Some models say the final sentence twice; keep each sentence once, in order. A sentence
+    # ends at . ! ? or । followed by a space, or straight into a capital letter ("...Sundays.The"),
+    # so a decimal point or "Rs. 500" is left alone.
+    seen, kept = set(), []
+    for sentence in re.split(r"(?<=[.!?।])(?:\s+|(?=[A-Z“\"(]))", text):
+        key = sentence.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            kept.append(sentence.strip())
+    return " ".join(kept)
 
 
 def _safe_eval(expression: str, df: pd.DataFrame):
@@ -117,6 +133,59 @@ def _safe_eval(expression: str, df: pd.DataFrame):
 
 def _describe(columns: list) -> str:
     return "\n".join(f"- {c['name']} ({c['dtype']})" for c in columns)
+
+
+def _short(v) -> str:
+    v = float(v)
+    return f"{int(v):,}" if v == int(v) else f"{v:,.2f}"
+
+
+def _as_dates(text: pd.Series):
+    """The column parsed as dates when nearly every value parses, else None."""
+    try:
+        head = pd.to_datetime(text.head(200), errors="coerce", format="mixed")
+    except Exception:
+        return None
+    if head.notna().mean() < 0.9 or not text.head(200).str.contains(r"[-/]").mean() > 0.8:
+        return None
+    try:
+        return pd.to_datetime(text, errors="coerce", format="mixed")
+    except Exception:
+        return None
+
+
+def describe_frame(df: pd.DataFrame, max_values: int = 20) -> str:
+    """
+    One line per column with what the model needs in order to write a correct query: the
+    number range, the date span, and the distinct text values (or a sample of them) spelt
+    exactly as they appear. Built from the masked frame, so customer names, phones and
+    emails are already codes by the time they are listed here.
+    """
+    lines = []
+    for col in df.columns:
+        s, name = df[col], str(col)
+        if pd.api.types.is_bool_dtype(s):
+            lines.append(f"- {name} (yes/no)")
+            continue
+        if pd.api.types.is_numeric_dtype(s):
+            v = s.dropna()
+            rng = f", from {_short(v.min())} to {_short(v.max())}" if len(v) else ""
+            lines.append(f"- {name} (number{rng})")
+            continue
+        text = s.dropna().astype(str)
+        if text.empty:
+            lines.append(f"- {name} (text, empty)")
+            continue
+        dates = _as_dates(text)
+        if dates is not None:
+            lines.append(f"- {name} (date stored as text, from {dates.min():%Y-%m-%d} to {dates.max():%Y-%m-%d}; use pd.to_datetime(df['{name}']))")
+            continue
+        uniq = [u[:40] for u in text.unique()]
+        if len(uniq) <= max_values:
+            lines.append(f"- {name} (text, {len(uniq)} values: " + ", ".join(f"'{u}'" for u in uniq) + ")")
+        else:
+            lines.append(f"- {name} (text, {len(uniq):,} distinct values, e.g. " + ", ".join(f"'{u}'" for u in uniq[:6]) + ")")
+    return "\n".join(lines)
 
 
 def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str | None = None) -> dict | None:
@@ -134,9 +203,11 @@ def chat(df: pd.DataFrame, columns: list, question: str, history=None, lang: str
     messages = [{**m, "content": mask(m["content"])} if isinstance(m.get("content"), str) else m for m in (history or [])]
     question = mask(question)
     reply_in = lang_service.instruction(lang)
+    # The columns are described from the (masked) frame itself, values included, so the
+    # model matches 'Tea 500g' rather than guessing 'tea'. `columns` is kept for callers.
     messages.append({
         "role": "user",
-        "content": f"Dataset columns:\n{_describe(columns)}\n\nQuestion: {question}" + (f"\n\n{reply_in.strip()}" if reply_in else ""),
+        "content": f"Dataset columns:\n{describe_frame(safe_df)}\n\nQuestion: {question}" + (f"\n\n{reply_in.strip()}" if reply_in else ""),
     })
     trace = [{"expr": "Privacy shield", "result": shield.summary(), "raw": shield.summary()}] if shield.active else []
 

@@ -9,12 +9,39 @@ their settings from environment variables at import time.
   PW_APP_SECRET_ID  secret holding optional API keys, e.g.
                     {"GROQ_API_KEY": "...", "ANTHROPIC_API_KEY": "..."}
 
-Values already set in the environment win, so a local .env keeps working.
-Nothing here runs unless one of the two variables is set.
+Locally, the same settings can live in a .env file (backend/.env or the repo
+root); load_env_file() reads it. Values already set in the environment win, so
+an exported variable or a cloud secret always beats the file.
 """
 
 import json
 import os
+
+
+def load_env_file() -> None:
+    """
+    Read KEY=VALUE lines from backend/.env, then the repo-root .env, into the
+    environment. Blank lines, comments and quotes around values are ignored.
+    PW_SKIP_ENV_FILE=1 turns this off; the test suite sets it so a developer's
+    real key never changes what the tests see.
+    """
+    if os.environ.get("PW_SKIP_ENV_FILE"):
+        return
+    here = os.path.dirname(os.path.abspath(__file__))
+    for path in (os.path.join(here, ".env"), os.path.join(os.path.dirname(here), ".env")):
+        if not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("export "):
+                    line = line[7:].strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                name, value = line.split("=", 1)
+                name, value = name.strip(), value.strip().strip("\"'")
+                if name and value and not os.environ.get(name):
+                    os.environ[name] = value
 
 
 def _read_secret(secret_id: str) -> dict:
@@ -36,6 +63,7 @@ def database_url(secret: dict) -> str:
 
 
 def load_secrets(reader=_read_secret) -> None:
+    load_env_file()
     db_id = os.environ.get("PW_DB_SECRET_ID", "").strip()
     if db_id and not os.environ.get("DATABASE_URL"):
         os.environ["DATABASE_URL"] = database_url(reader(db_id))

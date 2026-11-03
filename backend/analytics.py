@@ -459,7 +459,10 @@ def segments(df: pd.DataFrame, max_k: int = 5) -> dict:
     best, best_s = None, -1.0
     for k in range(2, min(max_k, len(df) // 10) + 1):
         km = KMeans(n_clusters=k, n_init=10, random_state=42).fit(M)
-        s = silhouette_score(M, km.labels_)
+        # Silhouette compares every row with every other row (n squared). On a
+        # 21k-row file that took over a minute, so score a fixed random sample;
+        # small files are still scored on every row.
+        s = silhouette_score(M, km.labels_, sample_size=min(len(M), 3000), random_state=42)
         if s > best_s:
             best, best_s = km, s
     if best is None:

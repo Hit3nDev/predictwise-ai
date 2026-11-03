@@ -1,63 +1,67 @@
 import { useState } from "react";
-import { Panel, Button, Field, Select, Readout, Empty, Notice } from "./ui";
+import { Panel, Button, Field, Select, Readout, Empty, Tag } from "./ui";
+import { Icon } from "./icons";
 import { MissingBars, Histogram, Heatmap, DataTable } from "./Charts";
 
 /* ---------------------------------------------------------------- 1. Data */
 
 export function DataStage({ datasets, onUpload, onSelect, active, busy }) {
   const [file, setFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
 
   return (
-    <div className="grid gap-px bg-rule md:grid-cols-[1fr_1fr]">
-      <div className="bg-paper p-5">
-        <h2 className="mb-1 text-[15px] font-medium tracking-tight">Add a dataset</h2>
-        <p className="mb-4 text-[13px] text-slate/55">
-          CSV or Excel. Columns and types are read on upload.
-        </p>
-
-        <input
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          onChange={(e) => setFile(e.target.files[0])}
-          className="mb-4 block w-full text-[13px] text-slate/70
-                     file:mr-3 file:cursor-pointer file:border file:border-slate/25
-                     file:bg-paper file:px-3 file:py-1.5 file:text-[12px] file:text-slate
-                     hover:file:border-ink hover:file:text-ink"
-        />
-        <Button onClick={() => onUpload(file)} disabled={!file || busy}>
+    <div className="grid animate-rise gap-5 md:grid-cols-2">
+      <Panel title="Add a dataset" note="csv · xlsx · xls">
+        <label
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-[10px] border-[1.5px] border-dashed px-5 py-9 text-center transition ${
+            dragging ? "border-ink bg-lime/40" : file ? "border-ink/60 bg-lime/20" : "border-ink/30 bg-bone/70 hover:border-ink hover:bg-lime/25"
+          }`}
+        >
+          <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setFile(e.target.files[0])} className="sr-only" />
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lime text-[#111111]">
+            <Icon name={file ? "file" : "upload"} size={18} />
+          </span>
+          {file ? (
+            <p className="mt-3 max-w-full truncate text-[13.5px] font-medium">{file.name}</p>
+          ) : (
+            <>
+              <p className="mt-3 text-[13.5px] font-medium">Drop a CSV or Excel file here</p>
+              <p className="mt-0.5 text-[12px] text-mute">Columns and types are read on upload.</p>
+            </>
+          )}
+        </label>
+        <Button className="mt-4 w-full" onClick={() => onUpload(file)} disabled={!file || busy}>
           {busy ? "Reading…" : "Upload dataset"}
         </Button>
-      </div>
+      </Panel>
 
-      <div className="bg-paper">
-        <div className="border-b border-rule px-5 py-3">
-          <h2 className="text-[15px] font-medium tracking-tight">Datasets</h2>
-        </div>
+      <Panel title="Datasets" note={`${datasets.length} on file`} flush>
         {datasets.length === 0 ? (
-          <p className="px-5 py-8 text-center text-[13px] text-slate/45">
-            Nothing here yet. Upload a file to begin.
-          </p>
+          <div className="p-5"><Empty>Nothing here yet. Upload a file to begin.</Empty></div>
         ) : (
-          <ul>
-            {datasets.map((d) => (
-              <li key={d.id}>
-                <button
-                  onClick={() => onSelect(d)}
-                  className={`flex w-full items-center justify-between border-b border-rule/70 px-5 py-2.5 text-left hover:bg-field ${
-                    active?.id === d.id ? "bg-field" : ""
-                  }`}
-                >
-                  <span className="num truncate text-[13px]">{d.file_name}</span>
-                  <span className="num shrink-0 text-[11px] text-slate/50">
-                    {d.row_count}×{d.column_count}
-                    {d.is_cleaned && <span className="ml-2 text-ink">cleaned</span>}
-                  </span>
-                </button>
-              </li>
-            ))}
+          <ul className="max-h-[380px] overflow-y-auto">
+            {datasets.map((d) => {
+              const on = active?.id === d.id;
+              return (
+                <li key={d.id}>
+                  <button
+                    onClick={() => onSelect(d)}
+                    className={`flex w-full items-center gap-3 border-b border-line px-5 py-3 text-left hover:bg-bone ${on ? "bg-lime/30" : ""}`}
+                  >
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${on ? "bg-ink" : "bg-line"}`} />
+                    <span className="min-w-0 flex-1 truncate text-[13.5px]">{d.file_name}</span>
+                    <span className="num shrink-0 text-[11px] text-mute">{d.row_count}×{d.column_count}</span>
+                    {d.is_cleaned && <Tag>cleaned</Tag>}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -74,14 +78,11 @@ export function CleanStage({ onClean, busy, result }) {
   const set = (k, v) => setOpts((o) => ({ ...o, [k]: v }));
 
   return (
-    <div className="space-y-px">
+    <div className="space-y-5">
       <Panel title="Preprocessing" note="every step is recorded">
         <div className="grid gap-4 md:grid-cols-3">
           <Field label="Missing numbers">
-            <Select
-              value={opts.numeric_strategy}
-              onChange={(e) => set("numeric_strategy", e.target.value)}
-            >
+            <Select value={opts.numeric_strategy} onChange={(e) => set("numeric_strategy", e.target.value)}>
               <option value="median">Replace with median</option>
               <option value="mean">Replace with mean</option>
               <option value="zero">Replace with zero</option>
@@ -90,10 +91,7 @@ export function CleanStage({ onClean, busy, result }) {
           </Field>
 
           <Field label="Missing text">
-            <Select
-              value={opts.categorical_strategy}
-              onChange={(e) => set("categorical_strategy", e.target.value)}
-            >
+            <Select value={opts.categorical_strategy} onChange={(e) => set("categorical_strategy", e.target.value)}>
               <option value="mode">Replace with most common</option>
               <option value="constant">Replace with “Unknown”</option>
               <option value="drop">Drop those rows</option>
@@ -101,22 +99,19 @@ export function CleanStage({ onClean, busy, result }) {
           </Field>
 
           <Field label="Extreme values">
-            <Select
-              value={opts.outlier_method}
-              onChange={(e) => set("outlier_method", e.target.value)}
-            >
+            <Select value={opts.outlier_method} onChange={(e) => set("outlier_method", e.target.value)}>
               <option value="none">Keep as they are</option>
               <option value="iqr_clip">Cap using the IQR rule</option>
             </Select>
           </Field>
         </div>
 
-        <label className="mt-4 flex w-fit cursor-pointer items-center gap-2 text-[13px]">
+        <label className="mt-5 flex w-fit cursor-pointer items-center gap-2.5 text-[13.5px]">
           <input
             type="checkbox"
             checked={opts.drop_duplicates}
             onChange={(e) => set("drop_duplicates", e.target.checked)}
-            className="h-3.5 w-3.5 accent-[#2f7d6e]"
+            className="h-4 w-4 accent-[rgb(var(--cobalt))]"
           />
           Remove repeated rows
         </label>
@@ -129,15 +124,12 @@ export function CleanStage({ onClean, busy, result }) {
       </Panel>
 
       {result && (
-        <Panel
-          title="What changed"
-          note={`${result.rows_before} → ${result.rows_after} rows`}
-        >
-          <ol className="space-y-2">
+        <Panel title="What changed" note={`${result.rows_before} → ${result.rows_after} rows`}>
+          <ol className="divide-y divide-line">
             {result.operations.map((op, i) => (
-              <li key={i} className="flex gap-3 text-[13px]">
-                <span className="num shrink-0 text-slate/35">{String(i + 1).padStart(2, "0")}</span>
-                <span className="text-slate/80">{op.detail}</span>
+              <li key={i} className="flex gap-4 py-2.5 text-[13.5px] first:pt-0 last:pb-0">
+                <span className="num shrink-0 text-[11px] text-mute">{String(i + 1).padStart(2, "0")}</span>
+                <span>{op.detail}</span>
               </li>
             ))}
           </ol>
@@ -164,23 +156,15 @@ export function ExploreStage({ eda, onRun, busy }) {
   }
 
   return (
-    <div className="space-y-px">
+    <div className="space-y-5">
       <Panel title="Shape" note={eda.source === "cleaned" ? "cleaned data" : "raw data"}>
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-6">
-          <Readout value={eda.row_count} label="rows" />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
+          <Readout value={eda.row_count.toLocaleString("en-IN")} label="rows" />
           <Readout value={eda.column_count} label="columns" />
           <Readout value={eda.numeric_columns} label="numeric" />
           <Readout value={eda.categorical_columns} label="text" />
-          <Readout
-            value={eda.total_missing}
-            label="missing values"
-            tone={eda.total_missing ? "clay" : "ink"}
-          />
-          <Readout
-            value={eda.duplicate_rows}
-            label="repeated rows"
-            tone={eda.duplicate_rows ? "clay" : "ink"}
-          />
+          <Readout value={eda.total_missing} label="missing values" tone={eda.total_missing ? "warn" : "good"} />
+          <Readout value={eda.duplicate_rows} label="repeated rows" tone={eda.duplicate_rows ? "warn" : "good"} />
         </div>
       </Panel>
 
@@ -190,10 +174,10 @@ export function ExploreStage({ eda, onRun, busy }) {
 
       {eda.histograms.length > 0 && (
         <Panel title="Distributions">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {eda.histograms.map((h) => (
-              <div key={h.column}>
-                <p className="num mb-2 truncate text-[12px] text-slate/60">{h.column}</p>
+              <div key={h.column} className="rounded-[10px] border border-line p-3">
+                <p className="num mb-3 truncate text-[12px] text-mute">{h.column}</p>
                 <Histogram bins={h.bins} />
               </div>
             ))}
@@ -201,7 +185,7 @@ export function ExploreStage({ eda, onRun, busy }) {
         </Panel>
       )}
 
-      <Panel title="Correlation" note="clay negative · green positive">
+      <Panel title="Correlation" note="red negative · cobalt positive">
         <Heatmap columns={eda.correlation.columns} matrix={eda.correlation.matrix} />
       </Panel>
 

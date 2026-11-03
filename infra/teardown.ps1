@@ -20,8 +20,12 @@ function Aws {
 
 function Stack-Exists([string]$Name) {
     $ErrorActionPreference = "Continue"
-    & aws.exe cloudformation describe-stacks --stack-name "$Project-$Name" --region $Region 2>&1 | Out-Null
-    return ($LASTEXITCODE -eq 0)
+    $out = & aws.exe cloudformation describe-stacks --stack-name "$Project-$Name" --region $Region 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0) { return $true }
+    # Only "does not exist" means gone. Any other error (expired credentials,
+    # network) must stop the teardown, or it would wrongly report success.
+    if ($out -match "does not exist") { return $false }
+    throw "Could not check $Project-${Name}: $($out.Trim())"
 }
 
 function Remove-Stack([string]$Name) {
@@ -46,6 +50,14 @@ function Clear-Bucket([string]$Bucket) {
         (@{ Objects = $objects; Quiet = $true } | ConvertTo-Json -Depth 4 -Compress) | Set-Content -Encoding Ascii $tmp
         Aws s3api delete-objects --bucket $Bucket --delete "file://$tmp" | Out-Null
     }
+}
+
+$ErrorActionPreference = "Continue"
+& aws.exe sts get-caller-identity --region $Region 2>&1 | Out-Null
+$ok = ($LASTEXITCODE -eq 0)
+$ErrorActionPreference = "Stop"
+if (-not $ok) {
+    throw "AWS credentials are missing or expired. Start the Learner Lab, paste the new AWS CLI block into $HOME\.aws\credentials, then run this again. Nothing was deleted."
 }
 
 if (-not $Yes) {

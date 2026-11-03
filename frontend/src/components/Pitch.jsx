@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Icon, LogoMark } from "./icons";
 
 /* The honest case for this app next to a general chat assistant. Every cell
    is something this codebase does (and is tested for), or says plainly that
@@ -39,41 +40,49 @@ export default function Pitch({ onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-20 overflow-y-auto bg-slate/60 p-4 sm:p-10" onClick={onClose} role="dialog" aria-modal="true" aria-label="Why PredictWise">
-      <div className="mx-auto max-w-3xl border border-rule bg-paper" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-6 border-b border-rule px-6 py-5">
+    <div className="fixed inset-0 z-40 overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:p-10" onClick={onClose} role="dialog" aria-modal="true" aria-label="Why PredictWise">
+      <div className="mx-auto max-w-3xl animate-rise overflow-hidden rounded-[16px] border border-line bg-bone shadow-lift" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-6 px-6 pb-6 pt-6 sm:px-8">
           <div>
-            <h2 className="text-[22px] leading-snug tracking-tight">A shopkeeper should not need to know data to use their own data</h2>
-            <p className="mt-2 max-w-[60ch] text-[14px] text-slate/65">
+            <p className="eyebrow flex items-center gap-2"><LogoMark size={16} /> Why PredictWise?</p>
+            <h2 className="display mt-4 text-[32px] leading-[1.05] sm:text-[40px]">
+              A shopkeeper should not need to know data to use <em>their own</em> data.
+            </h2>
+            <p className="mt-4 max-w-[60ch] text-[14.5px] leading-relaxed text-mute">
               Most small businesses already keep sales in a notebook or a spreadsheet. They never use it, because
               asking good questions is a skill. PredictWise asks the questions for them, and shows its working.
             </p>
           </div>
-          <button onClick={onClose} className="text-[13px] text-slate/50 hover:text-ink">Close</button>
+          <button onClick={onClose} aria-label="Close" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-ink/20 text-ink hover:border-ink hover:bg-ink hover:text-sheet">
+            <Icon name="x" size={16} />
+          </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-[13px]">
-            <thead className="bg-field text-slate/55">
-              <tr>
-                <th className="px-6 py-2.5 font-medium" />
-                <th className="px-3 py-2.5 font-medium text-ink">PredictWise</th>
-                <th className="px-3 py-2.5 pr-6 font-medium">A general chat assistant</th>
+        <div className="overflow-x-auto border-t border-line bg-sheet">
+          <table className="w-full min-w-[560px] text-left text-[13.5px]">
+            <thead>
+              <tr className="border-b border-line">
+                <th className="px-6 py-3 sm:px-8" />
+                <th className="eyebrow px-3 py-3 font-normal !text-ink">PredictWise</th>
+                <th className="eyebrow px-3 py-3 pr-6 font-normal sm:pr-8">A general chat assistant</th>
               </tr>
             </thead>
             <tbody>
-              {ROWS.map(([what, us, them]) => (
-                <tr key={what} className="border-t border-rule/70 align-top">
-                  <td className="w-[28%] px-6 py-3 font-medium">{what}</td>
-                  <td className="px-3 py-3">{us}</td>
-                  <td className="px-3 py-3 pr-6 text-slate/60">{them}</td>
+              {ROWS.map(([what, us, them], i) => (
+                <tr key={what} className="border-t border-line align-top">
+                  <td className="w-[28%] px-6 py-3.5 sm:px-8">
+                    <span className="num mr-2.5 text-[11px] text-mute">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="font-semibold">{what}</span>
+                  </td>
+                  <td className="px-3 py-3.5">{us}</td>
+                  <td className="px-3 py-3.5 pr-6 text-mute sm:pr-8">{them}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <p className="border-t border-rule px-6 py-4 text-[12.5px] text-slate/55">
+        <p className="border-t border-line px-6 py-4 text-[12.5px] text-mute sm:px-8">
           A general assistant is the better choice for open writing, brainstorming and questions that have nothing to do with your file.
           PredictWise is built for one job: turning your own records into decisions you can trust.
         </p>

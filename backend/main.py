@@ -39,6 +39,7 @@ import insights
 import llm_chat
 import llm_provider
 import llm_resolver
+import lookup
 import query_engine
 import lang
 import actions
@@ -875,6 +876,16 @@ def shop_tool(dataset_id: int, tool: str, kind: str = "winback", lang_code: str 
 
 
 
+@app.get("/datasets/{dataset_id}/lookup")
+def dataset_lookup(dataset_id: int, q: str = "", db: Session = Depends(get_db)):
+    """One customer or product at a glance. Without a name, the names worth suggesting."""
+    d = _get_dataset_or_404(dataset_id, db)
+    _, df = _frames(d)
+    if not q.strip():
+        return {"available": False, **lookup.options(df)}
+    return lookup.find(df, q)
+
+
 @app.get("/datasets/{dataset_id}/forecast")
 def dataset_forecast(dataset_id: int, service: float = Query(0.95, ge=0.5, le=0.99), db: Session = Depends(get_db)):
     """Next week's demand per product, sized for a chosen service level, with the replay that justifies it."""
@@ -1343,6 +1354,12 @@ def _shop_answer(intent: str, df: pd.DataFrame, question: str, lang_code: str, s
 def _rich_intent(d: models.Dataset, raw: pd.DataFrame, df: pd.DataFrame, question: str, db: Session,
                  lang_code: str = "en", shop_name: str = ""):
     """Questions with a purpose-built answer: briefing, trend, groups, unusual rows, who-first."""
+    # "Tell me about Geeta Chauhan" / "Atta 10kg": one customer or product at a glance.
+    card = lookup.from_question(df, question)
+    if card:
+        block = {"type": "card", **{k: v for k, v in card.items() if k != "narrative"}}
+        return schemas.ChatResponse(narrative=card["narrative"], kind="card", source="analytics", blocks=[block])
+
     intent = analytics.detect_intent(question)
     if intent is None and RANK_RE.search(question):
         intent = "rank"

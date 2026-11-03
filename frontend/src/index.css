@@ -2,53 +2,182 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---- Typefaces: Fraunces for headlines, Bricolage Grotesque for the interface, Spline Sans
+   Mono for numbers. Served from /public/fonts so a demo never waits on a third party. */
+@font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/bricolage-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Fraunces"; src: url("/fonts/fraunces-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Fraunces"; src: url("/fonts/fraunces-italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Spline Sans Mono"; src: url("/fonts/splinemono-normal.woff2") format("woff2"); font-weight: 300 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Spline Sans Mono"; src: url("/fonts/splinemono-italic.woff2") format("woff2"); font-weight: 300 700; font-style: italic; font-display: swap; }
+
+/* ---- Palette. Every colour is a semantic token, so one set of components serves both themes:
+   `ink` is the text colour and also the inverted surface (buttons, the user's bubble);
+   `bone` is the canvas, `sheet` the surfaces, `line` the hairlines. Dark is the default;
+   <html data-theme="light"> switches to paper. */
 :root {
-  --slate: 16 19 26;
-  --paper: 255 255 255;
-  --field: 242 243 239;
-  --rule:  216 218 210;
-  --ink:   47 125 110;
-  --clay:  168 67 47;
+  color-scheme: dark;
+  --ink:     237 235 228;
+  --bone:    16 16 18;
+  --sheet:   24 24 27;
+  --line:    43 43 48;
+  --mute:    150 148 141;
+  --cobalt:  104 128 255;
+  --lime:    214 245 70;
+  --signal:  255 112 80;
+  --rail:    10 10 11;
+  --railink: 237 235 228;
+  --grain-invert: 1;
+  --grain-opacity: .3;
+  --sel-arrow: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23edebe4' fill-opacity='.7' d='M0 0h10L5 6z'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ink:     17 17 17;
+  --bone:    244 241 234;
+  --sheet:   255 255 255;
+  --line:    224 219 208;
+  --mute:    108 104 95;
+  --cobalt:  38 58 230;
+  --lime:    214 245 70;
+  --signal:  217 68 43;
+  --rail:    14 14 16;
+  --railink: 255 255 255;
+  --grain-invert: 0;
+  --grain-opacity: .6;
+  --sel-arrow: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23111111' fill-opacity='.6' d='M0 0h10L5 6z'/%3E%3C/svg%3E");
 }
 
 html, body, #root { height: 100%; }
 
 body {
-  background: rgb(var(--field));
-  color: rgb(var(--slate));
-  font-family: Archivo, system-ui, -apple-system, sans-serif;
+  background: rgb(var(--bone));
+  color: rgb(var(--ink));
+  font-family: "Bricolage Grotesque", "Noto Sans Devanagari", "Nirmala UI", system-ui, sans-serif;
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Numerals are the subject matter here — set them in the mono face with
-   tabular figures so columns of data align down the page. */
-.num {
-  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  font-variant-numeric: tabular-nums;
+/* A faint paper grain on the canvas, underneath every sheet. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  filter: invert(var(--grain-invert));
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
 }
+
+/* Numbers are the subject matter: mono face, tabular figures. */
+.num { font-family: "Spline Sans Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+/* Small mono labels that organise every screen. */
+.eyebrow {
+  font-family: "Spline Sans Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgb(var(--mute));
+}
+
+/* Headlines: Fraunces with its soft, slightly wonky cut switched on. */
+.display {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -.025em;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+}
+.display em { font-style: italic; }
+
+/* The highlighter under a word, drawn in after the page settles.
+   On paper it is a lime block behind dark text; on the dark canvas the word itself turns
+   lime and a thin lime rule is drawn beneath it. */
+.hl {
+  color: #111111;
+  background-image: linear-gradient(rgb(var(--lime)), rgb(var(--lime)));
+  background-repeat: no-repeat;
+  background-size: 0% 40%;
+  background-position: 0 90%;
+  padding: 0 .06em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  animation: hl 1.1s cubic-bezier(.2,.7,.2,1) .45s forwards;
+}
+@keyframes hl { to { background-size: 100% 40%; } }
+:root:not([data-theme="light"]) .hl {
+  color: rgb(var(--lime));
+  background-size: 0% 5%;
+  background-position: 0 100%;
+  animation-name: hl-dark;
+}
+@keyframes hl-dark { to { background-size: 100% 5%; } }
+
+@layer components {
+  .sheet { @apply rounded-[12px] border border-line bg-sheet; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-[8px] px-4 py-2.5 text-[13.5px] font-medium transition disabled:cursor-not-allowed; }
+  .btn-solid { @apply bg-ink text-sheet hover:bg-lime hover:text-[#111111] disabled:bg-ink/10 disabled:text-ink/35; }
+  .btn-outline { @apply border border-ink/25 bg-sheet text-ink hover:border-ink disabled:opacity-40; }
+  .btn-ghost { @apply text-mute hover:bg-ink/[0.06] hover:text-ink; }
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full border border-ink/20 bg-sheet px-3.5 py-1.5 text-left text-[13px] text-ink transition hover:border-ink hover:bg-ink hover:text-sheet; }
+  .field-input { @apply w-full rounded-[8px] border border-line bg-sheet px-3 py-2.5 text-[13.5px] text-ink placeholder:text-ink/30 hover:border-ink/40; }
+}
+
+button, a, input, select, textarea, summary {
+  transition: color .15s, background-color .15s, border-color .15s, box-shadow .15s, transform .15s, opacity .15s;
+}
+:where(button:not(:disabled)):active { transform: translateY(1px); }
+
+:where(input:not([type=file]):not([type=checkbox]):not([type=radio]), select, textarea):focus {
+  outline: none;
+  border-color: rgb(var(--cobalt));
+  box-shadow: 0 0 0 3px rgb(var(--cobalt) / .22);
+}
+.bare:focus, .bare:focus-visible { box-shadow: none; border-color: transparent; outline: none; }
+:focus-visible { outline: 2px solid rgb(var(--cobalt)); outline-offset: 2px; }
 
 /* Native select needs its own arrow once appearance is stripped. */
 .sel {
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%2310131a' d='M0 0h10L5 6z'/%3E%3C/svg%3E");
+  background-image: var(--sel-arrow);
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
 }
 
-:focus-visible {
-  outline: 2px solid rgb(var(--ink));
-  outline-offset: 1px;
+/* The question ticker on the start screen. */
+.ticker {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.ticker-track { display: flex; width: max-content; animation: marquee 75s linear infinite; }
+.ticker:hover .ticker-track { animation-play-state: paused; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+/* Bars resolving, the mark thinking, placeholders shimmering. */
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.bar-grow { transform-origin: left; animation: grow .6s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes bob { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-4px, 4px); } }
+.animate-bob { animation: bob 1.1s ease-in-out infinite; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.shimmer {
+  background: linear-gradient(90deg, rgb(var(--line) / .55) 25%, rgb(var(--sheet)) 50%, rgb(var(--line) / .55) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
 }
 
-/* The one piece of motion in the interface: leaderboard bars resolving. */
-@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.bar-grow { transform-origin: left; animation: grow .45s cubic-bezier(.2,.7,.3,1) both; }
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--ink) / .2) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: rgb(var(--ink) / .18); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+
+::selection { background: rgb(var(--lime)); color: #111111; }
 
 @media (prefers-reduced-motion: reduce) {
-  .bar-grow { animation: none; }
+  .bar-grow, .animate-rise, .animate-slide, .animate-pulseDot, .animate-bob, .shimmer, .ticker-track { animation: none !important; }
+  .hl { background-size: 100% 40%; }
+  :root:not([data-theme="light"]) .hl { background-size: 100% 5%; }
 }
-
-::selection { background: rgb(var(--ink)); color: #fff; }

@@ -75,6 +75,7 @@ export const getToolkit = (id) => api.get(`/datasets/${id}/toolkit`).then((r) =>
 export const getPlaybook = (id) => api.get(`/datasets/${id}/playbook`).then((r) => r.data);
 
 export const llmStatus = () => api.get("/health/llm").then((r) => r.data);
+export const getHealth = () => api.get("/health").then((r) => r.data);
 
 /* ---- insights ---- */
 export const listSamples = () => api.get("/samples").then((r) => r.data);
@@ -114,4 +115,8 @@ export const downloadScored = async (modelId, file) => {
 };
 
 export const getDigest = (id) => api.get(`/datasets/${id}/digest`).then((r) => r.data);
+export const shopTool = (id, tool) => api.get(`/datasets/${id}/shop/${tool}`).then((r) => r.data);
+export const getCustomers = (id) => api.get(`/datasets/${id}/customers`).then((r) => r.data);
+export const getStockPlan = (id) => api.get(`/datasets/${id}/stock-plan`).then((r) => r.data);
+export const lookupName = (id, q = "") => api.get(`/datasets/${id}/lookup`, { params: { q } }).then((r) => r.data);
 export const compareFiles = (id, otherId) => api.get(`/datasets/${id}/compare/${otherId}`).then((r) => r.data);

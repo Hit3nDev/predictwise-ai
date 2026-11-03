@@ -94,7 +94,8 @@ pip install -r requirements.txt
 # Optional — enables real language understanding for the chat, instead of
 # just the offline query engine + synonym matching. Anthropic has no free
 # API tier, so this defaults to Groq: free, no credit card, sign up at
-# console.groq.com/keys.
+# console.groq.com/keys. Put the key in backend/.env (GROQ_API_KEY=gsk_...);
+# it is read automatically at startup. An exported variable also works:
 # export GROQ_API_KEY=gsk_...        (macOS/Linux)
 # $env:GROQ_API_KEY="gsk_..."        (Windows PowerShell)
 #
@@ -103,6 +104,8 @@ pip install -r requirements.txt
 
 uvicorn main:app --reload
 ```
+
+On Windows, `start.bat` in the repo root does both steps and opens the browser.
 
 **Frontend**
 ```bash
@@ -440,6 +443,31 @@ frontend/src/
   - A new sample (provision store: bills, phone numbers, udhaar, a Diwali rush) and a
     "Shop toolkit" panel that only offers what the uploaded file can support.
   - Tests: 60 passing. Known limit: table column headings stay in English.
+
+- **Day 19: a real key, a dark theme, and a steadier assistant.**
+  - **First live run of the Groq path** (every earlier day was built without a key). It exposed three things,
+    all fixed: Groq had retired the `llama` models the app tried first, so every question burnt two failed
+    requests and landed on the smallest model; the model never saw the dataset's actual values, so it
+    queried `product == 'tea'` instead of `'Tea 500g'` and reported "no tea sales"; and the free quota is
+    per model per minute, so three questions in a row hit a 429. Now the strongest available model goes
+    first, the column list sent to the model includes the real values, number ranges and date spans
+    (from the masked frame, so names are still codes), a short "try again in 5s" is waited out, a longer
+    one moves to the next model's own quota, and repeated final sentences are trimmed.
+  - `backend/.env` is read at startup, so the key is set once instead of per terminal; `start.bat` launches
+    both servers. The test suite ignores the file so a developer's key never changes what the tests see.
+  - UI: semantic colour tokens with a dark default and a light "paper" theme behind a header toggle;
+    Fraunces, Bricolage Grotesque and Spline Sans Mono served from `frontend/public/fonts`; every answer is
+    labelled with where it came from, including "Couldn't answer that · overview instead"; an
+    "AI assistant · on/off" panel says plainly whether open-ended questions will be answered.
+  - **Three ways into a file.** *Dashboard*: the shop at a glance, every tile one of the chat's engines
+    (trend with forecast, sales mix, this week's actions, busiest days, udhaar, what earns money, the next
+    festival, customer groups, next week's order, unusual entries), each with an "Ask" that drops the
+    matching question into the chat; only the tiles the file can support appear. *Look up* (`lookup.py`,
+    `/datasets/{id}/lookup`): one customer or product at a glance, with partial names and misspellings
+    tolerated, ambiguous names turned into suggestions, and a ready WhatsApp message; "Tell me about
+    Geeta Chauhan" or just "Bread" in the chat gives the same card. *Question library*: ready questions
+    grouped by topic, built from what this particular file can answer.
+  - Tests: 104 passing.
 
 - **Day 18: evidence and engineering.** See `ARCHITECTURE.md`.
   - **Self-checking forecasts (`forecast.py`):** four methods replayed week by week over the shop's own

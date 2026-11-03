@@ -7,40 +7,106 @@ import { TrustNote, Track, Contributions, WhatIf, FairnessPanel, ReportLinks } f
 import { Blocks, BatchScore, Levers } from "./blocks";
 import { LANGS, t } from "../i18n";
 import { canListen, canSpeak, listen, speak, stopSpeaking } from "./voice";
+import { Icon, LogoMark, ThinkingMark } from "./icons";
+import { Switch, Tag } from "./ui";
+import Dashboard from "./Dashboard";
+import Lookup from "./Lookup";
 
-/* A real chat over the dataset. Template cards are just quick-start prompts
-   shown once, before the first message — after that it's a normal
-   conversation: type anything, get an answer, keep going. */
+/* Simple Mode is a conversation over one file. The start screen takes a file or a sample.
+   The chat screen is a reading column with a "dossier" rail beside it that holds the file,
+   the language, private mode, the shop toolkit and the actions. */
 
-function Bubble({ role, children }) {
-  const isUser = role === "user";
+const TICKER = [
+  "Who owes me money?", "What should I stock for Diwali?", "Which product earns the most?",
+  "How much should I order next week?", "Will this customer buy again?", "Which day is busiest?",
+  "What do people buy together?", "What stopped selling?", "Show sales by city as a chart",
+  "Which customers should I win back?", "What should I do this week?", "Which rows look unusual?",
+];
+
+const SAMPLE_ICONS = { kirana_sales: "store", customers: "users", sweet_shop: "cake", provision_store: "basket" };
+
+const HIGHLIGHTS = [
+  { title: "Answers, not dashboards", body: "Profit, udhaar, stock and customers, in plain words." },
+  { title: "Every number checked", body: "Calculated from your file by code, with the working shown." },
+  { title: "English, Hindi, Hinglish", body: "Type or speak. Share any answer on WhatsApp in one tap." },
+];
+
+/* The label above every answer says where it came from. */
+const SOURCE = {
+  brief:    { key: "srcBrief",    dot: "bg-ink" },
+  calc:     { key: "srcCalc",     dot: "bg-cobalt" },
+  ai:       { key: "srcAi",       dot: "bg-lime ring-1 ring-ink/70" },
+  model:    { key: "srcModel",    dot: "bg-cobalt" },
+  fallback: { key: "srcFallback", dot: "bg-signal" },
+  note:     { key: "srcNote",     dot: "bg-ink/30" },
+};
+/* kind "profile" from the offline path is the honest fallback ("I couldn't match that"),
+   so it is labelled as such rather than as a calculation. */
+const sourceOf = (m) =>
+  m.lead ? "brief"
+  : m.kind === "prediction" ? "model"
+  : m.source === "llm" ? "ai"
+  : m.kind === "profile" && m.source === "offline" ? "fallback"
+  : m.source ? "calc" : "note";
+
+function Ticker({ items }) {
+  const row = (
+    <span className="flex">
+      {items.map((q) => (
+        <span key={q} className="flex items-center gap-6 pr-6">
+          <span>{q}</span>
+          <span className="text-ink/30">✦</span>
+        </span>
+      ))}
+    </span>
+  );
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[85%] px-4 py-3 text-[15px] leading-relaxed ${
-          isUser ? "bg-ink text-white" : "border border-rule bg-paper text-slate"
-        }`}
-      >
-        {children}
-      </div>
+    <div className="ticker border-b border-line" aria-hidden="true">
+      <div className="ticker-track eyebrow py-2.5 !text-[11px] text-ink/60">{row}{row}</div>
     </div>
+  );
+}
+
+function UserBubble({ children }) {
+  return (
+    <div className="flex animate-rise justify-end">
+      <p className="max-w-[82%] rounded-[18px] rounded-br-[4px] bg-ink px-4 py-2.5 text-[15px] leading-relaxed text-sheet">
+        {children}
+      </p>
+    </div>
+  );
+}
+
+function Answer({ n, source, lang, children }) {
+  const s = SOURCE[source];
+  return (
+    <article className="animate-rise">
+      <header className="mb-3 flex items-center gap-2.5">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${s.dot}`} />
+        <span className="eyebrow">{t(lang, s.key)}</span>
+        <span className="h-px flex-1 bg-line" />
+        <span className="num text-[11px] text-mute">{String(n).padStart(2, "0")}</span>
+      </header>
+      <div className="text-[15.5px] leading-[1.65]">{children}</div>
+    </article>
   );
 }
 
 function RankingBars({ rows }) {
   const max = Math.max(...rows.map((r) => Math.abs(r.value)));
   return (
-    <div className="mt-3 space-y-2">
+    <div className="sheet mt-4 divide-y divide-line">
       {rows.map((row, i) => (
-        <div key={row.name} className="flex items-center gap-3">
-          <span className="w-5 text-[11px] text-slate/40">{i + 1}</span>
-          <span className="w-24 shrink-0 truncate text-[13px]">{row.name}</span>
-          <div className="h-3 flex-1 bg-field">
-            <div className="h-3 bg-ink/70" style={{ width: `${(Math.abs(row.value) / max) * 100}%` }} />
+        <div key={row.name} className="grid grid-cols-[1.5rem_minmax(0,8rem)_1fr_5rem] items-center gap-3 px-4 py-2.5">
+          <span className="num text-[11px] text-mute">{String(i + 1).padStart(2, "0")}</span>
+          <span className="truncate text-[13.5px]" title={row.name}>{row.name}</span>
+          <div className="h-2 overflow-hidden rounded-full bg-bone">
+            <div
+              className={`bar-grow h-2 rounded-full ${i === 0 ? "bg-cobalt" : "bg-ink/80"}`}
+              style={{ width: `${(Math.abs(row.value) / max) * 100}%`, animationDelay: `${i * 50}ms` }}
+            />
           </div>
-          <span className="num w-16 text-right text-[12px] text-slate/55">
-            {Math.round(row.value).toLocaleString()}
-          </span>
+          <span className="num text-right text-[12.5px] text-mute">{Math.round(row.value).toLocaleString("en-IN")}</span>
         </div>
       ))}
     </div>
@@ -51,15 +117,15 @@ function DataTable({ rows }) {
   if (!rows?.length) return null;
   const cols = Object.keys(rows[0]);
   return (
-    <div className="mt-3 overflow-x-auto border border-rule">
-      <table className="w-full text-left text-[12px]">
-        <thead className="bg-field">
-          <tr>{cols.map((c) => <th key={c} className="num whitespace-nowrap px-3 py-1.5 font-medium">{c}</th>)}</tr>
+    <div className="sheet mt-4 overflow-x-auto">
+      <table className="w-full text-left text-[12.5px]">
+        <thead className="bg-bone/70">
+          <tr>{cols.map((c) => <th key={c} className="eyebrow whitespace-nowrap px-3 py-2 font-normal">{c}</th>)}</tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-t border-rule/60">
-              {cols.map((c) => <td key={c} className="num whitespace-nowrap px-3 py-1.5">{String(r[c])}</td>)}
+            <tr key={i} className="border-t border-line hover:bg-bone/50">
+              {cols.map((c) => <td key={c} className="num whitespace-nowrap px-3 py-2">{String(r[c])}</td>)}
             </tr>
           ))}
         </tbody>
@@ -78,22 +144,20 @@ function phraseOutcome(value) {
 function PredictForm({ msg, onPredict, busy, lang }) {
   const [values, setValues] = useState(Object.fromEntries((msg.fields || []).map((f) => [f.name, ""])));
   return (
-    <div className="mt-4 border-t border-rule pt-3">
-      <p className="mb-2 text-[12px] text-slate/50">{t(lang, "tryCase")}</p>
-      <div className="grid gap-2.5 sm:grid-cols-2">
+    <div className="sheet mt-4 p-4 sm:p-5">
+      <p className="eyebrow">{t(lang, "tryCase")}</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {msg.fields.map((f) => (
-          <div key={f.name}>
-            <label className="mb-1 block text-[12px] text-slate/55">
+          <label key={f.name} className="block">
+            <span className="mb-1 block text-[12.5px] font-medium text-mute">
               {f.label}
-              {f.type === "number" && f.min != null && (
-                <span className="text-slate/35"> ({f.min}–{f.max})</span>
-              )}
-            </label>
+              {f.type === "number" && f.min != null && <span className="num text-ink/35"> ({f.min}–{f.max})</span>}
+            </span>
             {f.type === "select" ? (
               <select
                 value={values[f.name] ?? ""}
                 onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                className="sel w-full border border-rule bg-paper px-2.5 py-1.5 text-[13px]"
+                className="sel field-input py-2"
               >
                 <option value="">—</option>
                 {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -103,18 +167,14 @@ function PredictForm({ msg, onPredict, busy, lang }) {
                 value={values[f.name] ?? ""}
                 onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
                 placeholder={f.typical != null ? String(f.typical) : ""}
-                className="w-full border border-rule bg-paper px-2.5 py-1.5 text-[13px]"
+                className="field-input num py-2"
               />
             )}
-          </div>
+          </label>
         ))}
       </div>
-      <button
-        onClick={() => onPredict(msg, values)}
-        disabled={busy}
-        className="mt-3 bg-ink px-4 py-2 text-[13px] font-medium text-white hover:bg-slate disabled:bg-rule disabled:text-slate/40"
-      >
-        {busy ? t(lang, "working") : t(lang, "getAnswer")}
+      <button onClick={() => onPredict(msg, values)} disabled={busy} className="btn btn-solid mt-4">
+        {busy ? t(lang, "working") : t(lang, "getAnswer")} <Icon name="arrow" size={14} />
       </button>
     </div>
   );
@@ -136,35 +196,30 @@ const TOOLKIT = [
   { id: "rfm",     key: "tkMsgWinback",  q: "Write a WhatsApp message to bring back my customers", msg: true },
 ];
 
-function ToolkitBar({ toolkit, lang, onAsk, shop, setShop, open, setOpen }) {
+function Toolkit({ toolkit, lang, onAsk, shop, setShop }) {
   const tools = TOOLKIT.filter((x) => toolkit?.[x.id]?.available);
   if (!tools.length) return null;
   return (
-    <div className="border-b border-rule px-5 py-2">
-      <button onClick={() => setOpen(!open)} aria-expanded={open} className="text-[13px] font-medium text-ink hover:underline underline-offset-2">
-        {t(lang, "toolkit")} <span className="num text-slate/40">{tools.length} {open ? "−" : "+"}</span>
-      </button>
-      {open && (
-        <div className="mt-2 pb-1">
-          <div className="flex flex-wrap gap-1.5">
-            {tools.map((x) => (
-              <button
-                key={x.key} onClick={() => onAsk(x.q)}
-                className={`border px-2.5 py-1 text-left text-[12.5px] hover:border-ink hover:text-ink ${x.msg ? "border-ink/30 bg-ink/[0.04]" : "border-rule bg-paper"}`}
-              >
-                {t(lang, x.key)}
-              </button>
-            ))}
-          </div>
-          <label className="mt-2 block text-[11.5px] text-slate/50">
-            {t(lang, "shopName")}
-            <input
-              value={shop} onChange={(e) => setShop(e.target.value)} maxLength={60}
-              className="mt-0.5 block w-full max-w-xs border border-rule bg-paper px-2 py-1 text-[13px] text-slate"
-            />
-          </label>
-        </div>
-      )}
+    <div>
+      <p className="eyebrow flex items-center gap-2">
+        {t(lang, "toolkit")}
+        <span className="num rounded-full bg-lime px-1.5 py-px text-[10px] text-[#111111]">{tools.length}</span>
+      </p>
+      <ul className="mt-2 border-t border-line">
+        {tools.map((x, i) => (
+          <li key={x.key}>
+            <button onClick={() => onAsk(x.q)} className="group flex w-full items-center gap-3 border-b border-line py-2.5 text-left text-[13px] hover:text-cobalt">
+              <span className="num w-4 shrink-0 text-[10.5px] text-mute group-hover:text-cobalt">{String(i + 1).padStart(2, "0")}</span>
+              <span className="flex-1 leading-snug">{t(lang, x.key)}</span>
+              <Icon name={x.msg ? "share" : "arrow"} size={13} className="shrink-0 -translate-x-1 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <label className="mt-3 block">
+        <span className="eyebrow">{t(lang, "shopName")}</span>
+        <input value={shop} onChange={(e) => setShop(e.target.value)} maxLength={60} className="field-input mt-1.5 py-2 text-[13px]" />
+      </label>
     </div>
   );
 }
@@ -172,28 +227,36 @@ function ToolkitBar({ toolkit, lang, onAsk, shop, setShop, open, setOpen }) {
 function Fold({ label, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mt-3 border-t border-rule pt-2.5">
-      <button onClick={() => setOpen(!open)} className="text-[13px] text-ink hover:underline underline-offset-2">
-        {label} <span className="num text-slate/40">{open ? "−" : "+"}</span>
+    <div className="mt-4 border-t border-line pt-3">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="group inline-flex items-center gap-2 text-[13.5px] font-medium hover:text-cobalt">
+        <span className={`flex h-5 w-5 items-center justify-center rounded-full border border-ink/25 transition group-hover:border-cobalt ${open ? "rotate-90" : ""}`}>
+          <Icon name="chevron" size={11} strokeWidth={2.2} />
+        </span>
+        {label}
       </button>
-      {open && children}
+      {open && <div className="animate-rise">{children}</div>}
     </div>
   );
 }
 
-function Toolbar({ msg, lang, speakingId, onSpeak, id }) {
+function AnswerActions({ msg, lang, speakingId, onSpeak, id }) {
+  const [copied, setCopied] = useState(false);
   const playbook = msg.blocks?.find((b) => b.type === "playbook");
   const text = [...msg.narrative, ...(playbook ? playbook.items.map((i, n) => `${n + 1}. ${i.title}. ${i.detail}`) : [])].join(playbook ? "\n" : " ");
   const wa = `https://wa.me/?text=${encodeURIComponent(text + "\n\n(PredictWise)")}`;
-  const link = "text-[12px] text-slate/45 hover:text-ink";
+  const link = "eyebrow inline-flex items-center gap-1.5 hover:text-ink";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
+  };
   return (
-    <div className="mt-3 flex gap-4">
+    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
       {canSpeak() && (
         <button className={link} onClick={() => onSpeak(id, text)}>
-          {speakingId === id ? t(lang, "stop") : t(lang, "listen")}
+          <Icon name="sound" size={13} /> {speakingId === id ? t(lang, "stop") : t(lang, "listen")}
         </button>
       )}
-      <a className={link} href={wa} target="_blank" rel="noreferrer">{t(lang, "share")}</a>
+      <button className={link} onClick={copy}><Icon name="copy" size={13} /> {copied ? t(lang, "copied") : t(lang, "copy")}</button>
+      <a className={link} href={wa} target="_blank" rel="noreferrer"><Icon name="share" size={13} /> {t(lang, "share")}</a>
     </div>
   );
 }
@@ -249,6 +312,156 @@ function AssistantContent({ msg, onPredict, predicting, lang }) {
   );
 }
 
+/* The rail beside the conversation: the file, the settings, the shop toolkit, the actions. */
+function Dossier({ dataset, datasets, lang, setLang, priv, setPriv, llmOk, toolkit, onAsk, shop, setShop, onShare, onDownload, onCompare, onSwitch }) {
+  const others = datasets.filter((x) => x.id !== dataset.id);
+  const row = "flex w-full items-center gap-2.5 py-2.5 text-left text-[13px] hover:text-cobalt";
+  return (
+    <div className="flex flex-col gap-7 p-5">
+      <div>
+        <p className="eyebrow">{t(lang, "chattingAbout")}</p>
+        <p className="mt-1.5 truncate text-[15px] font-semibold" title={dataset.file_name}>{dataset.file_name}</p>
+        <p className="num mt-1 text-[11.5px] text-mute">
+          {dataset.row_count.toLocaleString("en-IN")} rows · {dataset.column_count} columns{dataset.is_cleaned ? " · cleaned" : ""}
+        </p>
+        <button onClick={onSwitch} className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] text-mute hover:text-ink">
+          <Icon name="swap" size={13} /> {t(lang, "switchFile")}
+        </button>
+      </div>
+
+      {/* Whether the open-ended assistant is available. Without a key the engines still
+          answer counts, trends, forecasts and the toolkit; anything else gets an overview. */}
+      <div className={`rounded-[10px] border px-3.5 py-3 ${llmOk ? "border-line" : "border-signal/35 bg-signal/[0.06]"}`}>
+        <p className={`eyebrow flex items-center gap-2 ${llmOk ? "" : "!text-signal"}`}>
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${llmOk ? "bg-lime" : "bg-signal"}`} />
+          {t(lang, llmOk ? "aiOn" : "aiOff")}
+        </p>
+        {!llmOk && <p className="mt-1.5 text-[12px] leading-snug text-mute">{t(lang, "aiOffHint")}</p>}
+      </div>
+
+      <div>
+        <p className="eyebrow">{t(lang, "language")}</p>
+        <div className="mt-2 grid grid-cols-3 rounded-[8px] border border-line bg-bone p-0.5" role="group" aria-label="Language">
+          {LANGS.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setLang(l.id)}
+              aria-pressed={lang === l.id}
+              className={`rounded-[6px] py-1.5 text-[12.5px] font-medium ${lang === l.id ? "bg-ink text-sheet" : "text-mute hover:text-ink"}`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+        {lang !== "en" && !llmOk && !priv && <p className="mt-2 text-[12px] leading-snug text-mute">{t(lang, "hindiNote")}</p>}
+      </div>
+
+      <div>
+        <Switch checked={priv} onChange={setPriv} label={t(lang, "privateMode")} hint={t(lang, "privateHint")} />
+      </div>
+
+      <Toolkit toolkit={toolkit} lang={lang} onAsk={onAsk} shop={shop} setShop={setShop} />
+
+      <div>
+        <p className="eyebrow">{t(lang, "actions")}</p>
+        <ul className="mt-2 divide-y divide-line border-y border-line">
+          <li><button onClick={onShare} className={row}><Icon name="share" size={14} /> {t(lang, "shareSummary")}</button></li>
+          <li><button onClick={onDownload} className={row}><Icon name="download" size={14} /> {t(lang, "download")}</button></li>
+          {others.length > 0 && (
+            <li className="flex items-center gap-2.5 py-2">
+              <Icon name="compare" size={14} className="shrink-0" />
+              <select value="" onChange={(e) => onCompare(e.target.value)} aria-label={t(lang, "compareWith")} className="sel field-input border-0 bg-transparent px-1 py-1 text-[13px] hover:bg-bone">
+                <option value="">{t(lang, "compareWith")}</option>
+                {others.map((x) => <option key={x.id} value={x.id}>{x.file_name}</option>)}
+              </select>
+            </li>
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/* Ready-made questions, grouped, built from what this file can answer: the roles the
+   briefing found (date, amount, category, outcome) and which toolkit tools are available. */
+function buildLibrary(roles, toolkit, llmOk) {
+  const r = roles || {};
+  const tk = toolkit || {};
+  const p = (s) => String(s).replace(/[_\s]+/g, " ").trim();
+  const metric = r.metric ? p(r.metric) : null;
+  const cat = r.category ? p(r.category) : null;
+  const outcome = r.outcome ? p(r.outcome) : null;
+  const has = (id) => Boolean(tk[id]?.available);
+  const groups = [
+    { title: "Sales & trends", items: [
+      "What should I do this week?",
+      r.date && metric && `What will ${metric} look like next month?`,
+      r.date && metric && `Show me ${metric} by month as a chart`,
+      has("peak") && "Which day is busiest?",
+      cat && metric && `Which ${cat} gives the most ${metric}?`,
+      cat && metric && `Top 5 ${cat} by ${metric}`,
+      metric && `What is the total ${metric}?`,
+      metric && `What is the average ${metric}?`,
+    ] },
+    { title: "Customers", items: [
+      has("rfm") && "Which customers should I call first?",
+      has("rfm") && "Which customers should I win back?",
+      has("udhaar") && "Who owes me money?",
+      "Show me my customer groups",
+      outcome && "Will this happen again?",
+      outcome && `What affects ${outcome}?`,
+    ] },
+    { title: "Stock & products", items: [
+      has("stock") && "How much should I order?",
+      has("stock") && "How accurate is the stock plan?",
+      has("slow") && "What is not selling?",
+      has("bundles") && "What do customers buy together?",
+      has("festival") && "What should I stock for the next festival?",
+    ] },
+    { title: "Money", items: [
+      has("profit") && "Which products give me the most profit?",
+      has("profit") && "What is my overall profit margin?",
+    ] },
+    { title: "Messages", items: [
+      has("udhaar") && "Write a WhatsApp reminder message for my udhaar customers",
+      has("stock") && "Write a WhatsApp order message to my supplier",
+      has("rfm") && "Write a WhatsApp message to bring back my customers",
+    ] },
+    { title: "Data", items: ["Which rows look unusual?", "Is my data clean?", "What does my data look like?"] },
+    llmOk && { title: "Ask the AI anything", ai: true, items: [
+      r.date && metric && `Compare ${metric} on weekends and weekdays`,
+      cat && metric && r.date && `Which ${cat} grew the most in the last month?`,
+      cat && metric && `What is the average ${metric} per ${cat}?`,
+    ] },
+  ];
+  return groups.filter(Boolean).map((g) => ({ ...g, items: g.items.filter(Boolean) })).filter((g) => g.items.length);
+}
+
+function Library({ groups, lang, onAsk, onClose }) {
+  return (
+    <div className="mx-auto w-full max-w-[780px] px-5 pb-3 sm:px-8">
+      <div className="sheet max-h-[48vh] overflow-y-auto p-4 animate-rise sm:p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="eyebrow">{t(lang, "library")}</p>
+          <button onClick={onClose} className="btn btn-ghost px-2 py-1" aria-label="Close"><Icon name="x" size={14} /></button>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {groups.map((g) => (
+            <div key={g.title}>
+              <p className="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold">
+                {g.ai && <Icon name="spark" size={12} className="text-cobalt" />}{g.title}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {g.items.map((q) => <button key={q} onClick={() => onAsk(q)} className="chip py-1 text-[12.5px]">{q}</button>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function loadLang() {
   try { return localStorage.getItem("pw-lang") || "en"; } catch { return "en"; }
 }
@@ -256,6 +469,7 @@ function loadLang() {
 export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
   const [step, setStep] = useState("upload");
   const [file, setFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [samples, setSamples] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -271,11 +485,29 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
   const [speakingId, setSpeakingId] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [toolkit, setToolkit] = useState(null);
-  const [tkOpen, setTkOpen] = useState(true);
+  const [briefing, setBriefing] = useState(false);
+  const [brief, setBrief] = useState(null);         // the raw briefing, shared with the dashboard
+  const [view, setView] = useState("chat");         // chat | dashboard | lookup
+  const [library, setLibrary] = useState(false);
+  const [drawer, setDrawer] = useState(false);
   const [shop, setShopState] = useState(() => { try { return localStorage.getItem("pw-shop") || ""; } catch { return ""; } });
   const setShop = (v) => { setShopState(v); try { localStorage.setItem("pw-shop", v); } catch { /* storage blocked */ } };
   const scrollRef = useRef(null);
   const recRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Press "/" anywhere on the chat screen to start typing.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target?.isContentEditable) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const speech = LANGS.find((l) => l.id === lang)?.speech ?? "en-IN";
   const setLang = (l) => {
@@ -291,15 +523,19 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
   useEffect(() => {
     if (!dataset) return;
     setStep("chat");
+    setView("chat");
+    setLibrary(false);
+    setBrief(null);
     setMessages([]);
     setSuggestions([]);
     getQuestionTemplates(dataset.id).then(setTemplates).catch(() => {});
     setToolkit(null);
-    setTkOpen(true);
     getToolkit(dataset.id).then(setToolkit).catch(() => {});
     // The first thing you see is what the data says, before you ask anything.
+    setBriefing(true);
     getBriefing(dataset.id)
       .then((b) => {
+        setBrief(b);
         const narrative = [...b.headline];
         if (b.quality.issues.length) narrative.push(b.quality.issues[0]);
         setMessages([{
@@ -309,7 +545,8 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
         }]);
         setSuggestions(b.suggested_questions);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setBriefing(false));
   }, [dataset]);
 
   useEffect(() => {
@@ -347,7 +584,9 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
     if (!question || busy) return;
     setInput("");
     setError("");
-    setTkOpen(false);
+    setDrawer(false);
+    setLibrary(false);
+    setView("chat");
     setSuggestions([]);
     const history = messages
       .filter((m) => !m.lead)
@@ -392,7 +631,7 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
   const compareWith = async (otherId) => {
     if (!otherId) return;
     const other = datasets.find((x) => String(x.id) === String(otherId));
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setDrawer(false);
     try {
       const r = await compareFiles(dataset.id, otherId);
       const lines = r.available ? [`Compared with ${other?.file_name}:`, ...r.findings] : [r.reason];
@@ -439,61 +678,107 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
   const chips = [t(lang, "playbookQ"), ...suggestions, ...templates.filter((x) => x.available).map((x) => x.label)];
   const uniqueChips = [...new Set(chips)].slice(0, 9);
 
-  return (
-    <div className="mx-auto flex h-[calc(100vh-49px)] max-w-2xl flex-col">
-      {step === "upload" && (
-        <div className="flex flex-1 items-start justify-center overflow-y-auto px-5 py-12">
-          <div className="w-full border border-rule bg-paper p-6">
-            <h1 className="text-[22px] leading-snug tracking-tight">{t(lang, "addTitle")}</h1>
-            <p className="mt-2 text-[14px] text-slate/60">{t(lang, "addBody")}</p>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={(e) => setFile(e.target.files[0])}
-              className="mt-6 block w-full text-[14px] text-slate/70
-                         file:mr-3 file:cursor-pointer file:border-0 file:bg-field
-                         file:px-4 file:py-2.5 file:text-[13px] file:text-slate hover:file:bg-rule/60"
-            />
-            <button
-              onClick={handleUpload}
-              disabled={!file || busy}
-              className="mt-5 w-full bg-ink px-5 py-3 text-[15px] font-medium text-white
-                         hover:bg-slate disabled:cursor-not-allowed disabled:bg-rule disabled:text-slate/40"
+  /* ------------------------------------------------------------ start screen */
+  if (step === "upload") {
+    return (
+      <div>
+        <Ticker items={TICKER} />
+        <div className="mx-auto grid max-w-[1180px] gap-12 px-5 pb-20 pt-12 sm:px-8 lg:grid-cols-[1.08fr_.92fr] lg:gap-16 lg:pt-20">
+          {/* Hero */}
+          <div className="animate-rise">
+            <p className="eyebrow">01 — For shops that keep records</p>
+            <h1 className="display mt-5 text-[46px] leading-[1.02] sm:text-[62px] lg:text-[74px]">
+              Your shop's records, <em className="hl">answered</em> in plain words.
+            </h1>
+            <p className="mt-6 max-w-[48ch] text-[17px] leading-relaxed text-mute">{t(lang, "addBody")}</p>
+            <ol className="mt-10 divide-y divide-line border-y border-line">
+              {HIGHLIGHTS.map((h, i) => (
+                <li key={h.title} className="grid grid-cols-[2.25rem_1fr] gap-x-4 gap-y-1 py-4 sm:grid-cols-[2.25rem_15rem_1fr]">
+                  <span className="num pt-1 text-[11px] text-mute">0{i + 1}</span>
+                  <span className="text-[15px] font-semibold">{h.title}</span>
+                  <span className="col-start-2 text-[14px] leading-snug text-mute sm:col-start-3">{h.body}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="eyebrow mt-8 flex flex-wrap gap-x-6 gap-y-1">
+              <span>₹ · lakh · crore</span><span>Hindi · Hinglish · voice</span><span>Works offline</span><span>Private mode</span>
+            </p>
+          </div>
+
+          {/* Upload sheet */}
+          <div className="sheet animate-rise p-6 sm:p-8" style={{ animationDelay: "90ms" }}>
+            <p className="eyebrow">02 — Start here</p>
+            <h2 className="mt-2 text-[24px] font-semibold tracking-tight">{t(lang, "addTitle")}</h2>
+            <label
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }}
+              className={`mt-5 flex cursor-pointer flex-col items-center justify-center rounded-[10px] border-[1.5px] border-dashed px-5 py-9 text-center transition ${
+                dragging ? "border-ink bg-lime/40" : file ? "border-ink/60 bg-lime/20" : "border-ink/30 bg-bone/70 hover:border-ink hover:bg-lime/25"
+              }`}
             >
-              {busy ? t(lang, "reading") : t(lang, "addFile")}
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setFile(e.target.files[0])} className="sr-only" />
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-lime text-[#111111]">
+                <Icon name={file ? "file" : "upload"} size={20} />
+              </span>
+              {file ? (
+                <>
+                  <p className="mt-3 max-w-full truncate text-[14px] font-medium">{file.name}</p>
+                  <p className="num mt-0.5 text-[11.5px] text-mute">{(file.size / 1024).toFixed(0)} KB · ready to add</p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-3 text-[14px] font-medium">Drop a CSV or Excel file here</p>
+                  <p className="mt-0.5 text-[12px] text-mute">or click to browse · up to 50 MB</p>
+                </>
+              )}
+            </label>
+            <button onClick={handleUpload} disabled={!file || busy} className="btn btn-solid mt-4 w-full py-3.5 text-[15px]">
+              {busy ? t(lang, "reading") : t(lang, "addFile")} {!busy && <Icon name="arrow" size={16} />}
             </button>
-            {error && <p className="mt-3 text-[13px] text-clay">{error}</p>}
+            {error && <p className="mt-3 rounded-[8px] border border-signal/30 bg-signal/[0.06] px-3 py-2 text-[13px] text-signal">{error}</p>}
 
             {samples.length > 0 && (
-              <div className="mt-8 border-t border-rule pt-5">
-                <p className="mb-3 text-[13px] text-slate/50">{t(lang, "trySample")}</p>
-                <div className="space-y-1.5">
-                  {samples.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => handleSample(s.id)}
-                      disabled={busy}
-                      className="block w-full border border-rule px-4 py-2.5 text-left hover:border-ink disabled:opacity-50"
-                    >
-                      <span className="block text-[13.5px]">{s.title}</span>
-                      <span className="block text-[12px] text-slate/50">{s.blurb}</span>
-                    </button>
+              <div className="mt-8">
+                <p className="eyebrow">{t(lang, "trySample")}</p>
+                <ul className="mt-3 border-t border-line">
+                  {samples.map((s, i) => (
+                    <li key={s.id}>
+                      <button
+                        onClick={() => handleSample(s.id)}
+                        disabled={busy}
+                        className="group -mx-2 flex w-[calc(100%+1rem)] items-center gap-4 rounded-[8px] border-b border-line px-2 py-3.5 text-left transition hover:bg-lime/25 disabled:opacity-50"
+                      >
+                        <span className="num w-5 text-[11px] text-mute">0{i + 1}</span>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bone text-ink transition group-hover:bg-lime group-hover:text-[#111111]">
+                          <Icon name={SAMPLE_ICONS[s.id] || "file"} size={17} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[14px] font-medium leading-snug">{s.title}</span>
+                          <span className="mt-0.5 block text-[12.5px] leading-snug text-mute">{s.blurb}</span>
+                        </span>
+                        <Icon name="arrow" size={16} className="shrink-0 -translate-x-1 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100" />
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ul>
+              </div>
+            )}
+
+            {!llmOk && (
+              <div className="mt-7 rounded-[10px] border border-signal/35 bg-signal/[0.06] px-4 py-3">
+                <p className="eyebrow flex items-center gap-2 !text-signal"><Icon name="key" size={13} /> {t(lang, "aiOff")}</p>
+                <p className="mt-1.5 text-[12.5px] leading-snug text-mute">{t(lang, "aiOffHint")}</p>
               </div>
             )}
 
             {datasets.length > 0 && (
-              <div className="mt-8 border-t border-rule pt-5">
-                <p className="mb-3 text-[13px] text-slate/50">{t(lang, "earlier")}</p>
-                <div className="space-y-1.5">
-                  {datasets.map((d) => (
-                    <button
-                      key={d.id}
-                      onClick={() => setDataset(d)}
-                      className="block w-full border border-rule px-4 py-2.5 text-left text-[13px] hover:border-ink hover:text-ink"
-                    >
-                      {d.file_name}
+              <div className="mt-7">
+                <p className="eyebrow mb-2.5">{t(lang, "earlier")}</p>
+                <div className="flex max-h-28 flex-wrap gap-2 overflow-y-auto">
+                  {[...new Map(datasets.map((d) => [d.file_name, d])).values()].map((d) => (
+                    <button key={d.id} onClick={() => setDataset(d)} className="chip py-1 text-[12.5px]">
+                      <Icon name="file" size={13} /> {d.file_name}
                     </button>
                   ))}
                 </div>
@@ -501,126 +786,187 @@ export default function SimpleMode({ dataset, setDataset, datasets, refresh }) {
             )}
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {step === "chat" && dataset && (
-        <>
-          <div className="flex flex-col gap-1.5 border-b border-rule px-5 py-2.5 [&_button]:whitespace-nowrap [&_select]:whitespace-nowrap">
-            <span className="text-[12px] text-slate/50">
-              {t(lang, "chattingAbout")} <span className="text-slate">{dataset.file_name}</span>
-            </span>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              <div className="flex border border-rule" role="group" aria-label="Language">
-                {LANGS.map((l) => (
-                  <button
-                    key={l.id}
-                    onClick={() => setLang(l.id)}
-                    className={`px-2 py-0.5 text-[11.5px] ${lang === l.id ? "bg-slate text-white" : "text-slate/55 hover:text-slate"}`}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setPriv(!priv)}
-                title={t(lang, "privateHint")}
-                aria-pressed={priv}
-                className={`border px-2 py-0.5 text-[11.5px] ${priv ? "border-ink bg-ink text-white" : "border-rule text-slate/55 hover:text-slate"}`}
-              >
-                {t(lang, "privateMode")}
-              </button>
-              <button onClick={shareDigest} className="text-[12px] text-slate/50 hover:text-ink">{t(lang, "shareSummary")}</button>
-              {datasets.filter((x) => x.id !== dataset.id).length > 0 && (
-                <select
-                  value="" onChange={(e) => compareWith(e.target.value)} aria-label={t(lang, "compareWith")}
-                  className="sel max-w-[11rem] border border-rule bg-paper px-1.5 py-0.5 text-[11.5px] text-slate/60"
-                >
-                  <option value="">{t(lang, "compareWith")}</option>
-                  {datasets.filter((x) => x.id !== dataset.id).map((x) => <option key={x.id} value={x.id}>{x.file_name}</option>)}
-                </select>
-              )}
-              <button onClick={() => downloadCleaned(dataset.id, dataset.file_name)} className="text-[12px] text-slate/50 hover:text-ink">
-                {t(lang, "download")}
-              </button>
-              <button onClick={() => setStep("upload")} className="text-[12px] text-slate/50 hover:text-ink">
-                {t(lang, "switchFile")}
-              </button>
-            </div>
+  /* ------------------------------------------------------------------- chat */
+  const dossier = (
+    <Dossier
+      dataset={dataset} datasets={datasets} lang={lang} setLang={setLang} priv={priv} setPriv={setPriv} llmOk={llmOk}
+      toolkit={toolkit} onAsk={send} shop={shop} setShop={setShop}
+      onShare={shareDigest} onDownload={() => downloadCleaned(dataset.id, dataset.file_name)}
+      onCompare={compareWith} onSwitch={() => { setDrawer(false); setStep("upload"); }}
+    />
+  );
+
+  let answerNo = 0;
+  const libraryGroups = buildLibrary(brief?.roles, toolkit, llmOk);
+
+  return (
+    <div className="mx-auto grid h-[calc(100vh-56px)] w-full max-w-[1280px] lg:grid-cols-[292px_minmax(0,1fr)]">
+      <aside className="hidden overflow-y-auto border-r border-line lg:block">{dossier}</aside>
+
+      <section className="flex min-h-0 min-w-0 flex-col">
+        <div className="flex items-center gap-3 border-b border-line px-4 py-2.5 lg:hidden">
+          <LogoMark size={20} />
+          <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{dataset.file_name}</span>
+          {priv && <Tag tone="lime">{t(lang, "privateMode")}</Tag>}
+          <button onClick={() => setDrawer(true)} className="btn btn-outline px-3 py-1.5 text-[12.5px]">
+            <Icon name="sliders" size={14} /> {t(lang, "tools")}
+          </button>
+        </div>
+
+        {/* Three ways in: the conversation, the shop at a glance, one name at a glance. */}
+        <div className="flex items-center gap-1 border-b border-line px-3 sm:px-6" role="tablist">
+          {[["chat", "send"], ["dashboard", "grid"], ["lookup", "search"]].map(([v, icon]) => (
+            <button
+              key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
+              className={`relative inline-flex items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium ${view === v ? "text-ink" : "text-mute hover:text-ink"}`}
+            >
+              <Icon name={icon} size={13} /> {t(lang, v)}
+              {view === v && <span className="absolute inset-x-3 -bottom-px h-[2px] bg-lime" />}
+            </button>
+          ))}
+        </div>
+
+        {view === "dashboard" && (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Dashboard dataset={dataset} brief={brief} onAsk={send} />
           </div>
-          <ToolkitBar toolkit={toolkit} lang={lang} onAsk={send} shop={shop} setShop={setShop} open={tkOpen} setOpen={setTkOpen} />
-          {priv && (
-            <p className="border-b border-rule bg-field px-5 py-1.5 text-[12px] text-slate/60">{t(lang, "privateHint")}</p>
-          )}
-          {lang !== "en" && !llmOk && !priv && (
-            <p className="border-b border-rule bg-field px-5 py-1.5 text-[12px] text-slate/60">{t(lang, "hindiNote")}</p>
-          )}
+        )}
+        {view === "lookup" && (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Lookup dataset={dataset} lang={lang} onAsk={send} />
+          </div>
+        )}
 
-          <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-            {messages.map((m, i) => (
-              <Bubble key={i} role={m.role}>
-                {m.role === "user" ? m.text : (
-                  <>
-                    {m.lead && <p className="mb-2 text-[12px] text-slate/45">{t(lang, "hello")}</p>}
-                    <AssistantContent msg={m} onPredict={handlePredict} predicting={predicting} lang={lang} />
-                    <Toolbar msg={m} lang={lang} speakingId={speakingId} onSpeak={onSpeak} id={i} />
-                  </>
-                )}
-              </Bubble>
-            ))}
+        <div ref={scrollRef} className={`min-h-0 flex-1 overflow-y-auto ${view === "chat" ? "" : "hidden"}`}>
+          <div className="mx-auto w-full max-w-[780px] space-y-8 px-5 py-8 sm:px-8">
+            {priv && (
+              <p className="hidden items-center gap-2 rounded-[8px] border border-ink/15 bg-lime/30 px-3.5 py-2 text-[12.5px] lg:flex">
+                <Icon name="lock" size={13} /> {t(lang, "privateHint")}
+              </p>
+            )}
+
+            {messages.map((m, i) => {
+              if (m.role === "user") return <UserBubble key={i}>{m.text}</UserBubble>;
+              answerNo += 1;
+              return (
+                <Answer key={i} n={answerNo} source={sourceOf(m)} lang={lang}>
+                  <AssistantContent msg={m} onPredict={handlePredict} predicting={predicting} lang={lang} />
+                  <AnswerActions msg={m} lang={lang} speakingId={speakingId} onSpeak={onSpeak} id={i} />
+                </Answer>
+              );
+            })}
 
             {messages.length > 0 && !busy && uniqueChips.length > 0 && messages.length <= 1 && (
-              <div>
-                <p className="mb-2 text-[13px] text-slate/55">{t(lang, "tryAsking")}</p>
+              <div className="animate-rise">
+                <p className="eyebrow mb-3">{t(lang, "tryAsking")}</p>
                 <div className="flex flex-wrap gap-2">
                   {uniqueChips.map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => send(q)}
-                      className="border border-rule bg-paper px-3 py-1.5 text-left text-[13px] hover:border-ink hover:text-ink"
-                    >
-                      {q}
-                    </button>
+                    <button key={q} onClick={() => send(q)} className="chip">{q}</button>
                   ))}
                 </div>
               </div>
             )}
 
+            {briefing && messages.length === 0 && (
+              <article aria-label="Loading the briefing">
+                <header className="mb-3 flex items-center gap-2.5">
+                  <ThinkingMark size={18} />
+                  <span className="eyebrow">{t(lang, "reading")}</span>
+                  <span className="h-px flex-1 bg-line" />
+                </header>
+                <div className="space-y-2.5">
+                  {[92, 78, 64].map((w, i) => (
+                    <div key={w} className="shimmer h-3.5 rounded-full" style={{ width: `${w}%`, animationDelay: `${i * 150}ms` }} />
+                  ))}
+                  <div className="grid grid-cols-3 gap-3 pt-3">
+                    {[0, 1, 2].map((i) => <div key={i} className="shimmer h-20 rounded-[10px]" style={{ animationDelay: `${i * 120}ms` }} />)}
+                  </div>
+                </div>
+              </article>
+            )}
+
             {busy && (
-              <Bubble role="assistant">
-                <span className="text-slate/40">{t(lang, "thinking")}</span>
-              </Bubble>
+              <div className="flex animate-rise items-center gap-3">
+                <ThinkingMark size={24} />
+                <span className="eyebrow">{t(lang, "thinking")}</span>
+              </div>
             )}
           </div>
+        </div>
 
-          {error && <div className="mx-5 mb-2 border border-clay/30 bg-clay/[0.04] px-3 py-2 text-[13px] text-clay">{error}</div>}
+        {error && view === "chat" && (
+          <div className="mx-auto w-full max-w-[780px] px-5 pb-2 sm:px-8">
+            <div className="rounded-[8px] border border-signal/30 bg-signal/[0.06] px-4 py-2.5 text-[13px] text-signal">{error}</div>
+          </div>
+        )}
 
-          <div className="flex gap-2 border-t border-rule p-4">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder={listening ? t(lang, "listening") : t(lang, "ask")}
-              className="flex-1 border border-rule bg-paper px-4 py-2.5 text-[14px]"
-            />
-            {canListen() && (
-              <button
-                onClick={toggleMic}
-                aria-label={t(lang, "speak")}
-                aria-pressed={listening}
-                className={`border px-3 text-[13px] ${listening ? "border-clay bg-clay text-white" : "border-rule bg-paper text-slate/70 hover:border-ink hover:text-ink"}`}
-              >
-                {listening ? "●" : t(lang, "speak")}
-              </button>
-            )}
-            <button
-              onClick={() => send()}
-              disabled={!input.trim() || busy}
-              className="bg-ink px-5 text-[13px] font-medium text-white hover:bg-slate disabled:bg-rule disabled:text-slate/40"
+        {library && view === "chat" && <Library groups={libraryGroups} lang={lang} onAsk={send} onClose={() => setLibrary(false)} />}
+
+        <div className={`border-t border-line bg-bone/85 px-4 pb-4 pt-3 backdrop-blur-sm sm:px-8 ${view === "chat" ? "" : "hidden"}`}>
+          <div className="mx-auto w-full max-w-[780px]">
+            <div
+              className={`flex items-center gap-1.5 rounded-full border-[1.5px] bg-sheet py-1.5 pl-2 pr-1.5 transition ${
+                listening ? "border-signal" : "border-ink/70 focus-within:border-cobalt focus-within:shadow-ring"
+              }`}
             >
-              {t(lang, "send")}
-            </button>
+              <button
+                onClick={() => setLibrary(!library)}
+                aria-pressed={library}
+                title={t(lang, "library")}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${library ? "bg-lime text-[#111111]" : "text-mute hover:bg-ink/[0.06] hover:text-ink"}`}
+              >
+                <Icon name="book" size={17} />
+              </button>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder={listening ? t(lang, "listening") : t(lang, "ask")}
+                className="bare min-w-0 flex-1 bg-transparent px-2 py-2 text-[15.5px] outline-none placeholder:text-ink/35"
+              />
+              {canListen() && (
+                <button
+                  onClick={toggleMic}
+                  aria-label={t(lang, "speak")}
+                  aria-pressed={listening}
+                  title={t(lang, "speak")}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full ${listening ? "animate-pulseDot bg-signal text-sheet" : "text-mute hover:bg-ink/[0.06] hover:text-ink"}`}
+                >
+                  <Icon name="mic" size={17} />
+                </button>
+              )}
+              <button
+                onClick={() => send()}
+                disabled={!input.trim() || busy}
+                aria-label={t(lang, "send")}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-sheet transition hover:bg-cobalt disabled:bg-ink/10 disabled:text-ink/30"
+              >
+                <Icon name="up" size={18} strokeWidth={2.2} />
+              </button>
+            </div>
+            <p className="eyebrow mt-2 hidden truncate text-center sm:block">
+              <kbd className="rounded border border-line px-1 py-px">/</kbd> to type · {t(lang, "enterHint")} {dataset.file_name}
+            </p>
           </div>
-        </>
+        </div>
+      </section>
+
+      {drawer && (
+        <div className="fixed inset-0 z-30 lg:hidden" role="dialog" aria-modal="true" aria-label={t(lang, "tools")}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDrawer(false)} />
+          <div className="absolute inset-y-0 right-0 w-[min(22rem,92vw)] animate-slide overflow-y-auto border-l border-line bg-bone shadow-lift">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3">
+              <span className="eyebrow">{t(lang, "tools")}</span>
+              <button onClick={() => setDrawer(false)} className="btn btn-ghost px-2 py-1" aria-label="Close"><Icon name="x" size={16} /></button>
+            </div>
+            {dossier}
+          </div>
+        </div>
       )}
     </div>
   );

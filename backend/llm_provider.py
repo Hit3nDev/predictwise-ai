@@ -24,6 +24,8 @@ actual conversation is not. Test with a real key before relying on this.
 
 import json as _json
 import os
+import re
+import time
 
 import httpx
 
@@ -33,11 +35,12 @@ def _clean_key(v):
 
 
 GROQ_API_KEY = _clean_key(os.environ.get("GROQ_API_KEY"))
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-# Groq retires models from time to time. If the first one is refused, try the
-# next so the chat keeps working instead of silently falling back.
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+# Groq retires models from time to time (the llama 3 models went in 2026), and every
+# model has its own free quota per minute. If the first one is refused or busy, try the
+# next so the chat keeps working instead of silently falling back. Strongest first.
 GROQ_MODELS = [GROQ_MODEL] + [
-    m for m in ("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b", "openai/gpt-oss-120b")
+    m for m in ("openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "qwen/qwen3.8-27b", "llama-3.1-8b-instant")
     if m != GROQ_MODEL
 ]
 LAST_ERROR = {"message": None}
@@ -139,7 +142,7 @@ def _explain(status, body: str) -> str:
 
 
 _NOT_CHAT = ("whisper", "guard", "tts", "playai", "embed", "distil-whisper", "orpheus", "safeguard", "compound")
-_PREFER = ("llama-3.3", "llama-3.1-70b", "gpt-oss-120b", "qwen", "llama-4", "gpt-oss-20b", "llama-3.1-8b", "llama")
+_PREFER = ("gpt-oss-120b", "llama-3.3", "llama-3.1-70b", "qwen", "llama-4", "gpt-oss-20b", "llama-3.1-8b", "llama")
 _discovered: list = []
 
 
@@ -166,6 +169,12 @@ def _is_model_error(resp) -> bool:
     return resp.status_code in (400, 404) and ("model" in low) and ("tool" not in low or "not_found" in low)
 
 
+def _retry_after(body: str):
+    """Seconds Groq asks us to wait ("Please try again in 5.5s"), or None for a long wait."""
+    m = re.search(r"try again in ([\d.]+)s\b", body or "")
+    return float(m.group(1)) if m else None
+
+
 def _complete_groq(messages, system, tools, max_tokens) -> dict:
     payload_messages = [{"role": "system", "content": system}] + messages
     tried = []
@@ -175,6 +184,9 @@ def _complete_groq(messages, system, tools, max_tokens) -> dict:
         body = {"model": model, "messages": payload_messages, "max_tokens": max_tokens}
         if tools:
             body["tools"] = [_to_openai_tool(t) for t in tools]
+        if "gpt-oss" in model:
+            # Reasoning tokens count against the free per-minute quota; a data lookup needs little.
+            body["reasoning_effort"] = "low"
         return httpx.post(
             GROQ_URL,
             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "content-type": "application/json"},
@@ -182,9 +194,12 @@ def _complete_groq(messages, system, tools, max_tokens) -> dict:
             timeout=TIMEOUT_SECONDS,
         )
 
-    # Remembered from an earlier success so we don't re-probe on every message.
+    # The model that last worked goes first, then the preferred list. Move on to the next
+    # model whenever one is retired, busy for this minute (each model has its own free
+    # quota, so another model's quota answers), or stumbles over the tool call. Only a bad
+    # key stops the search, since no other model would help with that.
     queue = ([_working["model"]] if _working["model"] else []) + list(GROQ_MODELS)
-    discovered = False
+    discovered, limited, model_errors = False, False, 0
     while queue:
         model = queue.pop(0)
         if model in tried:
@@ -192,15 +207,32 @@ def _complete_groq(messages, system, tools, max_tokens) -> dict:
         tried.append(model)
         resp = attempt(model)
         if resp.status_code < 400:
-            _working["model"] = model
+            if not limited:          # a stand-in used only because the usual model was busy is not remembered
+                _working["model"] = model
             break
-        if _is_model_error(resp):
+        if resp.status_code in (401, 403):
+            break
+        if resp.status_code == 429:
+            # A few seconds' wait keeps the answer on the better model; a long wait means move on.
+            wait = _retry_after(resp.text)
+            if wait is not None and wait <= 10:
+                print(f"[llm_provider] groq model {model} is busy, waiting {wait:.0f}s", flush=True)
+                time.sleep(wait + 0.3)
+                resp = attempt(model)
+                if resp.status_code < 400:
+                    if not limited:
+                        _working["model"] = model
+                    break
+            limited = True
+            print(f"[llm_provider] groq model {model} is busy this minute, trying another", flush=True)
+        elif _is_model_error(resp):
+            model_errors += 1
             print(f"[llm_provider] groq model {model} unavailable, trying another", flush=True)
-            if not queue and not discovered:
-                discovered = True
-                queue.extend(_discover_groq_models())
-            continue
-        break
+        else:
+            print(f"[llm_provider] groq model {model} answered HTTP {resp.status_code}, trying another", flush=True)
+        if not queue and not discovered and model_errors:
+            discovered = True
+            queue.extend(_discover_groq_models())
     resp.raise_for_status()
     LAST_ERROR["message"] = None
     choice = resp.json()["choices"][0]["message"]
