@@ -298,9 +298,9 @@ def make_sharma_store():
     print(len(out), "lines,", out.bill_no.nunique(), "bills,", out.customer.nunique(), "customers,", f"{out.amount.sum():,.0f} rupees")
 
 
-def make_udhaar_khata(n=600):
+def make_udhaar_khata(n=600, seed=101):
     """The credit ledger as a table a model can learn from: who repaid on time, and what was known about them."""
-    rng = np.random.default_rng(77)
+    rng = np.random.default_rng(seed)
     area = rng.choice(AREAS, n, p=[.27, .24, .19, .17, .13])
     gender = rng.choice(["Female", "Male"], n, p=[.46, .54])
     age = rng.integers(21, 71, n)
@@ -311,10 +311,20 @@ def make_udhaar_khata(n=600):
     previous = rng.poisson(months / 8, n)
     late = np.minimum(rng.poisson(0.6, n), previous)
     days_since = np.clip(rng.exponential(12, n), 0, 150).round(0)
-    area_effect = pd.Series(area).map({"Malviya Nagar": 0.2, "Raja Park": 0.1, "Jawahar Nagar": 0.0, "Tilak Nagar": -0.6, "Adarsh Nagar": -0.1}).to_numpy()
-    logit = (0.4 + 0.09 * visits + 0.025 * months - 0.00028 * udhaar + 0.0008 * avg_bill
-             - 0.75 * late + 0.08 * previous - 0.02 * days_since + area_effect + rng.normal(0, 0.9, n))
-    repaid = (rng.random(n) < 1 / (1 + np.exp(-logit))).astype(int)
+    area_effect = pd.Series(area).map({"Malviya Nagar": 0.20, "Raja Park": 0.13, "Jawahar Nagar": 0.0, "Tilak Nagar": -0.67, "Adarsh Nagar": -0.07}).to_numpy()
+    # Repayment risk: earlier late payments hurt most, then a long silence, then a loan that is large
+    # next to the usual bill, and the two together (a late payer with a big loan) is worse than either.
+    # The threshold terms are what let the tree models beat the straight-line model on this file.
+    ratio = udhaar / avg_bill
+    score = (0.12 * (visits - 8) + 0.025 * (months - 30) - 1.0 * late
+             - 0.04 * np.maximum(days_since - 25, 0) - 0.15 * np.maximum(ratio - 6, 0)
+             - 0.8 * ((late >= 2) & (udhaar > 3500)) + area_effect + 0.012 * (age - 45) + rng.normal(0, 0.35, n))
+    u = rng.random(n)
+    lo, hi = -6.0, 6.0
+    for _ in range(40):                      # shift the curve so 70% repay on time, like a real khata
+        shift = (lo + hi) / 2
+        lo, hi = (shift, hi) if (u < 1 / (1 + np.exp(-(2.5 * score + shift)))).mean() < 0.70 else (lo, shift)
+    repaid = (u < 1 / (1 + np.exp(-(2.5 * score + shift)))).astype(int)
     df = pd.DataFrame({
         "customer_id": np.arange(1, n + 1), "area": area, "gender": gender, "age": age,
         "months_as_customer": months, "visits_per_month": visits.astype(int), "avg_bill": avg_bill,

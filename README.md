@@ -472,6 +472,13 @@ frontend/src/
     every row, and their results are memoised per file, so the first briefing on 40,000 rows takes a few
     seconds instead of ten and the dashboard reuses it.
   - Tests: 116 passing (`tests/test_simulate.py`, `tests/test_samples.py` added).
+  - **Presentation kit** (`presentation/`): a 10-slide deck with speaker notes on every slide and a "LIVE"
+    chip on each slide saying what to open in the app, plus a five-page plain-words guide to everything in the
+    project with how to show each part, a run sheet and likely questions.
+  - The *Udhaar khata* file was tuned after a first run showed its model only just beat guessing: the
+    repayment signal is stronger and partly non-linear, and the random draw was chosen so the held-out score
+    agrees with the cross-validation score (about 0.80 against 0.70 for always guessing "repaid"). Tilak Nagar
+    still shows a real fairness gap (ratio 0.46) and gender does not (0.86).
 
 - **Day 19: a real key, a dark theme, and a steadier assistant.**
   - **First live run of the Groq path** (every earlier day was built without a key). It exposed three things,

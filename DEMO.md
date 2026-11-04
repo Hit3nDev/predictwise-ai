@@ -1,7 +1,8 @@
 # Demo runbook
 
 How to show PredictWise in about fifteen minutes: six on Simple mode, seven on Technical mode, two for
-the cloud if asked. Every click below was checked on the sample files the night before.
+the cloud if asked. Every click below was checked on the sample files the night before. The slides (with
+speaker notes on every slide) and a five-page plain-words guide are in `presentation/`.
 
 Two files were built for the demonstration and sit first in the sample list:
 
@@ -73,11 +74,13 @@ Use the **Udhaar khata** sample (606 rows, trains in seconds). Load it from Simp
 **01 Data.** The file list comes from the `datasets` table in the database (SQLite here, PostgreSQL on AWS).
 Say: "Every upload is a row in the database with its stored path, row count and columns."
 
-**02 Clean.** Choose how to fill missing numbers (median), missing text (most common), extreme values (IQR
-cap), repeated rows. Click **Clean dataset**. The *What changed* panel is the cleaning log: 18 ages and 12
-average bills filled, 6 repeated rows dropped, the two ₹90,000 udhaar amounts capped; every operation is
-written to the `cleaning_logs` table. Say: "Preprocessing is logged, not hidden." (Simple mode cleans
-automatically but never alters amounts: a ₹15,000 wedding order is flagged as unusual, not clipped.)
+**02 Clean.** Choose how to fill missing numbers (median), missing text (most common), extreme values, repeated
+rows. Set **Extreme values** to *Cap using the IQR rule* (the default is "Keep as they are"), then click
+**Clean dataset**. The *What changed* panel is the cleaning log: 6 repeated rows dropped, 18 ages and 12
+average bills filled, and outliers capped in five columns (31 in `udhaar_amount`, including the two ₹90,000
+amounts); every operation is written to the `cleaning_logs` table. Say: "Preprocessing is logged, not hidden."
+(Simple mode cleans automatically but never alters amounts: a ₹15,000 wedding order is flagged as unusual,
+not clipped.)
 
 **03 Explore.** Click **Continue to exploration**. Shape tiles (rows, columns, missing, repeats),
 distributions (histograms per number column), the correlation matrix (cobalt positive, red negative), the
@@ -97,14 +100,21 @@ click, and it runs on the cleaned file."
    rows trained on, rows held back). Say: "Selection by cross-validation, reporting on data the model never
    saw. Choosing on the test set would leak it into the choice and inflate the number."
 7. **What drives the prediction**: permutation importance. Each column is shuffled in turn; the drop in score
-   is how much the model relied on it. Expect times late before, visits a month, the udhaar amount and days
-   since the last visit to lead.
+   is how much the model relied on it. Expect `late_before` to lead by a wide margin, then the udhaar amount,
+   days since the last visit and area. Small negative bars are noise on 120 rows: the order is what matters.
 8. The winning pipeline is saved with joblib (`backend/artifacts/model_<id>.joblib`) and recorded in the
    `experiments` and `ml_models` tables, so predictions can be served later without retraining.
 
-**05 Predict.** "Should I give this customer udhaar?" Fill a row (blanks are imputed): visits 12, average
-bill 400, udhaar amount 1,500, late before 0, days since last visit 3 → likely to repay, with the confidence.
-Then late before 3 and days since last visit 90 → risky. Show:
+Numbers on this file (capped clean): 70% of customers repaid on time, so always guessing "repaid" scores about
+70%. Logistic Regression wins (5-fold accuracy 0.81), then Random Forest 0.80, Gradient Boosting 0.78, Decision
+Tree 0.71. On the 120 rows held back: accuracy 0.80, F1 0.80, ROC AUC 0.90. A simple model winning is itself a
+point: the app picks by score, not by assuming that complex is better. The held-out score can differ from the
+cross-validation score by a few points because it is only 120 rows.
+
+**05 Predict.** "Should I give this customer udhaar?" Fill a safe row: area Jawahar Nagar, gender Female, age 38,
+months as customer 36, visits per month 12, average bill 420, udhaar amount 1500, previous udhaar 3, late before 0,
+days since last visit 4 → repaid, about 99%, *Familiar input*. Then a risky row: area Tilak Nagar, udhaar amount
+99999, late before 3, days since last visit 90, visits per month 3 → *Outside the data*. Show:
 - the **trust note**: inputs are checked against the training data's fingerprint. Type udhaar amount
   **99999** and predict again: *Outside the data*, with the reason. Say: "It knows what it doesn't know."
 - the **track record**: "when the model was about this sure, it was right X% of the time on held-out rows."
@@ -115,8 +125,9 @@ Every prediction is logged to the `predictions` table with its trust level.
 
 **06 Audit.**
 - **Fairness audit**: group by `area`. The held-out rows are reconstructed with the same split, and
-  selection rate and accuracy are compared per group under the four-fifths rule: Tilak Nagar comes out
-  lower, and the report says the gap is already in the data. Then group by `gender`: clean. The result
+  selection rate and accuracy are compared per group under the four-fifths rule: Tilak Nagar gets "repaid"
+  40% of the time against 88% for Jawahar Nagar (ratio 0.46, below the 0.80 guideline), and the report says
+  the gap is already in the data. Then group by `gender`: ratio 0.86, no large gap. The result
   is saved to `fairness_audits`. Say: "A screening tool, not a legal audit, and it says when a gap already
   exists in the data."
 - **Live monitoring**: the prediction log, average confidence, how many predictions used unfamiliar inputs,

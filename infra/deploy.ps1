@@ -90,7 +90,7 @@ if ($SkipRelease -and $stackExists) {
     Write-Host "Packaging app source -> $archive"
     & "$env:SystemRoot\System32\tar.exe" -czf $archive -C $Root `
         --exclude=node_modules --exclude=dist --exclude=__pycache__ --exclude=.pytest_cache `
-        --exclude=uploads --exclude=cleaned --exclude=artifacts --exclude=*.db `
+        --exclude=uploads --exclude=cleaned --exclude=artifacts --exclude=*.db --exclude=.env `
         Dockerfile .dockerignore backend frontend
     if ($LASTEXITCODE -ne 0) { throw "tar failed" }
     $releaseKey = "releases/app-$stamp.tar.gz"
