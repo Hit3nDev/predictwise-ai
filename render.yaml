@@ -1,0 +1,10 @@
+# One-click public hosting on Render (free plan). Builds the repo's Dockerfile.
+services:
+  - type: web
+    name: predictwise-ai
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8000"
